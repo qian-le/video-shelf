@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>书架 · 电子书库</title>
+<style>
+:root {
+  --paper:#f4efe6; --card:#fffdf8; --ink:#1c1917; --muted:#78716c;
+  --accent:#0f766e; --warm:#b45309; --line:#e7e0d4;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--paper); color: var(--ink); line-height: 1.6;
+}
+.wrap { max-width: 1080px; margin: 0 auto; padding: 56px 24px 64px; }
+header h1 { font-size: 2rem; font-weight: 700; letter-spacing: .04em; margin-bottom: 8px; }
+header h1 span { color: var(--accent); }
+header p { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+.grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:20px; }
+.card {
+  position:relative; display:flex; flex-direction:column; gap:10px;
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:22px 20px 18px 28px; text-decoration:none; color:inherit; min-height:180px;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.card:hover { transform:translateY(-3px); box-shadow:0 10px 28px rgba(28,25,23,.08); }
+.card::before {
+  content:""; position:absolute; left:0; top:14px; bottom:14px; width:6px;
+  border-radius:0 4px 4px 0; background: var(--spine, var(--accent));
+}
+.badge {
+  width:40px; height:40px; border-radius:10px; display:flex; align-items:center;
+  justify-content:center; font-weight:700; color:#fff; font-size:14px;
+  background: var(--spine, var(--accent));
+}
+.card h2 { font-size:1.05rem; font-weight:650; line-height:1.45; }
+.meta { color:var(--muted); font-size:12.5px; }
+.grow { flex:1; }
+.actions { display:flex; gap:10px; justify-content:flex-end; align-items:center; }
+.btn {
+  font-size:12.5px; padding:6px 12px; border-radius:8px; background:#efe8db;
+  color:var(--ink); text-decoration:none; border:1px solid var(--line);
+}
+.btn:hover, .card:hover .btn.read { background:var(--accent); color:#fff; border-color:var(--accent); }
+.empty {
+  grid-column:1/-1; text-align:center; color:var(--muted); padding:48px;
+  border:1px dashed var(--line); border-radius:14px; background:rgba(255,253,248,.6);
+}
+footer { margin-top:40px; text-align:center; color:var(--muted); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>书<span>架</span></h1>
+    <p>书架 · 电子书库 · 共 1 本</p>
+  </header>
+  <div class="grid">
+      <a class="card" href="%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" style="--spine:#0f766e">
+        <div class="badge">01</div>
+        <h2>软件仓库管理 (2) [04-Raw/26生成式软件工程/NJU]</h2>
+        <p class="meta">BV1Q6en6NEUo · 更新于 2026-09-18</p>
+        <div class="grow"></div>
+        <div class="actions"><a class="btn" href="%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/transcript.corrected.txt">字幕对照</a><span class="btn read">开始阅读</span></div>
+      </a>
+  </div>
+  <footer>Shelf Pipeline · 与 VideoBook 工作流对齐 · 前端自有风格</footer>
+</div>
+</body>
+</html>

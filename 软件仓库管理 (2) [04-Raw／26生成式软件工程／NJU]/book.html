@@ -251,12 +251,9 @@ body {
 .book-body .prereq li { margin: 4px 0; }
 
 /* 概念补给卡片 */
-.book-body h2#附念概念补给,
 .book-body h2[id*="概念补给"] {
   margin-top: var(--sp-8);
 }
-.book-body h3[id*="附录"],
-.book-body .glossary-item,
 .book-body h2[id*="概念补给"] ~ h3 {
   font-family: var(--font-ui);
   color: var(--accent-ink);
@@ -390,7 +387,7 @@ body {
 <blockquote>
 <p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1Q6en6NEUo/">Bilibili · BV1Q6en6NEUo</a>（时长约 98 分钟）
 <strong>课程</strong>：南京大学《生成式软件工程》（2026）第 04 讲 · Raw 版
-<strong>整理说明</strong>：由书架流水线根据视频字幕重构；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图可点击放大并跳转 B 站。</p>
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语，并修正了转录中的明显识别错误；关键时间点均标注 <em>(参考时间)</em>，点击截图卡片可跳转视频对应位置。</p>
 </blockquote>
 <hr />
 <h2 id="1-lab1">1. Lab1：会成长的个人助手</h2>
@@ -404,7 +401,7 @@ body {
 
 <p><em>(参考时间: 00:00)</em></p>
 <p>课程回顾了上周的软件项目管理内容，并发布了第一个选做实验（Lab1）——<strong>会成长的个人助手</strong>。</p>
-<p>作业本身「不限实现方式」：想怎么做就怎么做，最好用 Vibe Coding 完成。课程会在课上留出时间，现场演示直接让 Agent 做一个，并指出其中的坑。</p>
+<p>作业本身「不限实现方式」：想怎么做就怎么做，最好用 Vibe Coding（用自然语言驱动 AI 写代码的工作方式） 完成。课程会在课上留出时间，现场演示直接让 Agent 做一个，并指出其中的坑。</p>
 <h3 id="_1">为什么要做这个实验</h3>
 <p>几乎所有任务都在 AI 的能力范围之内。但如果直接把实验要求丢给 AI，它一开始就会做出许多「看起来合理」的决定，而这些决定会让项目维护越来越困难，最终陷入软件工程里的<strong>焦油坑（项目越改越难维护、越投入越陷进去的泥潭）</strong>。</p>
 <p>实验的真正目的，是让每位同学体验：</p>
@@ -429,12 +426,12 @@ body {
 </ul>
 <p>主讲人现场展示了自己用 Agent 处理填表的效率提升——过去需要研究生三年做的自动填表系统，如今几乎是一句话的事。</p>
 <hr />
-<h2 id="2-intent">2. 项目、Intent（你最初「想做什么」，还没写成详细设计） 与可追踪性</h2>
+<h2 id="2-intent">2. 项目、Intent 与可追踪性</h2>
 <div class="prereq" data-label="你需要先知道">
 
 - 知道「项目」不只是代码，还有文档、测试
 - 用过或听说过 Git 仓库（会 clone / 看文件即可）
-- 若没听过 technical debt / 可追踪性，本章会用例子展开
+- 若没听过技术债、可追踪性，本章会用例子展开
 
 </div>
 
@@ -462,7 +459,7 @@ body {
 <li>测试用例依赖旧行为。</li>
 </ul>
 <p>文档、代码、测试之间形成关联，却没有被强行绑定。这正是<strong>技术债 technical debt（现在偷懒，以后要付更高代价去还的不一致）</strong>：随演进，不一致只会越来越多。</p>
-<p>软件工程里对应的研究方向叫 <strong>Traceability（可追踪性：文档、代码、测试能否对上号）</strong>——在系统演进中维持测试、文档、代码之间的关联。</p>
+<p>软件工程里对应的研究方向叫 <strong>Traceability（可追踪性）</strong>——在系统演进中维持测试、文档、代码之间的关联。</p>
 <div class="video-card screenshot-card"><img src="images/shot_00_09_50.png" alt="项目中的 Traceability 问题" loading="lazy"><p class="video-caption"><span class="cap-text">项目中的 Traceability 问题</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=590" target="_blank" rel="noopener">在 B 站打开 (00:09:50)</a></span></p></div>
 
 <h3 id="23">2.3 未来可能的仓库形态</h3>
@@ -481,12 +478,12 @@ body {
 </code></pre>
 <p>这里借用了数据库「视图」的概念：数据不变，用不同查询以另一种形式展示。</p>
 <hr />
-<h2 id="3-git-mergerebase-change">3. Git 深潜：Merge、Rebase（把提交搬家、接到新的基线上，常用来整理历史） 与 Change</h2>
+<h2 id="3-git-mergerebase-change">3. Git 深潜：Merge、Rebase 与 Change</h2>
 <div class="prereq" data-label="你需要先知道">
 
 - 用过 git commit（提交一次改动）
 - 知道分支 branch 可以让两个人同时改代码
-- 若没用过 rebase（把你的一串提交「搬家」接到别人最新进度后面，历史更像一条直线） / stash（把改到一半的工作临时藏起来，好先去修别的），本章按步骤讲，可先当故事听
+- 若没用过 rebase / stash，本章按步骤讲，可先当故事听
 
 </div>
 
@@ -498,7 +495,7 @@ body {
 <li>若 merge 由 A 完成，B 写的部分在冲突解决后 <strong>ownership 可能归到 A</strong>。</li>
 </ul>
 <h3 id="32-rebase">3.2 Rebase 的机制与风险</h3>
-<p>Rebase 试图把一侧的修改「搬到」另一侧之后，得到<strong>线性历史</strong>：</p>
+<p>Rebase（把提交搬家、接到新的基线上，常用来整理历史） 试图把一侧的修改「搬到」另一侧之后，得到<strong>线性历史</strong>：</p>
 <ol>
 <li>把 B 的 feature 尝试接到 A 的历史后面；</li>
 <li>成功则继续搬 test；</li>
@@ -507,7 +504,7 @@ body {
 <pre><code class="language-mermaid">graph TD
     A0[&quot;A: 文档&quot;] --&gt; A1[&quot;A: 测试&quot;]
     B0[&quot;B: feature&quot;] --&gt; B1[&quot;B: 测试&quot;]
-    A1 --&gt; R1[&quot;rebase: 搬 feature&quot;]
+    A1 --&gt; R1[&quot;rebase（把你的一串提交「搬家」接到别人最新进度后面）: 搬 feature&quot;]
     R1 --&gt; R2[&quot;rebase: 搬测试&quot;]
     R2 --&gt; L[&quot;线性历史&quot;]
 </code></pre>
@@ -518,7 +515,7 @@ body {
 <li>我们真正关心的是 <strong>change（修改）</strong>，Git 却用 commit 代替 change，没有专门的 change 对象。</li>
 </ul>
 <h3 id="33-stash">3.3 Stash 与人的单线程假设</h3>
-<p>经典场景：改到一半（编译不过、测试不过），导师突然打电话要修更高优先级 bug。Git 的解法是 <code>git stash</code>——把工作区压栈。</p>
+<p>经典场景：改到一半（编译不过、测试不过），导师突然打电话要修更高优先级 bug。Git 的解法是 <code>git stash（把改到一半的工作临时藏起来，好先去修别的）</code>——把工作区压栈。</p>
 <p>再被打断一次，stash 栈就变深。在「古法编程」时代这尚可接受，因为：</p>
 <ul>
 <li>人是 <strong>single-threaded</strong>：只有一双手、一张嘴、一对眼睛；</li>
@@ -526,7 +523,7 @@ body {
 <li>人类提交以小时计，团队沟通以天/会为单位，冲突概率低。</li>
 </ul>
 <hr />
-<h2 id="4-jujutsu-jj-change-change">4. Jujutsu / jj（新一代版本控制工具，把「一次修改 change」当成一等公民）：把 Change 变成一等公民</h2>
+<h2 id="4-jujutsu-change">4. Jujutsu：把 Change 变成一等公民</h2>
 <div class="prereq" data-label="你需要先知道">
 
 - 读过本册第 3 章，或知道 Git 的 commit 与 rebase 大致在干什么
@@ -599,7 +596,7 @@ jj:   working copy ≡ 当前 change（自动提交）
 </tr>
 </tbody>
 </table>
-<p>即便使用 Git worktree（同一个仓库开出多个工作目录，供不同人/Agent 并行改） 等 workaround，本质仍是「为人设计的模型」。</p>
+<p>即便使用 Git worktree（同一仓库开出多个工作目录，供并行修改） 等 workaround，本质仍是「为人设计的模型」。</p>
 <h3 id="52-agent">5.2 多 Agent 协作的两种拓扑</h3>
 <p><strong>方式一：一人一机（严格类比人类）</strong></p>
 <ul>
@@ -618,7 +615,7 @@ jj:   working copy ≡ 当前 change（自动提交）
 <div class="video-card screenshot-card"><img src="images/shot_00_47_00.png" alt="多 Agent 并行：tmux + worktree" loading="lazy"><p class="video-caption"><span class="cap-text">多 Agent 并行：tmux + worktree</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=2820" target="_blank" rel="noopener">在 B 站打开 (00:47:00)</a></span></p></div>
 
 <h3 id="53-blame">5.3 不再需要 blame</h3>
-<p>Git 为人设计的特性还包括 <code>git blame（查看某一行是谁、哪次提交改的——用来「追责」）</code>：出问题时回溯是谁的 commit。</p>
+<p>Git 为人设计的特性还包括 <code>git blame（查某一行是谁、哪次提交改的——用来追责）</code>：出问题时回溯是谁的 commit。</p>
 <p>Agent 时代：</p>
 <ul>
 <li>Agent 不能被「开除」或「坐牢」；</li>
@@ -630,21 +627,21 @@ jj:   working copy ≡ 当前 change（自动提交）
 <h2 id="6">6. 从第一性原理看并发控制</h2>
 <div class="prereq" data-label="你需要先知道">
 
-- 操作系统课：线程、锁（mutex）是什么（没学过也能按「先上锁再干活」理解）
+- 操作系统课：线程、锁是什么（没学过也能按「先上锁再干活」理解）
 - 数据库课：事务 transaction、冲突大致是什么（选修）
 - 知道 Git 协作里 merge / rebase 可能失败即可
 
 </div>
 
 <p><em>(参考时间: 00:55:36)</em></p>
-<h3 id="61-git">6.1 Git ≈ 乐观并发控制（先各改各的，冲突了再处理，假设一般不会撞车）</h3>
+<h3 id="61-git">6.1 Git ≈ 乐观并发控制</h3>
 <p>数据库里，事务（transaction）可先读、再算、再写；写时可能冲突或死锁，需 rollback。Git 的协作模型很像<strong>乐观并发控制（optimistic）</strong>：</p>
 <ul>
 <li>假设事先开过会，各做各的大概率不冲突；</li>
 <li>merge / rebase 时再处理冲突。</li>
 </ul>
 <p>教务系统选课是典型低冲突场景：每人读写自己的数据。</p>
-<h3 id="62-agent">6.2 Agent 应更偏向悲观并发控制（先上锁再改，假定很可能冲突）</h3>
+<h3 id="62-agent">6.2 Agent 应更偏向悲观并发控制</h3>
 <p>操作系统课的并发是<strong>锁</strong>：访问可能冲突的资源前先 lock，release 后别人才能 lock。</p>
 <p>Agent 动作极快时，乐观模型会更频繁触发冲突。更好的设计可能是：</p>
 <ol>
@@ -723,7 +720,7 @@ jj:   working copy ≡ 当前 change（自动提交）
 </ol>
 <p>主讲人自己的邮件 Agent 至今没有数据库：邮箱 → 共享云盘上的 email id 目录（含草稿、分类、是否垃圾邮件）→ 下一级流水线处理。</p>
 <hr />
-<h2 id="9-mvpminimum-viable-product">9. MVP（Minimum Viable Product：最小可用版本，先验证值不值得做） 与可演进架构</h2>
+<h2 id="9-mvp">9. MVP 与可演进架构</h2>
 <div class="prereq" data-label="你需要先知道">
 
 - 知道产品要先做「最小可用版本」再迭代（MVP）
@@ -833,23 +830,23 @@ jj:   working copy ≡ 当前 change（自动提交）
 <ul>
 <li><strong>是什么</strong>：暂存区决定下次 commit 含什么；stash 临时收起未完成改动。</li>
 <li><strong>课上为何出现</strong>：说明 Git 假设「人是单线程、被打断不频繁」。</li>
-<li><strong>和什么像</strong>：打包快递前先摊在桌上挑（staging）；有人敲门先把桌上东西扫进抽屉（stash）。</li>
+<li><strong>和什么像</strong>：寄快递前先摊在桌上挑（staging）；有人敲门先把东西扫进抽屉（stash）。</li>
 </ul>
 <h3 id="change">Change（修改）作为一等公民</h3>
 <ul>
 <li><strong>是什么</strong>：把「一次业务上的改动」做成系统里的对象，而不是只靠 commit 编号代替。</li>
 <li><strong>课上为何出现</strong>：Jujutsu 的核心；我们关心的是改了什么，不是快照 id 变没变。</li>
-<li><strong>和什么像</strong>：你关心的是「我提交了请假申请」这件事，而不是申请单在服务器上的编号。</li>
+<li><strong>和什么像</strong>：你关心的是「提交了请假申请」这件事，而不是服务器上的单号。</li>
 </ul>
 <h3 id="jujutsujj">Jujutsu（jj）</h3>
 <ul>
 <li><strong>是什么</strong>：与 Git 底层兼容的新版本控制工具，突出 change，弱化 staging。</li>
 <li><strong>课上为何出现</strong>：示范「可以从第一性原理重设计工具」，而非只会用 Git。</li>
-<li><strong>和什么像</strong>：从「纸质表格流程」换成「流程引擎」，业务步骤还在，操作更顺。</li>
+<li><strong>和什么像</strong>：从纸质表格流程换成流程引擎，业务步骤还在，操作更顺。</li>
 </ul>
 <h3 id="agent">Agent（智能体）</h3>
 <ul>
-<li><strong>是什么</strong>：能看上下文、规划步骤、调用工具（读写文件、跑命令）并循环到完成的 AI。</li>
+<li><strong>是什么</strong>：能看上下文、规划步骤、调用工具并循环到完成的 AI 程序。</li>
 <li><strong>课上为何出现</strong>：版本管理的使用者从人变成 Agent Team，约束条件全变了。</li>
 <li><strong>和什么像</strong>：不只会聊天的实习生，还能自己开电脑干活（但可能干偏）。</li>
 </ul>
@@ -857,13 +854,12 @@ jj:   working copy ≡ 当前 change（自动提交）
 <ul>
 <li><strong>是什么</strong>：乐观=先改，冲突再处理；悲观=先锁资源再改。</li>
 <li><strong>课上为何出现</strong>：人用 Git 偏乐观（开会分工）；Agent 又快又多，可能更该悲观锁。</li>
-<li><strong>和什么像</strong>：图书馆自习座：乐观=先坐，有人来再让；悲观=先登记锁座。</li>
+<li><strong>和什么像</strong>：自习座位：乐观=先坐，有人来再让；悲观=先登记锁座。</li>
 </ul>
 <h3 id="git-blame">Git Blame</h3>
 <ul>
 <li><strong>是什么</strong>：查某行代码是谁在哪次提交改的。</li>
 <li><strong>课上为何出现</strong>：为人追责设计；Agent 不能「被开除」，项目只需前进与修复。</li>
-<li><strong>常见误解</strong>：有 blame 不等于协作好；有时反而制造甩锅文化。</li>
 </ul>
 <h3 id="git-worktree">Git Worktree</h3>
 <ul>
@@ -875,24 +871,23 @@ jj:   working copy ≡ 当前 change（自动提交）
 <ul>
 <li><strong>是什么</strong>：用最少功能验证「有没有人要、方向对不对」。</li>
 <li><strong>课上为何出现</strong>：现场把 Lab 需求整包丢给 AI，得到「像教务系统」的空壳。</li>
-<li><strong>常见误解</strong>：MVP 不是「偷工减料版终稿」，而是<strong>学习与验证的工具</strong>。</li>
+<li><strong>常见误解</strong>：MVP 不是偷工减料版终稿，而是<strong>学习与验证的工具</strong>。</li>
 </ul>
 <h3 id="vibe-coding-ai-slop">Vibe Coding 与 AI Slop</h3>
 <ul>
-<li><strong>是什么</strong>：Vibe Coding≈用自然语言驱动写代码；Slop=AI 量产的空洞/不可靠产出。</li>
+<li><strong>是什么</strong>：Vibe Coding≈自然语言驱动写代码；Slop=AI 量产的空洞/不可靠产出。</li>
 <li><strong>课上为何出现</strong>：作业可以 vibe，但 Intent 不清时，AI 很会生产 slop。</li>
 <li><strong>和什么像</strong>：让文笔很好的写手代写情书——文笔好 ≠ 写的是你的心里话。</li>
 </ul>
 <h3 id="_10">《人月神话》与沟通成本</h3>
 <ul>
 <li><strong>是什么</strong>：人月不能简单线性叠加；人与人沟通近似随人数平方上升。</li>
-<li><strong>课上为何出现</strong>：解释为何大团队不一定更快，以及为何要拆 team、找能拆任务的 leader。</li>
-<li><strong>和什么像</strong>：班级群人数越多，通知越难对齐。</li>
+<li><strong>课上为何出现</strong>：解释为何大团队不一定更快，以及为何要拆 team、找能拆任务的人。</li>
 </ul>
-<h3 id="_11">软件架构「以不变应万变」</h3>
+<h3 id="_11">架构「以不变应万变」</h3>
 <ul>
 <li><strong>是什么</strong>：需求会变时，好架构用尽量少的改动接住变化。</li>
-<li><strong>课上为何出现</strong>：判断 AI 生成系统好坏的标准，不只「功能看起来全」。</li>
+<li><strong>课上为何出现</strong>：判断 AI 生成系统好坏，不只看「功能看起来全」。</li>
 <li><strong>和什么像</strong>：乐高底板 vs 胶水粘死的模型——前者好拆改。</li>
 </ul>
 <p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1Q6en6NEUo</em></p>

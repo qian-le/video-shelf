@@ -3,168 +3,345 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>书架 · 电子书库</title>
+<title>书架 · 视频课程 · 图文电子书库</title>
 <style>
+/* Shelf design tokens — 单主题浅色暖纸 */
 :root {
-  --bg:#0B1220;
-  --bg-2:#10182A;
-  --card:#151E32;
-  --card-hover:#1A2540;
-  --ink:#E8EEF8;
-  --muted:#8B97B0;
-  --faint:#5C6B86;
-  --jade:#3ECFAB;
-  --jade-dim:#1a3d36;
-  --gold:#D4A853;
-  --line:rgba(148, 163, 184, 0.16);
-  --radius:16px;
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
 }
-* { box-sizing:border-box; margin:0; padding:0; }
-html { background:var(--bg); }
-body {
-  font-family: system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(62,207,171,.09), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(212,168,83,.06), transparent 50%),
-    var(--bg);
-  color:var(--ink);
-  line-height:1.6;
-  min-height:100vh;
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
 }
-.wrap { max-width:1100px; margin:0 auto; padding:48px 24px 72px; }
-header {
-  display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
-  gap:16px; padding-bottom:28px; margin-bottom:36px;
-  border-bottom:1px solid var(--line);
+
+/* 书架索引 — 与阅读页同一暖纸主题 */
+body.shelf-page {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  min-height: 100vh;
 }
-.brand h1 {
-  font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
-  font-size:clamp(2rem, 4vw, 2.6rem); font-weight:600; letter-spacing:.12em;
-  color:var(--ink);
+.shelf-wrap { max-width: 1080px; margin: 0 auto; padding: var(--sp-7) var(--sp-5) var(--sp-8); }
+
+.shelf-header {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: var(--sp-4); margin-bottom: var(--sp-5);
+  padding-bottom: var(--sp-5); border-bottom: 1px solid var(--line);
 }
-.brand h1 em { font-style:normal; color:var(--jade); }
-.brand p { margin-top:8px; color:var(--muted); font-size:14px; letter-spacing:.02em; }
-.stat {
-  font-family: "Cascadia Code", Consolas, monospace;
-  font-size:12px; color:var(--faint); letter-spacing:.08em;
-  padding:8px 12px; border:1px solid var(--line); border-radius:999px;
-  background:rgba(255,255,255,.02);
+.shelf-brand h1 {
+  font-family: var(--font-read);
+  font-size: clamp(1.85rem, 3vw, 2.25rem); font-weight: 700; letter-spacing: .06em;
+  color: var(--ink); margin: 0;
 }
-.grid {
-  display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));
-  gap:18px;
+.shelf-brand h1 em { font-style: normal; color: var(--accent); }
+.shelf-brand p {
+  margin: var(--sp-2) 0 0; color: var(--muted); font-size: 14px;
 }
-.card {
-  position:relative; overflow:hidden;
-  display:flex; flex-direction:column; gap:18px;
-  min-height:220px;
-  background:linear-gradient(160deg, var(--card) 0%, var(--bg-2) 100%);
-  border:1px solid var(--line);
-  border-radius:var(--radius);
-  padding:22px 22px 18px 24px;
-  transition: border-color .18s ease, transform .18s ease, background .18s ease;
+.shelf-count {
+  font-family: var(--font-mono); font-size: 12px; color: var(--faint);
+  padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface);
 }
-.card:hover {
-  transform:translateY(-3px);
-  border-color:rgba(62,207,171,.35);
-  background:linear-gradient(160deg, var(--card-hover) 0%, var(--bg-2) 100%);
+
+.shelf-toolbar {
+  display: grid; grid-template-columns: 1fr auto auto; gap: var(--sp-3);
+  margin-bottom: var(--sp-6); font-family: var(--font-ui);
 }
-.card:focus-within { outline:2px solid var(--jade); outline-offset:2px; }
-.card::before {
-  content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
-  background:linear-gradient(180deg, var(--spine, var(--jade)), transparent 90%);
+.shelf-toolbar input[type="search"],
+.shelf-toolbar select {
+  min-height: 40px; padding: 0 12px; border-radius: var(--r-ctl);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font-size: 14px; font-family: inherit;
 }
-.stretch {
-  position:absolute; inset:0; z-index:1; text-indent:-9999px; overflow:hidden;
+.shelf-toolbar input[type="search"] { width: 100%; }
+.shelf-toolbar input:focus-visible,
+.shelf-toolbar select:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
 }
-.stretch:focus-visible { outline:none; }
-.num {
-  position:absolute; right:12px; top:8px; z-index:0;
-  font-family: Georgia, serif; font-size:72px; font-weight:600; line-height:1;
-  color:rgba(232,238,248,.04); letter-spacing:-.04em;
-  pointer-events:none; user-select:none;
+.shelf-toolbar .clear-filters {
+  min-height: 40px; padding: 0 14px; border-radius: var(--r-ctl);
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+  font-size: 13px; cursor: pointer; font-family: inherit;
 }
-.body { position:relative; z-index:2; pointer-events:none; flex:1; }
-.eyebrow {
-  font-family: "Cascadia Code", Consolas, monospace;
-  font-size:11px; letter-spacing:.14em; color:var(--jade);
-  margin-bottom:12px;
+.shelf-toolbar .clear-filters:hover { color: var(--ink); border-color: var(--line-strong); }
+
+.shelf-group { margin-bottom: var(--sp-7); }
+.shelf-group-title {
+  font-family: var(--font-ui); font-size: 12px; font-weight: 650;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--accent-ink);
+  margin: 0 0 var(--sp-4); display: flex; align-items: center; gap: var(--sp-3);
 }
-.card h2 {
-  font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
-  font-size:1.2rem; font-weight:600; line-height:1.45; color:var(--ink);
-  margin-bottom:10px;
-  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+.shelf-group-title::after {
+  content: ""; flex: 1; height: 1px; background: var(--line);
 }
-.meta { color:var(--muted); font-size:12.5px; }
-.actions {
-  position:relative; z-index:2;
-  display:flex; gap:10px; justify-content:flex-end; align-items:center;
-  padding-top:4px;
+.shelf-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--sp-4);
+}
+.shelf-grid.single { grid-template-columns: minmax(280px, 420px); }
+
+.book-card {
+  position: relative; display: flex; flex-direction: column; gap: var(--sp-3);
+  min-height: 200px; padding: var(--sp-5) var(--sp-5) var(--sp-4) calc(var(--sp-5) + 4px);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-panel); box-shadow: var(--shadow);
+  transition: transform .16s ease, border-color .16s ease;
+}
+.book-card:hover { transform: translateY(-2px); border-color: rgba(15,118,110,.35); }
+.book-card:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-card::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  border-radius: var(--r-panel) 0 0 var(--r-panel);
+  background: var(--spine, var(--accent));
+}
+.book-card .stretch {
+  position: absolute; inset: 0; z-index: 1; text-indent: -9999px; overflow: hidden;
+}
+.card-eyebrow {
+  font-family: var(--font-ui); font-size: 12px; color: var(--muted);
+  position: relative; z-index: 2; pointer-events: none;
+}
+.card-eyebrow .lecture { color: var(--accent-ink); font-weight: 600; }
+.book-card h2 {
+  position: relative; z-index: 2; pointer-events: none;
+  font-family: var(--font-read); font-size: 1.15rem; font-weight: 650;
+  line-height: 1.45; margin: 0; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.card-summary {
+  position: relative; z-index: 2; pointer-events: none;
+  font-size: 13.5px; color: var(--muted); line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  margin: 0;
+}
+.card-meta {
+  position: relative; z-index: 2; pointer-events: none;
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--faint); margin: 0;
+}
+.card-actions {
+  position: relative; z-index: 2; margin-top: auto;
+  display: flex; justify-content: flex-end; gap: var(--sp-2);
 }
 .btn {
-  display:inline-flex; align-items:center; justify-content:center;
-  min-height:36px; padding:0 14px; border-radius:10px;
-  font-size:13px; font-weight:500; text-decoration:none;
-  color:var(--ink); background:rgba(255,255,255,.04);
-  border:1px solid var(--line);
-  transition: background .15s ease, border-color .15s ease, color .15s ease;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 36px; padding: 0 14px; border-radius: var(--r-ctl);
+  font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+  text-decoration: none; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line);
 }
-.btn:hover { background:rgba(255,255,255,.08); border-color:rgba(148,163,184,.35); }
-.btn:focus-visible { outline:2px solid var(--jade); outline-offset:2px; }
+.btn:hover { border-color: var(--line-strong); background: var(--code-bg); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .btn.primary {
-  background:var(--jade); border-color:var(--jade); color:#06281F; font-weight:600;
+  background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600;
 }
-.btn.primary:hover { background:#5adcbb; border-color:#5adcbb; color:#041a14; }
-.empty {
-  grid-column:1/-1; text-align:center; color:var(--muted);
-  padding:56px 24px; border:1px dashed var(--line); border-radius:var(--radius);
-  background:rgba(255,255,255,.02);
+.btn.primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); color: #fff; }
+
+.shelf-empty, .shelf-no-result {
+  grid-column: 1 / -1; text-align: center; color: var(--muted);
+  padding: var(--sp-7) var(--sp-5); border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel); background: var(--surface);
+  font-family: var(--font-ui); font-size: 14px;
 }
-footer {
-  margin-top:48px; padding-top:20px; border-top:1px solid var(--line);
-  display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
-  color:var(--faint); font-size:12px;
+.shelf-no-result[hidden], .shelf-empty[hidden] { display: none !important; }
+
+.shelf-footer {
+  margin-top: var(--sp-7); padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+  display: flex; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap;
+  color: var(--faint); font-size: 12px; font-family: var(--font-ui);
 }
-@media (max-width:640px) {
-  .wrap { padding:32px 16px 56px; }
-  .card { min-height:200px; }
-  .num { font-size:56px; }
+
+@media (max-width: 720px) {
+  .shelf-toolbar { grid-template-columns: 1fr; }
+  .shelf-wrap { padding: var(--sp-6) var(--sp-4) var(--sp-7); }
+  .shelf-grid.single { grid-template-columns: 1fr; }
 }
-@media (prefers-reduced-motion:reduce) {
-  .card, .btn { transition:none; }
-  .card:hover { transform:none; }
+@media (prefers-reduced-motion: reduce) {
+  .book-card { transition: none; }
+  .book-card:hover { transform: none; }
 }
+
 </style>
 </head>
-<body>
-<div class="wrap">
-  <header>
-    <div class="brand">
+<body class="shelf-page">
+<div class="shelf-wrap">
+  <header class="shelf-header">
+    <div class="shelf-brand">
       <h1>书<em>架</em></h1>
       <p>视频课程 · 图文电子书库</p>
     </div>
-    <div class="stat">1 VOL · SHELF</div>
+    <div class="shelf-count">1 本</div>
   </header>
-  <div class="grid">
-      <article class="card" style="--spine:#3ECFAB">
-        <a class="stretch" href="%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 软件仓库管理 (2) [04-Raw/26生成式软件工程/NJU]"></a>
-        <div class="num" aria-hidden="true">01</div>
-        <div class="body">
-          <div class="eyebrow">LECTURE · 01</div>
-          <h2>软件仓库管理 (2) [04-Raw/26生成式软件工程/NJU]</h2>
-          <p class="meta">BV1Q6en6NEUo · 2026-09-18</p>
-        </div>
-        <div class="actions">
-          <a class="btn" href="%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/transcript.corrected.html" target="_blank" rel="noopener">字幕对照</a>
+
+  <div class="shelf-toolbar" role="search">
+    <input id="shelf-search" type="search" placeholder="搜索标题、课程、标签…" aria-label="搜索书目">
+    <select id="shelf-course" aria-label="按课程筛选">
+      <option value="">全部课程</option>
+      <option value="26生成式软件工程">26生成式软件工程</option>
+    </select>
+    <select id="shelf-sort" aria-label="排序">
+      <option value="course">按讲次</option>
+      <option value="updated">最近更新</option>
+    </select>
+  </div>
+  <div class="shelf-toolbar" style="grid-template-columns:auto;margin-top:-8px;margin-bottom:24px">
+    <button type="button" class="clear-filters" id="shelf-clear">清除筛选</button>
+  </div>
+
+  <div id="shelf-root">
+    <section class="shelf-group" data-course="26生成式软件工程">
+      <h2 class="shelf-group-title">26生成式软件工程</h2>
+      <div class="shelf-grid single">
+      <article class="book-card" style="--spine:#0F766E"
+        data-course="26生成式软件工程"
+        data-lecture="4"
+        data-updated="2026-09-18T15:21:53+08:00"
+        data-search="软件仓库管理（二）：从 git 到 agent 时代的版本控制 软件仓库管理 (2) [04-raw/26生成式软件工程/nju] 26生成式软件工程 版本控制 git jujutsu agent mvp bv1q6en6neuo">
+        <a class="stretch" href="%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 软件仓库管理（二）：从 Git 到 Agent 时代的版本控制"></a>
+        <p class="card-eyebrow">26生成式软件工程 · <span class="lecture">第 4 讲</span></p>
+        <h2>软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</h2>
+        <p class="card-summary">从 Git 的 merge/rebase 与 change 概念出发，讨论为 Agent 时代重新设计版本管理，并演示 Vibe Coding 从零做个人助手时的架构陷阱。</p>
+        <p class="card-meta">BV1Q6en6NEUo · 1h38m · 2026-09-18</p>
+        <div class="card-actions">
           <a class="btn primary" href="%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">开始阅读</a>
         </div>
       </article>
+      </div>
+    </section>
+    <div class="shelf-empty" id="shelf-empty" hidden>书架尚未上架任何电子书。</div>
+    <div class="shelf-no-result" id="shelf-no-result" hidden>没有匹配的书目。<button type="button" class="clear-filters" onclick="document.getElementById('shelf-clear').click()">清除筛选</button></div>
   </div>
-  <footer>
+
+  <footer class="shelf-footer">
     <span>Shelf Pipeline</span>
     <span>字幕 → 书籍化 → 截帧 → HTML</span>
   </footer>
 </div>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    var root = document.getElementById("shelf-root");
+    if (!root) return;
+    var cards = Array.prototype.slice.call(root.querySelectorAll(".book-card"));
+    var groups = Array.prototype.slice.call(root.querySelectorAll(".shelf-group"));
+    var q = document.getElementById("shelf-search");
+    var course = document.getElementById("shelf-course");
+    var sort = document.getElementById("shelf-sort");
+    var clear = document.getElementById("shelf-clear");
+    var noResult = document.getElementById("shelf-no-result");
+    var empty = document.getElementById("shelf-empty");
+
+    function norm(s) { return (s || "").toLowerCase().trim(); }
+
+    function apply() {
+      var query = norm(q && q.value);
+      var c = course ? course.value : "";
+      var sortBy = sort ? sort.value : "course";
+      var visible = 0;
+
+      // 排序：更新时间
+      var gridHosts = groups.length ? groups : [root];
+      // 简单实现：在每个 group 内按 data-updated 排序卡片
+      groups.forEach(function (g) {
+        var grid = g.querySelector(".shelf-grid");
+        if (!grid) return;
+        var items = Array.prototype.slice.call(grid.querySelectorAll(".book-card"));
+        items.sort(function (a, b) {
+          if (sortBy === "updated") {
+            return (b.dataset.updated || "").localeCompare(a.dataset.updated || "");
+          }
+          var la = parseInt(a.dataset.lecture || "9999", 10);
+          var lb = parseInt(b.dataset.lecture || "9999", 10);
+          return la - lb;
+        });
+        items.forEach(function (el) { grid.appendChild(el); });
+      });
+
+      cards.forEach(function (card) {
+        var hay = norm(card.dataset.search);
+        var cardCourse = card.dataset.course || "";
+        var okQ = !query || hay.indexOf(query) !== -1;
+        var okC = !c || cardCourse === c;
+        var show = okQ && okC;
+        card.hidden = !show;
+        if (show) visible++;
+      });
+
+      groups.forEach(function (g) {
+        var any = Array.prototype.slice.call(g.querySelectorAll(".book-card")).some(function (el) {
+          return !el.hidden;
+        });
+        g.hidden = !any;
+      });
+
+      if (empty) empty.hidden = !(cards.length === 0);
+      if (noResult) noResult.hidden = !(cards.length > 0 && visible === 0);
+    }
+
+    if (q) q.addEventListener("input", apply);
+    if (course) course.addEventListener("change", apply);
+    if (sort) sort.addEventListener("change", apply);
+    if (clear) {
+      clear.addEventListener("click", function () {
+        if (q) q.value = "";
+        if (course) course.value = "";
+        if (sort) sort.value = "course";
+        apply();
+      });
+    }
+    apply();
+  });
+})();
+
+</script>
 </body>
 </html>

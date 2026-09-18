@@ -2,7 +2,20 @@
   "BV1Q6en6NEUo": {
     "folder": "软件仓库管理 (2) [04-Raw／26生成式软件工程／NJU]",
     "title": "软件仓库管理 (2) [04-Raw/26生成式软件工程/NJU]",
-    "updated": "2026-09-18T13:07:13+08:00",
+    "display_title": "软件仓库管理（二）：从 Git 到 Agent 时代的版本控制",
+    "course": "26生成式软件工程",
+    "series": "NJU 生成式软件工程",
+    "lecture_number": 4,
+    "summary": "从 Git 的 merge/rebase 与 change 概念出发，讨论为 Agent 时代重新设计版本管理，并演示 Vibe Coding 从零做个人助手时的架构陷阱。",
+    "tags": [
+      "版本控制",
+      "Git",
+      "Jujutsu",
+      "Agent",
+      "MVP"
+    ],
+    "duration": 5909,
+    "updated": "2026-09-18T15:21:53+08:00",
     "corrected": true,
     "corrected_html": true
   }

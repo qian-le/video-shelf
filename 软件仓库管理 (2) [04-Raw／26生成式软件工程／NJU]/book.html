@@ -1,208 +1,363 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Shelf design tokens — 单主题浅色暖纸 */
 :root {
-  color-scheme: light;
-  --bg: #F4F6F8;
-  --paper: #FFFFFF;
-  --ink: #0F172A;
-  --muted: #64748B;
-  --faint: #94A3B8;
-  --jade: #0D9488;
-  --jade-soft: rgba(13, 148, 136, 0.08);
-  --gold: #B45309;
-  --line: #E2E8F0;
-  --code-bg: #F1F5F9;
-  --radius: 12px;
-  --shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 8px 24px rgba(15, 23, 42, .06);
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
 }
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
-  font-family: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  font-family: var(--font-ui);
   background: var(--bg);
   color: var(--ink);
-  line-height: 1.85;
-  font-size: 16.5px;
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
 }
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
 .topbar {
-  position: sticky; top: 0; z-index: 50;
-  background: rgba(255,255,255,.92);
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
-.topbar-inner {
-  max-width: 780px; margin: 0 auto; padding: 12px 20px;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  font-family: system-ui, "Segoe UI", "PingFang SC", sans-serif;
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
 }
-.back {
-  color: var(--jade); text-decoration: none; font-weight: 600; font-size: 14px;
-  min-height: 36px; display: inline-flex; align-items: center;
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
 }
-.back:hover { text-decoration: underline; }
-.back:focus-visible { outline: 2px solid var(--jade); outline-offset: 3px; border-radius: 4px; }
-.topbar .tag {
-  font-family: "Cascadia Code", Consolas, monospace;
-  font-size: 12px; color: var(--faint); letter-spacing: .04em;
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
 }
-.book-content {
-  max-width: 780px; margin: 0 auto;
-  padding: 40px 24px 100px;
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
 }
-.book-content > h1:first-child {
-  margin-top: 8px;
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
 }
-h1 {
-  font-size: 2rem; font-weight: 700; margin: 12px 0 16px;
-  line-height: 1.35; color: var(--ink); letter-spacing: .01em;
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
 }
-h1::after {
-  content: ""; display: block; width: 40px; height: 3px;
-  margin-top: 14px; border-radius: 2px; background: var(--jade);
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
 }
-h2 {
-  font-size: 1.35em; font-weight: 700; margin: 44px 0 14px;
-  padding-bottom: 10px; border-bottom: 1px solid var(--line); color: var(--ink);
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
 }
-h3 { font-size: 1.1em; margin: 26px 0 10px; color: var(--jade); font-weight: 650; }
-p { margin: 0 0 14px; }
-strong { color: #0F172A; font-weight: 700; }
-em { color: var(--muted); }
-a {
-  color: var(--jade); text-decoration: none;
-  border-bottom: 1px solid transparent; transition: border-color .15s;
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
 }
-a:hover { border-bottom-color: var(--jade); }
-a:focus-visible { outline: 2px solid var(--jade); outline-offset: 2px; }
-blockquote {
-  margin: 22px 0; padding: 16px 18px;
-  background: var(--paper);
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--jade);
-  border-radius: 0 var(--radius) var(--radius) 0;
-  color: #334155;
-  box-shadow: var(--shadow);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
 }
-.book-content > blockquote:first-of-type { background: var(--jade-soft); }
-blockquote p { margin: 0; }
-ul, ol { margin: 12px 0 18px 24px; }
-li { margin: 5px 0; }
-hr { border: none; height: 1px; background: var(--line); margin: 40px 0; }
-table {
-  width: 100%; border-collapse: collapse; margin: 20px 0;
-  background: var(--paper); border-radius: var(--radius); overflow: hidden;
-  border: 1px solid var(--line); box-shadow: var(--shadow);
-  font-family: system-ui, "PingFang SC", sans-serif; font-size: .92em;
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
 }
-th {
-  padding: 11px 14px; text-align: left; background: #EEF2F6;
-  color: var(--jade); font-weight: 600; font-size: .92em;
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
 }
-td { padding: 11px 14px; border-top: 1px solid var(--line); }
-tbody tr:hover { background: #F8FAFC; }
-code {
-  font-family: "Cascadia Code", Consolas, monospace;
-  background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
-  font-size: .88em; color: #0F766E;
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
 }
-pre {
-  margin: 18px 0; padding: 16px 18px; background: var(--code-bg);
-  border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto;
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
 }
-pre code { background: none; padding: 0; color: var(--ink); font-size: .9em; }
-.video-card {
-  margin: 26px 0; border-radius: var(--radius); overflow: hidden;
-  background: var(--paper); border: 1px solid var(--line); box-shadow: var(--shadow);
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
 }
-.video-card:hover { border-color: rgba(13,148,136,.35); }
+.book-body blockquote p { margin: 0; }
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
 .video-wrapper {
-  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #0F172A;
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
 }
 .video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-.video-card img { width: 100%; display: block; cursor: zoom-in; }
-.video-card img:hover { opacity: .94; }
 .video-caption {
-  padding: 12px 16px; font-family: system-ui, sans-serif; font-size: .86em;
-  color: var(--muted); text-align: center; line-height: 1.55; margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
 }
-.video-caption a { color: var(--jade); font-weight: 600; }
-.video-card.fallback { padding: 18px; text-align: center; }
-.mermaid {
-  display: flex; justify-content: center; margin: 26px 0; overflow-x: auto;
-  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 16px;
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
 }
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
 .lightbox {
-  position: fixed; inset: 0; z-index: 999; display: none;
+  position: fixed; inset: 0; z-index: 100; display: none;
   align-items: center; justify-content: center;
-  background: rgba(15, 23, 42, .88); backdrop-filter: blur(4px);
-  cursor: zoom-out; padding: 20px;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
 }
 .lightbox.open { display: flex; }
-.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: 8px; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
 .lightbox-caption {
   position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
-  color: #CBD5E1; font-family: system-ui, sans-serif; font-size: .85em;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
 }
 @media (max-width: 640px) {
-  .book-content { padding: 24px 16px 72px; }
-  h1 { font-size: 1.5em; }
-  h2 { font-size: 1.22em; }
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
 </style>
 </head>
 <body>
-<div class="topbar">
-  <div class="topbar-inner">
-    <a class="back" href="../index.html">← 书架</a>
-    <span class="tag">SHELF · READ</span>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
   </div>
-</div>
-<article class="book-content">
-<h1 id="git-agent">软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</h1>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>26生成式软件工程</strong> · NJU 生成式软件工程 · 第 4 讲</p>
+        <h1>软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</h1>
+        <p class="book-summary">从 Git 的 merge/rebase 与 change 概念出发，讨论为 Agent 时代重新设计版本管理，并演示 Vibe Coding 从零做个人助手时的架构陷阱。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1Q6en6NEUo/" target="_blank" rel="noopener">BV1Q6en6NEUo</a> · 时长 1h38m · 标签：版本控制、Git、Jujutsu、Agent、MVP</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
 <blockquote>
 <p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1Q6en6NEUo/">Bilibili · BV1Q6en6NEUo</a>（时长约 98 分钟）
 <strong>课程</strong>：南京大学《生成式软件工程》（2026）第 04 讲 · Raw 版
 <strong>整理说明</strong>：由书架流水线根据视频字幕重构；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图可点击放大并跳转 B 站。</p>
 </blockquote>
 <hr />
-<h2 id="_1">目录</h2>
-<ol>
-<li><a href="#1-lab1">Lab1：会成长的个人助手</a></li>
-<li><a href="#2-intent">项目、Intent 与可追踪性</a></li>
-<li><a href="#3-git">Git 深潜：Merge、Rebase 与 Change</a></li>
-<li><a href="#4-jj">Jujutsu：把 Change 变成一等公民</a></li>
-<li><a href="#5-agent">为 Agent 重新设计版本管理</a></li>
-<li><a href="#6">从第一性原理看并发控制</a></li>
-<li><a href="#7">团队管理才是真正的难点</a></li>
-<li><a href="#8-vibe-coding">现场翻车：Vibe Coding 从零做 Lab1</a></li>
-<li><a href="#9-mvp">MVP 与可演进架构</a></li>
-<li><a href="#10">结语：版本管理要记住的三件事</a></li>
-</ol>
-<hr />
 <h2 id="1-lab1">1. Lab1：会成长的个人助手</h2>
 <p><em>(参考时间: 00:00)</em></p>
 <p>课程回顾了上周的软件项目管理内容，并发布了第一个选做实验（Lab1）——<strong>会成长的个人助手</strong>。</p>
 <p>作业本身「不限实现方式」：想怎么做就怎么做，最好用 Vibe Coding 完成。课程会在课上留出时间，现场演示直接让 Agent 做一个，并指出其中的坑。</p>
-<h3 id="_2">为什么要做这个实验</h3>
+<h3 id="_1">为什么要做这个实验</h3>
 <p>几乎所有任务都在 AI 的能力范围之内。但如果直接把实验要求丢给 AI，它一开始就会做出许多「看起来合理」的决定，而这些决定会让项目维护越来越困难，最终陷入软件工程里的<strong>焦油坑</strong>。</p>
 <p>实验的真正目的，是让每位同学体验：</p>
 <ul>
 <li>当 AI Slop 开始不断消耗 Token 时，你会下定决心删掉项目从头重做，或回退到很早期的版本；</li>
 <li>下一个 Lab 会与本 Lab 强关联且有一定冲突——如果不认真做 Lab1，就没有完整的软件工程体验。</li>
 </ul>
-<div class="video-card screenshot-card"><img src="images/shot_00_00_30.png" alt="Lab1：会成长的个人助手需求" loading="lazy"><p class="video-caption">📷 Lab1：会成长的个人助手需求<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=30" target="_blank" rel="noopener">在源站打开 (00:00:30)</a></p></div>
+<div class="video-card screenshot-card"><img src="images/shot_00_00_30.png" alt="Lab1：会成长的个人助手需求" loading="lazy"><p class="video-caption"><span class="cap-text">Lab1：会成长的个人助手需求</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=30" target="_blank" rel="noopener">在 B 站打开 (00:00:30)</a></span></p></div>
 
-<h3 id="_3">参考需求形态</h3>
+<h3 id="_2">参考需求形态</h3>
 <p>个人助手可以承载多种「个人数据库」：</p>
 <ul>
 <li>专业课资料（计算机网络、概率论等）；</li>
@@ -243,7 +398,7 @@ pre code { background: none; padding: 0; color: var(--ink); font-size: .9em; }
 </ul>
 <p>文档、代码、测试之间形成关联，却没有被强行绑定。这正是<strong>技术债（technical debt）</strong>：随演进，不一致只会越来越多。</p>
 <p>软件工程里对应的研究方向叫 <strong>Traceability（可追踪性）</strong>——在系统演进中维持测试、文档、代码之间的关联。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_09_50.png" alt="项目中的 Traceability 问题" loading="lazy"><p class="video-caption">📷 项目中的 Traceability 问题<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=590" target="_blank" rel="noopener">在源站打开 (00:09:50)</a></p></div>
+<div class="video-card screenshot-card"><img src="images/shot_00_09_50.png" alt="项目中的 Traceability 问题" loading="lazy"><p class="video-caption"><span class="cap-text">项目中的 Traceability 问题</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=590" target="_blank" rel="noopener">在 B 站打开 (00:09:50)</a></span></p></div>
 
 <h3 id="23">2.3 未来可能的仓库形态</h3>
 <p>如果未来几乎不再手写代码，软件可能不再是「一堆文件」，而是：</p>
@@ -301,7 +456,7 @@ pre code { background: none; padding: 0; color: var(--ink); font-size: .9em; }
 <h2 id="4-jujutsu-change">4. Jujutsu：把 Change 变成一等公民</h2>
 <p><em>(参考时间: 00:28:40)</em></p>
 <p>如果把 <strong>change 提升为 first-class citizen</strong>，就接近下一代版本控制工具——<strong>Jujutsu（jj）</strong>。</p>
-<h3 id="_4">核心特点</h3>
+<h3 id="_3">核心特点</h3>
 <ul>
 <li>与 Git 底层兼容，可当 Git 用；</li>
 <li>增加 change 概念：rebase 时搬的是 change，冲突可以「带下来」再 resolve；</li>
@@ -311,13 +466,13 @@ pre code { background: none; padding: 0; color: var(--ink); font-size: .9em; }
 <pre><code class="language-text">Git:  working tree → index → commit
 jj:   working copy ≡ 当前 change（自动提交）
 </code></pre>
-<h3 id="_5">学习建议</h3>
+<h3 id="_4">学习建议</h3>
 <ul>
 <li>上一代人形成 SVN 肌肉记忆，本代人形成 Git 肌肉记忆；</li>
 <li>AI native 一代应<strong>先用更正确的设计建立肌肉记忆</strong>，再回头理解 Git 为何如此；</li>
 <li>可以把「从 change 理解版本管理」这样的 prompt 交给 Agent 辅助学习。</li>
 </ul>
-<div class="video-card screenshot-card"><img src="images/shot_00_31_00.png" alt="Jujutsu：Change 作为一等公民" loading="lazy"><p class="video-caption">📷 Jujutsu：Change 作为一等公民<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=1860" target="_blank" rel="noopener">在源站打开 (00:31:00)</a></p></div>
+<div class="video-card screenshot-card"><img src="images/shot_00_31_00.png" alt="Jujutsu：Change 作为一等公民" loading="lazy"><p class="video-caption"><span class="cap-text">Jujutsu：Change 作为一等公民</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=1860" target="_blank" rel="noopener">在 B 站打开 (00:31:00)</a></span></p></div>
 
 <hr />
 <h2 id="5-agent">5. 为 Agent 重新设计版本管理</h2>
@@ -371,7 +526,7 @@ jj:   working copy ≡ 当前 change（自动提交）
 <li>冲突仍需 merge / rebase。</li>
 </ul>
 <p>现场演示中，主讲人开了多个 tmux session 作为 coding agent，让它们并行工作；并让 Agent 把会话改到 worktree 上。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_47_00.png" alt="多 Agent 并行：tmux + worktree" loading="lazy"><p class="video-caption">📷 多 Agent 并行：tmux + worktree<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=2820" target="_blank" rel="noopener">在源站打开 (00:47:00)</a></p></div>
+<div class="video-card screenshot-card"><img src="images/shot_00_47_00.png" alt="多 Agent 并行：tmux + worktree" loading="lazy"><p class="video-caption"><span class="cap-text">多 Agent 并行：tmux + worktree</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=2820" target="_blank" rel="noopener">在 B 站打开 (00:47:00)</a></span></p></div>
 
 <h3 id="53-blame">5.3 不再需要 blame</h3>
 <p>Git 为人设计的特性还包括 <code>git blame</code>：出问题时回溯是谁的 commit。</p>
@@ -420,9 +575,9 @@ jj:   working copy ≡ 当前 change（自动提交）
 <li>最难招的不是码农，而是能把国民级应用拆成多个 team、并让十个 team 拼起来仍是一个产品的 leader。</li>
 </ul>
 <p>你现在就可以把自己当成主 Agent：如何分解任务给多个 Agent？何时提交？何时合并？——把版本控制概念带进自己的开发流程。</p>
-<h3 id="_6">汉诺塔的隐喻</h3>
+<h3 id="_5">汉诺塔的隐喻</h3>
 <p>课上穿插了一个带方向限制的汉诺塔变体（只能单向移动），用来说明：看起来简单的约束会显著改变最优策略。更重要的是产品思维——如何把这个「小学生考级题」做成可售卖的产品：可编辑 playground + 付费 AI 助教。</p>
-<div class="video-card screenshot-card"><img src="images/shot_01_11_40.png" alt="单向汉诺塔可视化 Playground" loading="lazy"><p class="video-caption">📷 单向汉诺塔可视化 Playground<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=4300" target="_blank" rel="noopener">在源站打开 (01:11:40)</a></p></div>
+<div class="video-card screenshot-card"><img src="images/shot_01_11_40.png" alt="单向汉诺塔可视化 Playground" loading="lazy"><p class="video-caption"><span class="cap-text">单向汉诺塔可视化 Playground</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=4300" target="_blank" rel="noopener">在 B 站打开 (01:11:40)</a></span></p></div>
 
 <p>设计讨论中出现了一个反例：GPT 给出的「一个 API + 关系数据库 + 对象存储」是正常软件工程课答案，但主讲人不喜欢——因为本质需求是<strong>版本管理</strong>，用 Git 管理学生提交直到格式收敛，再迁移到数据库，往往更合理（Overleaf 导出为 git repo 同理）。</p>
 <hr />
@@ -436,7 +591,7 @@ jj:   working copy ≡ 当前 change（自动提交）
 <li>但提示词里每一个词 self-attention 都会看到；模型已被训练成「prompt 的舔狗」，会<strong>过度遵循</strong>讨论稿式需求；</li>
 <li>结果：满足了字面指令，却不是你想要的东西。</li>
 </ul>
-<div class="video-card screenshot-card"><img src="images/shot_01_20_10.png" alt="直接把 Lab 需求丢给 Agent" loading="lazy"><p class="video-caption">📷 直接把 Lab 需求丢给 Agent<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=4810" target="_blank" rel="noopener">在源站打开 (01:20:10)</a></p></div>
+<div class="video-card screenshot-card"><img src="images/shot_01_20_10.png" alt="直接把 Lab 需求丢给 Agent" loading="lazy"><p class="video-caption"><span class="cap-text">直接把 Lab 需求丢给 Agent</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=4810" target="_blank" rel="noopener">在 B 站打开 (01:20:10)</a></span></p></div>
 
 <h3 id="82-intent-gap">8.2 Intent 与实现的巨大 Gap</h3>
 <p>真正重要的言外之意是：</p>
@@ -462,7 +617,7 @@ jj:   working copy ≡ 当前 change（自动提交）
 <p>The biggest risk in product development is building something nobody wants.</p>
 </blockquote>
 <p>MVP 逼迫你想清楚：<strong>什么需求是绝对要的</strong>。</p>
-<h3 id="_7">好架构的标准</h3>
+<h3 id="_6">好架构的标准</h3>
 <p>不是「当前实现了需求」，而是：</p>
 <blockquote>
 <p>需求发生根本性变化时，架构能否以最少变化应对？</p>
@@ -491,7 +646,7 @@ jj:   working copy ≡ 当前 change（自动提交）
 </tbody>
 </table>
 <p>需求变更示例：希望邮件和资料都与云盘同步——检验现有架构是否需要摧毁性修改。</p>
-<div class="video-card screenshot-card"><img src="images/shot_01_36_10.png" alt="需求变更：引入云盘同步" loading="lazy"><p class="video-caption">📷 需求变更：引入云盘同步<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=5770" target="_blank" rel="noopener">在源站打开 (01:36:10)</a></p></div>
+<div class="video-card screenshot-card"><img src="images/shot_01_36_10.png" alt="需求变更：引入云盘同步" loading="lazy"><p class="video-caption"><span class="cap-text">需求变更：引入云盘同步</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=5770" target="_blank" rel="noopener">在 B 站打开 (01:36:10)</a></span></p></div>
 
 <p>早期 prompt 对项目走向影响最大：直接丢 README 说「做个 MVP」，与「先讨论再写第一行代码」，结果天差地别。</p>
 <hr />
@@ -508,44 +663,151 @@ jj:   working copy ≡ 当前 change（自动提交）
 <p>下一讲将进入<strong>软件架构与构造</strong>。</p>
 <hr />
 <p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1Q6en6NEUo</em></p>
-</article>
+      </article>
+    </div>
+  </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  if (window.mermaid) {
-    mermaid.initialize({ startOnLoad: false, theme: "neutral" });
-    document.querySelectorAll("pre code, .highlight code").forEach(function (node) {
-      var text = node.textContent.trim();
-      if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
-        var div = document.createElement("div");
-        div.className = "mermaid";
-        div.textContent = text;
-        var wrap = node.closest(".highlight") || node.parentNode;
-        wrap.replaceWith(div);
-      }
-    });
-    mermaid.run();
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
   }
 
-  var lb = document.createElement("div");
-  lb.className = "lightbox";
-  lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
-  document.body.appendChild(lb);
-  var img = lb.querySelector("img");
-  var cap = lb.querySelector(".lightbox-caption");
-  function open(src, alt) {
-    img.src = src; img.alt = alt || ""; cap.textContent = alt || "";
-    lb.classList.add("open"); document.body.style.overflow = "hidden";
-  }
-  function close() {
-    lb.classList.remove("open"); img.src = ""; document.body.style.overflow = "";
-  }
-  document.querySelectorAll(".screenshot-card img").forEach(function (el) {
-    el.addEventListener("click", function () { open(el.src, el.alt); });
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
   });
-  lb.addEventListener("click", close);
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
-});
+})();
+
 </script>
 </body>
 </html>

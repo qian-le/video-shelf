@@ -175,6 +175,47 @@ body {
   margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
 }
 
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
 /* 生成正文（markdown） — 作用域 .book-body */
 .book-body {
   max-width: var(--measure);
@@ -853,6 +894,7 @@ body {
 </ul>
 <p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1CQt365EzW</em></p>
       </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../%E6%AC%A2%E8%BF%8E%E6%9D%A5%E5%88%B0%E6%9C%AA%E6%9D%A5%20%5B01-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">欢迎来到未来：生成式软件工程第一讲</span></a><a class="pager-btn next" href="../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%5B03-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">软件仓库管理：项目、文件与版本控制入门</span></a></nav>
     </div>
   </div>
 </div>

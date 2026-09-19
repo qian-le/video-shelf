@@ -144,6 +144,10 @@ body.shelf-page {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3);
   margin: 2px 0 6px;
 }
+/* 作者标识在课程名左侧 */
+.collection-title-row .collection-author { order: 0; }
+.collection-title-row h2,
+.collection-title-row h1 { order: 1; }
 .collection-title-row h2 {
   font-family: var(--font-read); font-size: 1.25rem; font-weight: 700;
   margin: 0; color: var(--ink); line-height: 1.35;
@@ -283,8 +287,8 @@ body.shelf-page {
           <div class="collection-titles">
             <p class="card-eyebrow">课程合集</p>
             <div class="collection-title-row">
-              <h2>26生成式软件工程</h2>
               <span class="collection-author">作者——绿导师原谅你了（蒋炎岩）</span>
+              <h2>26生成式软件工程</h2>
             </div>
             <p class="card-meta">绿导师原谅你了（蒋炎岩） · 4 讲 · 6h37m</p>
           </div>

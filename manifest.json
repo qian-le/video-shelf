@@ -5,7 +5,7 @@
     "display_title": "软件仓库管理（二）：从 Git 到 Agent 时代的版本控制",
     "course": "26生成式软件工程",
     "series": "NJU 生成式软件工程",
-    "author": "NJU · 蒋炎岩",
+    "author": "绿导师原谅你了（蒋炎岩）",
     "lecture_number": 4,
     "summary": "从 Git 的 merge/rebase 与 change 概念出发，讨论为 Agent 时代重新设计版本管理，并演示 Vibe Coding 从零做个人助手时的架构陷阱。",
     "tags": [
@@ -26,7 +26,7 @@
     "display_title": "提示词工程：与模型对话的方法",
     "course": "26生成式软件工程",
     "series": "NJU 生成式软件工程",
-    "author": "NJU · 蒋炎岩",
+    "author": "绿导师原谅你了（蒋炎岩）",
     "lecture_number": 2,
     "summary": "从提示词扩展到整段 Agent 上下文工程：讲清 system prompt/skills/工具如何构成模型可见输入，用可验证 Spec 与 Verifier 引导模型，分析思维链、注意力与上下文污染，并讨论长程任务中 reward hacking 与人的角色。",
     "tags": [
@@ -48,7 +48,7 @@
     "display_title": "软件仓库管理：项目、文件与版本控制入门",
     "course": "26生成式软件工程",
     "series": "NJU 生成式软件工程",
-    "author": "NJU · 蒋炎岩",
+    "author": "绿导师原谅你了（蒋炎岩）",
     "lecture_number": 3,
     "summary": "从「项目是一个目录」讲起，介绍软件与版本管理的基本需求，入门 Git 的初始化、提交与最佳实践，说明冲突/blame/bisect 与对象模型，并以原子改动总结项目组织方式；相对第 04 讲更偏基础，不深挖 Jujutsu。",
     "tags": [
@@ -70,7 +70,7 @@
     "display_title": "欢迎来到未来：生成式软件工程第一讲",
     "course": "26生成式软件工程",
     "series": "NJU 生成式软件工程",
-    "author": "NJU · 蒋炎岩",
+    "author": "绿导师原谅你了（蒋炎岩）",
     "lecture_number": 1,
     "summary": "从计算机史上的「昂贵能力日用品化」讲起，直面 AI 时代的学生焦虑与简历同质化；介绍课程 Token/考核政策，用使用者视角解释大语言模型与 Agent，并以装机、终端、邮件、读书、浏览器填表等案例展示 skill 生态与个人知识飞轮。",
     "tags": [

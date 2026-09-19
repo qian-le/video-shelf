@@ -140,6 +140,27 @@ body.shelf-page {
   font-family: var(--font-read); font-size: 1.25rem; font-weight: 700;
   margin: 2px 0 6px; color: var(--ink); line-height: 1.35;
 }
+.collection-title-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3);
+  margin: 2px 0 6px;
+}
+.collection-title-row h2 {
+  font-family: var(--font-read); font-size: 1.25rem; font-weight: 700;
+  margin: 0; color: var(--ink); line-height: 1.35;
+}
+.collection-title-row h1 {
+  font-family: var(--font-read); font-size: clamp(1.75rem, 3vw, 2.15rem);
+  font-weight: 700; margin: 0; color: var(--ink); line-height: 1.3;
+}
+.shelf-brand .collection-title-row { margin: 4px 0 0; }
+.collection-author {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+  color: var(--accent-ink); background: var(--accent-soft);
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+  line-height: 1.4;
+}
 .card-eyebrow { font-size: 12px; color: var(--muted); margin: 0; }
 .card-meta { font-family: var(--font-mono); font-size: 11.5px; color: var(--faint); margin: 0; }
 .card-summary {
@@ -255,36 +276,39 @@ body.shelf-page {
   </div>
 
   <div id="shelf-root">
-      <section class="collection-card" style="--spine:#0F766E" data-course="26生成式软件工程" data-search="26生成式软件工程 nju 生成式软件工程 欢迎来到未来：生成式软件工程第一讲 提示词工程：与模型对话的方法 软件仓库管理：项目、文件与版本控制入门 软件仓库管理（二）：从 git 到 agent 时代的版本控制">
+      <section class="collection-card" style="--spine:#0F766E" data-course="26生成式软件工程" data-author="NJU · 蒋炎岩" data-search="26生成式软件工程 nju · 蒋炎岩 欢迎来到未来：生成式软件工程第一讲 提示词工程：与模型对话的方法 软件仓库管理：项目、文件与版本控制入门 软件仓库管理（二）：从 git 到 agent 时代的版本控制">
         <a class="stretch" href="courses/26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B/index.html" aria-label="打开课程 26生成式软件工程"></a>
         <div class="collection-head">
           <div class="collection-badge" aria-hidden="true">4</div>
           <div class="collection-titles">
             <p class="card-eyebrow">课程合集</p>
-            <h2>26生成式软件工程</h2>
-            <p class="card-meta">NJU 生成式软件工程 · 4 讲 · 6h37m</p>
+            <div class="collection-title-row">
+              <h2>26生成式软件工程</h2>
+              <span class="collection-author">NJU · 蒋炎岩</span>
+            </div>
+            <p class="card-meta">NJU · 蒋炎岩 · 4 讲 · 6h37m</p>
           </div>
         </div>
         <ol class="collection-lecs">
-        <li class="collection-lec" data-search="26生成式软件工程 nju 生成式软件工程 欢迎来到未来：生成式软件工程第一讲 欢迎来到未来 [01-raw/26生成式软件工程/nju] 生成式软件工程 agent llm vibe coding skill 课程导论 bv1pb8o6ye8f 1">
+        <li class="collection-lec" data-search="26生成式软件工程 nju · 蒋炎岩 欢迎来到未来：生成式软件工程第一讲 欢迎来到未来 [01-raw/26生成式软件工程/nju] 生成式软件工程 agent llm vibe coding skill 课程导论 bv1pb8o6ye8f 1">
           <a href="%E6%AC%A2%E8%BF%8E%E6%9D%A5%E5%88%B0%E6%9C%AA%E6%9D%A5%20%5B01-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">
             <span class="lec-num">01</span>
             <span class="lec-title">欢迎来到未来：生成式软件工程第一讲</span>
           </a>
         </li>
-        <li class="collection-lec" data-search="26生成式软件工程 nju 生成式软件工程 提示词工程：与模型对话的方法 提示词工程 [02-raw/26生成式软件工程/nju] 提示词工程 上下文工程 agent 思维链 verifier 长程任务 bv1cqt365ezw 2">
+        <li class="collection-lec" data-search="26生成式软件工程 nju · 蒋炎岩 提示词工程：与模型对话的方法 提示词工程 [02-raw/26生成式软件工程/nju] 提示词工程 上下文工程 agent 思维链 verifier 长程任务 bv1cqt365ezw 2">
           <a href="%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%20%5B02-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">
             <span class="lec-num">02</span>
             <span class="lec-title">提示词工程：与模型对话的方法</span>
           </a>
         </li>
-        <li class="collection-lec" data-search="26生成式软件工程 nju 生成式软件工程 软件仓库管理：项目、文件与版本控制入门 软件仓库管理 [03-raw/26生成式软件工程/nju] 版本控制 git 软件工程 best practice commit 入门 bv1kybv6de47 3">
+        <li class="collection-lec" data-search="26生成式软件工程 nju · 蒋炎岩 软件仓库管理：项目、文件与版本控制入门 软件仓库管理 [03-raw/26生成式软件工程/nju] 版本控制 git 软件工程 best practice commit 入门 bv1kybv6de47 3">
           <a href="%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%5B03-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">
             <span class="lec-num">03</span>
             <span class="lec-title">软件仓库管理：项目、文件与版本控制入门</span>
           </a>
         </li>
-        <li class="collection-lec" data-search="26生成式软件工程 nju 生成式软件工程 软件仓库管理（二）：从 git 到 agent 时代的版本控制 软件仓库管理 (2) [04-raw/26生成式软件工程/nju] 版本控制 git jujutsu agent mvp bv1q6en6neuo 4">
+        <li class="collection-lec" data-search="26生成式软件工程 nju · 蒋炎岩 软件仓库管理（二）：从 git 到 agent 时代的版本控制 软件仓库管理 (2) [04-raw/26生成式软件工程/nju] 版本控制 git jujutsu agent mvp bv1q6en6neuo 4">
           <a href="%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">
             <span class="lec-num">04</span>
             <span class="lec-title">软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</span>

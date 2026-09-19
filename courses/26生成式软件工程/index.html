@@ -140,6 +140,27 @@ body.shelf-page {
   font-family: var(--font-read); font-size: 1.25rem; font-weight: 700;
   margin: 2px 0 6px; color: var(--ink); line-height: 1.35;
 }
+.collection-title-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3);
+  margin: 2px 0 6px;
+}
+.collection-title-row h2 {
+  font-family: var(--font-read); font-size: 1.25rem; font-weight: 700;
+  margin: 0; color: var(--ink); line-height: 1.35;
+}
+.collection-title-row h1 {
+  font-family: var(--font-read); font-size: clamp(1.75rem, 3vw, 2.15rem);
+  font-weight: 700; margin: 0; color: var(--ink); line-height: 1.3;
+}
+.shelf-brand .collection-title-row { margin: 4px 0 0; }
+.collection-author {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+  color: var(--accent-ink); background: var(--accent-soft);
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+  line-height: 1.4;
+}
 .card-eyebrow { font-size: 12px; color: var(--muted); margin: 0; }
 .card-meta { font-family: var(--font-mono); font-size: 11.5px; color: var(--faint); margin: 0; }
 .card-summary {
@@ -245,8 +266,11 @@ body.shelf-page {
   <header class="shelf-header">
     <div class="shelf-brand">
       <p class="crumb"><a href="../../index.html">← 书架</a></p>
-      <h1>26生成式软件工程</h1>
-      <p>NJU 生成式软件工程 · 共 4 讲</p>
+      <div class="collection-title-row">
+        <h1>26生成式软件工程</h1>
+        <span class="collection-author">NJU · 蒋炎岩</span>
+      </div>
+      <p>NJU · 蒋炎岩 · 共 4 讲</p>
     </div>
     <div class="shelf-count">4 讲</div>
   </header>

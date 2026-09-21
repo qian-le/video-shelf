@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文件系统实现与崩溃一致性</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 26 讲</p>
+        <h1>文件系统实现与崩溃一致性</h1>
+        <p class="book-summary">在块设备上实现目录树数据结构：GPT/LVM 与读写放大、FAT 与 UNIX inode 联合索引、文件工作负载统计；再打开崩溃一致性「魔鬼盒子」，讲 journal/redo log、fsck、sync 系列调用与应用层安全保存文件的正确姿势。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV12EV66bErd/" target="_blank" rel="noopener">BV12EV66bErd</a> · 时长 1h27m · 标签：文件系统、FAT、inode、崩溃一致性、journal、redo log、fsck、sync</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV12EV66bErd/">Bilibili · BV12EV66bErd</a>（时长约 87 分钟）
+<strong>课程</strong>：南京大学《操作系统原理》（2026）第 26 讲 · 文件系统实现和崩溃一致性
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语；关键思路标注 <em>(参考时间)</em>，<code>SCREENSHOT:</code> 占位对应演示时刻。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 在块设备上实现「目录树」</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道文件系统提供目录树与文件读写
+- 听说过磁盘/SSD 按块（block）读写
+- 了解「数据结构落在存储上」这一抽象即可
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>上一讲已说明：只要实现目录遍历、创建/删除目录、属性查询与 open/read/write 等基本操作，一个东西就可以是文件系统——包括 <code>/proc</code> 这类虚拟文件系统，甚至课上演示过的 galgame fs。</p>
+<p>本讲问题更具体：<strong>如何在块设备上实现一个能持久化（persistence，断电后数据仍在）的目录树数据结构</strong>。</p>
+<h3 id="_1">块设备的简化模型</h3>
+<p>把块设备想成三件事（与并发编程里的共享内存类比）：</p>
+<table>
+<thead>
+<tr>
+<th>块设备操作</th>
+<th>类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读一块</td>
+<td>load</td>
+</tr>
+<tr>
+<td>写一块</td>
+<td>store</td>
+</tr>
+<tr>
+<td>等待写入落盘（block sync / flush）</td>
+<td>内存屏障 / 等待所有写完成</td>
+</tr>
+</tbody>
+</table>
+<div class="video-card screenshot-card"><img src="images/shot_00_02_00.png" alt="块设备：块数组上的 read / write / sync" loading="lazy"><p class="video-caption"><span class="cap-text">块设备：块数组上的 read / write / sync</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV12EV66bErd/?t=120" target="_blank" rel="noopener">在 B 站打开 (00:02:00)</a></span></p></div>
+
+<p>现实设备更复杂：分区表、逻辑卷可以层层虚拟。课上演示了 <strong>GPT</strong>（GUID Partition Table，UEFI 规范的一部分，描述磁盘上分区布局的数据结构）与 <strong>LVM</strong>（Logical Volume Manager，把多个物理卷拼成卷组再切逻辑卷）：用 loop 设备（把普通文件伪装成块设备）叠出多层虚拟磁盘，再格式化成 FAT 与 ext4 分区，写入的 <code>hello</code>/<code>world</code> 最终落在底层镜像文件里。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_08_00.png" alt="LVM 演示：loop 设备 → 卷组 → 分区 → 两种文件系统" loading="lazy"><p class="video-caption"><span class="cap-text">LVM 演示：loop 设备 → 卷组 → 分区 → 两种文件系统</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV12EV66bErd/?t=480" target="_blank" rel="noopener">在 B 站打开 (00:08:00)</a></span></p></div>
+
+<p>对 LVM 相关命令做 strace 会发现：底层大量是 <strong>ioctl</strong>（设备驱动的扩展控制接口）——loop 创建、device mapper、分区映射皆然。这也说明「实现一个兼容 Linux 的系统」远不止 read/write。</p>
+<h3 id="_2">读放大与写放大</h3>
+<p>文件系统作为数据结构，难在<strong>高效</strong>：</p>
+<ul>
+<li>你只想要文件大小或 mtime，却要读进一整块元数据（<strong>读放大</strong>）；</li>
+<li>你只改一个字节，却要更新数据块、inode/元数据、分配位图，甚至触发 SSD 内部 FTL（闪存转换层，逻辑块到物理页的映射表）的 copy-on-write（<strong>写放大</strong>）。</li>
+</ul>
+<p>因此必须在内存里做<strong>块缓存</strong>（Linux 称 buffer cache）：<code>bread</code>/<code>bwrite</code> 类接口类似 load/store，miss 时再下到设备。设计时要利用 <strong>locality</strong>（局部性，一起访问的数据放同一块）。</p>
+<hr />
+<h2 id="2">2. 设计问题与工作负载</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道文件有「数据」和「元数据」（名字、权限、时间戳）
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:17:10)</em></p>
+<p>实现目录树至少要回答：</p>
+<ol>
+<li><strong>元数据存在哪</strong>？直接塞在数据里，还是单独区域？</li>
+<li><strong>数据块怎么组织</strong>？一个大文件可能几十 GB，offset → 块号如何映射？</li>
+<li><strong>目录怎么表示</strong>？名字到文件对象的映射。</li>
+</ol>
+<p>高效设计需要先做工作负载研究（workload study）。课上引用的经典统计大致是：</p>
+<ul>
+<li>个人/源码场景：<strong>大量小文件</strong>；</li>
+<li>少数大文件（电影、数据库）占绝大部分空间；</li>
+<li>单个目录 entry 通常不多；</li>
+<li>目录往往被填得较满。</li>
+</ul>
+<p>这些 finding 直接指导：小文件要省元数据、头部访问要快、目录项要紧凑。</p>
+<h3 id="root">所有数据结构都要有 root</h3>
+<p>磁盘上的数据结构必须有<strong>入口</strong>：链表有 head，树有 root，ELF 有 magic number 与 header，GPT 在磁盘头（兼容 MBR）与盘尾各存一份。文件系统的入口叫 <strong>super block</strong>（超级块，描述块大小、inode/数据区位置、空闲空间等关键信息）。<code>mount</code> 与 <code>mkfs</code> 都围绕它工作。若只允许破坏一个块以造成最大麻烦，super block 是首选。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_24_30.png" alt="Super block 作为文件系统数据结构的 root" loading="lazy"><p class="video-caption"><span class="cap-text">Super block 作为文件系统数据结构的 root</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV12EV66bErd/?t=1470" target="_blank" rel="noopener">在 B 站打开 (00:24:30)</a></span></p></div>
+
+<hr />
+<h2 id="3-fat">3. FAT：极致省空间的链表</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道软盘/小 U 盘容量很小
+- 知道链表节点用 next 指针串起来
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:26:30)</em></p>
+<p><strong>FAT</strong>（File Allocation Table，文件分配表）面向极小设备：5.25 英寸软盘单面约 160KB，按 512 字节一块只有约 320 块。设计哲学不是 fancy 索引，而是<strong>把空间省到极致</strong>。</p>
+<h3 id="next">核心：next 数组</h3>
+<p>磁盘被划成 <strong>cluster</strong>（簇，若干扇区绑成的逻辑分配单位）。FAT 核心是一个与 cluster 编号对应的数组，可理解为：</p>
+<pre><code class="language-text">next[cluster] = 下一簇编号 | 0(空闲) | 特殊值(文件结束)
+</code></pre>
+<p>文件 = 从目录项记录的 first cluster 出发，沿 next 走到结束。再存一个文件 size，即可知道最后一簇有多少字节属于该文件。</p>
+<p>FAT12/16/32 中的数字指 next 表项的位宽。FAT12 甚至把两个 12-bit 表项打包进 3 字节，按 bit 紧压。</p>
+<h3 id="_3">目录也是文件</h3>
+<p>早期 FAT 文件名固定 11 字节（8.3 格式：8 字符名 + 3 字符扩展名）。目录项（directory entry）含名字、属性位（只读/隐藏/系统/目录等）、size、first cluster 高低位。目录本身也是用 next 串起来的线性表，<strong>不支持硬链接</strong>。</p>
+<p>今天在 FAT 镜像里仍能看到 <code>LONGNA~1</code> 这类波浪线截断——为了在 DOS 下保持可访问。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_38_00.png" alt="FAT 目录项与 8.3 短文件名" loading="lazy"><p class="video-caption"><span class="cap-text">FAT 目录项与 8.3 短文件名</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV12EV66bErd/?t=2280" target="_blank" rel="noopener">在 B 站打开 (00:38:00)</a></span></p></div>
+
+<h3 id="_4">优缺点</h3>
+<ul>
+<li><strong>优点</strong>：结构极简，小文件多的场景几乎全在内存里跳指针，性能可接受。</li>
+<li><strong>缺点</strong>：大文件 + 碎片（fragmentation，分配回收导致块不连续）时，next 跳来跳去，FAT 表自身也可能很大，产生严重读放大。</li>
+</ul>
+<p>课上示例代码把镜像 <code>mmap</code>（映射到进程地址空间）后，super block 变成指针、DFS 扫目录树，直接验证连续簇与碎片簇——<strong>文件系统没有神秘，就是可解析的数据结构</strong>。</p>
+<hr />
+<h2 id="4-unix-inode">4. UNIX 文件系统：inode 与联合索引</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 `ls -l` 会显示权限、链接数等
+- 了解「页表」或「多级索引」的思想（听过即可）
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:41:20)</em></p>
+<p>UNIX 设计者考虑得更远：大文件、大文件系统、硬链接。目录树在 UNIX 里更接近<strong>图</strong>：每个目录有 <code>.</code>（自己）与 <code>..</code>（父目录）。</p>
+<h3 id="_5">节点与边分离</h3>
+<ul>
+<li><strong>节点元数据</strong> → <strong>inode</strong>（索引节点，保存 mode、size、时间戳、数据块索引等，<strong>不含文件名</strong>）；</li>
+<li><strong>边</strong> → 目录文件中的映射：<code>文件名 → inode 编号</code>，可顺序存放；</li>
+<li><strong>数据</strong> → 由 inode 中的索引结构指向块。</li>
+</ul>
+<h3 id="_6">联合索引：头部要快，还要能很大</h3>
+<p>统计表明：多数文件很小，且「读文件头」远多于「读整文件」。UNIX 因此在 inode 内直接放若干<strong>直接指针</strong>（指向文件前部的数据块）；不够时用一级、二级、三级<strong>间接索引</strong>（间接块里存的是「指向数据块的指针」，可类比多级页表）。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_45_10.png" alt="inode：直接指针 + 多级间接索引" loading="lazy"><p class="video-caption"><span class="cap-text">inode：直接指针 + 多级间接索引</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV12EV66bErd/?t=2710" target="_blank" rel="noopener">在 B 站打开 (00:45:10)</a></span></p></div>
+
+<p>另有一招：所有 inode 集中存放，利用目录内文件创建时间上的连续性，一次读入相关元数据；短符号链接甚至可以<strong>偷</strong> inode 里索引区的空间，直接内联路径字符串。</p>
+<p>Linux 提供 <code>debugfs</code> 等工具暴露底层：link count、block id、inline symlink 等都能看到。你不必读完全部内核源码——知道「应该有办法暴露底层信息」，再用工具/AI 构建可视化即可。</p>
+<hr />
+<h2 id="5">5. 崩溃一致性：又一个「魔鬼盒子」</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道多步数据结构更新中途失败会留下坏状态
+- 听说过并发编程里锁保护临界区
+- 本章故事线零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:50:30)</em></p>
+<p>数据结构课与并发课解决的是「多线程同时改」；文件系统还要面对 <strong>crash consistency</strong>（崩溃一致性）：系统随时可能掉电/崩溃，磁盘上的数据结构必须仍处于一致状态，或至少可恢复到一致。</p>
+<h3 id="_7">为何多写一步就危险</h3>
+<p>以向文件 append 一个块为例，至少涉及：</p>
+<ol>
+<li>分配位图：把某块标记为已用；</li>
+<li>写入数据；</li>
+<li>更新 inode/元数据。</li>
+</ol>
+<p>这三次 <code>bwrite</code> 进入设备队列后，<strong>顺序不保证</strong>。崩溃时任意子集都可能已落盘。最危险的例子：inode 与数据都写了，位图没更新——该块在文件系统眼里仍空闲，未来会被分配给别人，<strong>文件内容某天突然被覆盖</strong>。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_55_00.png" alt="三种块写入与崩溃时的子集组合" loading="lazy"><p class="video-caption"><span class="cap-text">三种块写入与崩溃时的子集组合</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV12EV66bErd/?t=3300" target="_blank" rel="noopener">在 B 站打开 (00:55:00)</a></span></p></div>
+
+<p>人类曾长期「裸奔」：先用起来，坏了再 <strong>fsck</strong>（file system check，事后扫描并修复元数据不一致）。UNIX 会把无目录指向但仍存在的 inode 丢进 <code>lost+found</code>。</p>
+<h3 id="_8">日志：用操作记录换一致</h3>
+<p>数据结构有两种视角：</p>
+<ol>
+<li><strong>就地状态</strong>：直接维护树/表；</li>
+<li><strong>操作日志</strong>：记下所有修改，重放即可重建。</li>
+</ol>
+<p><strong>append-only 的日志天然是崩溃友好的</strong>——多写一条日志，崩溃后按序 redo。</p>
+<p><strong>Journal / write-ahead log / redo log</strong>（先写日志再改正本）：</p>
+<pre><code class="language-text">transaction begin
+  → 写入日志（元数据或完整块写）
+  → flush 等待落盘
+  → transaction end（再 flush）
+  → checkpoint：把日志重放到正本数据结构
+  → 清除日志
+</code></pre>
+<p>只要磁盘上能看到 <code>transaction end</code>，就说明之前的日志必然已落盘（happens-before），重启后可以安全 redo。</p>
+<p>优化与变种：</p>
+<ul>
+<li><strong>合并事务</strong>（xv6）：多次系统调用共享一次 flush；</li>
+<li><strong>JBD2</strong>：Linux 日志块设备守护进程，周期性 checkpoint；</li>
+<li><strong>ext4 checksum 日志</strong>：用校验和代替部分 flush 同步；</li>
+<li><strong>metadata journal</strong>：只日志 inode/位图等元数据，文件内容可丢一小段——保证目录树完整，提高性能。</li>
+</ul>
+<p>LSM-Tree（log-structured merge tree）是同一思想在存储引擎中的体现：内存 memtable + WAL，刷盘成不可变层再合并。</p>
+<hr />
+<h2 id="6">6. 应用层如何安全地保存文件</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 会写程序保存文件
+- 知道 rename 系统调用
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 01:14:40)</em></p>
+<p>即便文件系统有 journal，<strong>应用</strong>仍可能把事情做错。文本编辑器若 <code>open(O_TRUNC)</code> 后进程被杀，文件直接没了。</p>
+<p>常见「以为安全」的序列：</p>
+<pre><code class="language-text">write a.txt.tmp → close → unlink a.txt → rename a.txt.tmp → a.txt
+</code></pre>
+<p>问题：unlink 与「创建空 tmp」都可能进元数据日志；崩溃后 redo 可能得到「空 tmp + 旧文件已删」。</p>
+<p>更可靠的做法：</p>
+<ul>
+<li>在关键步骤调用 <strong>fsync 家族</strong> 确保落盘；</li>
+<li>或依赖 <strong>rename 的原子性</strong>：<code>rename</code> 要么完成替换，要么什么都没发生（Linux 语义）。</li>
+</ul>
+<p><code>sync</code> 家族：</p>
+<table>
+<thead>
+<tr>
+<th>调用</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sync</code></td>
+<td>全局文件系统同步</td>
+</tr>
+<tr>
+<td><code>fsync(fd)</code></td>
+<td>同步该文件数据与元数据</td>
+</tr>
+<tr>
+<td><code>fdatasync(fd)</code></td>
+<td>同步数据；仅当元数据受影响时才同步元数据——固定大小文件/数据库 redo log 场景更高效</td>
+</tr>
+</tbody>
+</table>
+<p>课上研究结论：大量软件（GNU make 的错误构建、in-place sort、早期 Node/Electron 生态等）都存在崩溃一致性问题；正确姿势并不在大众常识里。</p>
+<p>AI 时代可以：把当年的 crash-consistency 论文丢给模型，让它实现简化检查器，对 <code>sort</code> 等工具观测系统调用并模拟崩溃现场——<strong>知识 + 模型</strong> 可以复现并扩大当年的实验，但更值得做的是没人做过的事。</p>
+<hr />
+<h2 id="_9">附录：概念补给</h2>
+<h3 id="_10">块设备</h3>
+<ul>
+<li><strong>是什么</strong>：按块读写的存储抽象，像一个大数组。</li>
+<li><strong>课上为何出现</strong>：文件系统正本实现其上的持久化数据结构。</li>
+<li><strong>和什么像</strong>：共享内存，只是多了一步「等待落盘」。</li>
+</ul>
+<h3 id="gpt">GPT</h3>
+<ul>
+<li><strong>是什么</strong>：GUID 分区表，描述磁盘分区布局的标准（属 UEFI）。</li>
+<li><strong>课上为何出现</strong>：固件启动时就要看懂磁盘结构。</li>
+<li><strong>和什么像</strong>：房间平面图：不看图就不知道卧室在哪。</li>
+</ul>
+<h3 id="lvm">LVM</h3>
+<ul>
+<li><strong>是什么</strong>：逻辑卷管理器，把多块盘拼成卷组再切逻辑卷。</li>
+<li><strong>课上为何出现</strong>：展示「块设备也能层层虚拟」。</li>
+<li><strong>和什么像</strong>：把几间储藏室打通再重新隔断出租。</li>
+</ul>
+<h3 id="_11">读放大 / 写放大</h3>
+<ul>
+<li><strong>是什么</strong>：为完成逻辑上很小的读/写，底层实际读/写了更多数据。</li>
+<li><strong>课上为何出现</strong>：文件系统性能设计的核心约束。</li>
+<li><strong>和什么像</strong>：只想改作文里一个字，却要把整页重抄一遍。</li>
+</ul>
+<h3 id="super-block">Super block</h3>
+<ul>
+<li><strong>是什么</strong>：文件系统在磁盘上的「总说明书」数据结构。</li>
+<li><strong>课上为何出现</strong>：任何持久化数据结构都要有 root。</li>
+<li><strong>常见误解</strong>：不是「最大的块」，而是<strong>最关键的元数据块</strong>。</li>
+</ul>
+<h3 id="fat-cluster">FAT / cluster</h3>
+<ul>
+<li><strong>是什么</strong>：用 next 数组串起簇的文件分配表；cluster 是逻辑分配单位。</li>
+<li><strong>课上为何出现</strong>：最小可用的磁盘文件系统设计。</li>
+<li><strong>和什么像</strong>：用一串便利贴写着「下一页在第几页」。</li>
+</ul>
+<h3 id="fragmentation">碎片（fragmentation）</h3>
+<ul>
+<li><strong>是什么</strong>：频繁分配回收后，文件块不再连续。</li>
+<li><strong>课上为何出现</strong>：解释 FAT 大文件性能崩坏。</li>
+<li><strong>和什么像</strong>：图书馆书架上同一套书被拆散到各层。</li>
+</ul>
+<h3 id="inode">inode</h3>
+<ul>
+<li><strong>是什么</strong>：UNIX 中存放文件元数据与块索引的结构，文件名在目录里。</li>
+<li><strong>课上为何出现</strong>：支撑硬链接与高效大文件索引。</li>
+<li><strong>常见误解</strong>：文件名不在 inode 里；多个名字可指向同一 inode。</li>
+</ul>
+<h3 id="_12">间接索引</h3>
+<ul>
+<li><strong>是什么</strong>：用额外块保存「指向数据块的指针」，扩展可寻址范围。</li>
+<li><strong>课上为何出现</strong>：兼顾「头部快」与「文件可以很大」。</li>
+<li><strong>和什么像</strong>：多级页表：目录套目录，最终才到房间。</li>
+</ul>
+<h3 id="crash-consistency">Crash consistency</h3>
+<ul>
+<li><strong>是什么</strong>：任意时刻崩溃后，磁盘数据结构仍一致或可恢复。</li>
+<li><strong>课上为何出现</strong>：持久化系统独有的正确性要求。</li>
+<li><strong>和什么像</strong>：并发里的「任意交错都正确」，换成「任意掉电点都正确」。</li>
+</ul>
+<h3 id="journal-redo-log">Journal / Redo log</h3>
+<ul>
+<li><strong>是什么</strong>：先追加记录操作意图，崩溃后按日志重做。</li>
+<li><strong>课上为何出现</strong>：实现崩溃一致性的主流工程手段。</li>
+<li><strong>和什么像</strong>：先在草稿纸记账，再誊进账本；丢了账本就按草稿重抄。</li>
+</ul>
+<h3 id="fsck">fsck</h3>
+<ul>
+<li><strong>是什么</strong>：事后扫描文件系统元数据并修复/找回孤儿文件。</li>
+<li><strong>课上为何出现</strong>：日志之前人类的「先挣钱后还债」方案。</li>
+<li><strong>和什么像</strong>：仓库着火后盘点：能对上的入库，对不上的进失物招领。</li>
+</ul>
+<h3 id="sync-fsync-fdatasync">sync / fsync / fdatasync</h3>
+<ul>
+<li><strong>是什么</strong>：请求操作系统把缓存数据刷到存储设备的系统调用家族。</li>
+<li><strong>课上为何出现</strong>：应用层参与崩溃一致性的主要接口。</li>
+<li><strong>常见误解</strong>：<code>close</code> ≠ 数据已安全落盘。</li>
+</ul>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../25%20-%20%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%20API%20%282%29%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">文件系统 API（二）：监控、快照、Overlay 与 FUSE</span></a><a class="pager-btn next" href="../28%20-%20%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E5%AE%89%E5%85%A8%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">计算机系统安全</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>硬件视角的操作系统</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 3 讲</p>
+        <h1>硬件视角的操作系统</h1>
+        <p class="book-summary">从硬件视角说明 CPU 并不知道操作系统的存在：用抽象层统一系统调用与指令集，扩展状态机模型以涵盖物理世界、GPIO 与中断，梳理 CPU reset、固件/UEFI 启动流程，并解释多核共享内存模型以及 OS 启动后作为中断与系统调用服务提供者的角色。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV18fcozAEsy/" target="_blank" rel="noopener">BV18fcozAEsy</a> · 时长 1h35m · 标签：硬件视角、抽象层、中断、GPIO、固件、UEFI、状态机</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV18fcozAEsy/">Bilibili · BV18fcozAEsy</a>
+<strong>课程</strong>：NJU《操作系统原理》2026 第 3 讲
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语；关键时间点均标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
+</blockquote>
+<hr />
+<h2 id="1-ai">1. 用 AI 补齐动手能力</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道课程示例代码在课程主页上
+- 用过或听说过 coding agent（如 Claude Code）
+- UNIX 命令零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>本讲从应用视角的操作系统（一组 API）转向<strong>硬件视角</strong>。开课前先示范：觉得「下载课程示例代码很麻烦」时，可以问 AI「如果你是这个领域的专家，你会怎么做」——主讲人称之为<strong>改变世界的 prompt（用专家视角引导 AI 给出方法）</strong>。</p>
+<p>AI 会调用 <code>curl</code> 抓取网页、识别目录结构、用 <code>wget -R</code> 递归下载，做错还会自查重做。观察这一过程本身就是学习：你知道了工具存在，再追问原理。</p>
+<h3 id="_1">两种学习方式</h3>
+<ul>
+<li><strong>主动</strong>：每一步追问「为什么用这个工具、原理是什么」；</li>
+<li><strong>被动</strong>：让 AI 监控你的操作，每隔几分钟问「刚才我在做什么？如果是专家会怎么做」。</li>
+</ul>
+<p>AI 时代人与人之间的工作效率与学习效率可能相差十倍、百倍甚至千倍。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_04_20.png" alt="AI 下载课程代码：专家式提问" loading="lazy"><p class="video-caption"><span class="cap-text">AI 下载课程代码：专家式提问</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=260" target="_blank" rel="noopener">在 B 站打开 (00:04:20)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_06_40.png" alt="主动学习：追问工具原理" loading="lazy"><p class="video-caption"><span class="cap-text">主动学习：追问工具原理</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=400" target="_blank" rel="noopener">在 B 站打开 (00:06:40)</a></span></p></div>
+
+<hr />
+<h2 id="2">2. 抽象层：硬件并不知道操作系统</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 CPU 执行指令、内存存数据
+- 听说过「系统调用」
+- 抽象概念本章会展开
+
+</div>
+
+<p><em>(参考时间: 00:09)</em></p>
+<p>回顾应用视角：<code>.c</code> 是状态机 → 编译成 <code>a.out</code>（指令状态机）→ 运行在操作系统上 → 操作系统运行在硬件上。<code>a.out</code> 里的进程本身也是操作系统中的对象。</p>
+<p>程序有一条特殊指令 <strong>系统调用（程序把控制权交给操作系统、请求服务的指令）</strong>，如同全身麻醉：失去意识，醒来时请求可能已完成。</p>
+<h3 id="_2">硬件视角一句话</h3>
+<p><strong>硬件根本不知道有没有操作系统，也不知道上面跑的是什么。</strong> 它只是无情的执行指令的机器：看见什么指令就执行什么。</p>
+<p>写 NEMU 模拟器时用的就是这个模型：<code>ADD</code>、<code>MOV</code>、<code>INT</code>、<code>IN</code>/<code>OUT</code> 按手册做状态迁移。<code>INT</code>/<code>in</code>/<code>out</code> 等指令常被用来实现操作系统，但硬件并不禁止你跑一个不是 OS 的程序。</p>
+<h3 id="_3">什么是抽象</h3>
+<p><strong>抽象（隔离上下两层复杂性的中间接口）</strong>：上层很复杂，下层也很复杂，中间接口保持简单。</p>
+<p>系统调用是典型抽象：应用通过 <code>read</code>/<code>write</code> 等少量 API 即可支撑整个应用生态；底层为画一个像素要驱动显卡、走线到显示器，应用完全不必知道。反过来，操作系统也不关心上面是 Android、云服务还是树莓派。</p>
+<p>指令集（ISA）同样是抽象：向上是 OS 与全部应用，向下是乱序执行、数据流分析、多发射等复杂硬件。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_14_40.png" alt="抽象层：复杂上下层之间的简单接口" loading="lazy"><p class="video-caption"><span class="cap-text">抽象层：复杂上下层之间的简单接口</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=880" target="_blank" rel="noopener">在 B 站打开 (00:14:40)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_10_00.png" alt="应用视角回顾：a.out 运行在 OS 上" loading="lazy"><p class="video-caption"><span class="cap-text">应用视角回顾：a.out 运行在 OS 上</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=600" target="_blank" rel="noopener">在 B 站打开 (00:10:00)</a></span></p></div>
+
+<p><code>printf</code> 有时输出到屏幕、有时到文件，代码完全相同——因为 <code>write</code> 的<strong>文件描述符（指向操作系统对象的整数编号）</strong> 可以指向不同对象。抽象层设计在 Agentic AI 时代可能是重要产品能力。</p>
+<hr />
+<h2 id="3">3. 计算机系统的状态与迁移</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 理解「硬件 = 内存 + 寄存器 + 取指执行」
+- 听说过中断或 GPIO 更好，非必须
+- 本章会用例子建立概念
+
+</div>
+
+<p><em>(参考时间: 00:20)</em></p>
+<p>计算机系统 = 状态机：</p>
+<ul>
+<li><strong>状态</strong>：内存与寄存器的数值；</li>
+<li><strong>初始状态</strong>：CPU reset 后由设计者规定（如 PC = 特定地址）；</li>
+<li><strong>迁移</strong>：从 PC 取指 → 译码 → 按手册执行。</li>
+</ul>
+<h3 id="_4">系统内状态与系统外状态</h3>
+<p>内存、CPU 插在主板上，主板处在物理世界中。因此状态还包括：</p>
+<ul>
+<li><strong>系统内</strong>：寄存器、内存；</li>
+<li><strong>系统外</strong>：传感器、摄像头、网络等物理设备。</li>
+</ul>
+<p><code>in</code> 指令从外部读入（如摄像头像素写入 AX）；<code>out</code> 把电平送到外部。任天堂「打鸭子」的光枪就是一个像素的摄像机：开枪后屏幕闪一白一黑，命中则相机检测到该序列。</p>
+<p>树莓派上的 <strong>GPIO（通用输入输出引脚，可用程序控制电平高低）</strong>：<code>gpio set value 23</code> 即可拉高/拉低 23 号引脚；接上 LED 即可闪烁。一行 C 代码就能与物理世界交互。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_24_50.png" alt="树莓派 GPIO：程序控制物理引脚" loading="lazy"><p class="video-caption"><span class="cap-text">树莓派 GPIO：程序控制物理引脚</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=1490" target="_blank" rel="noopener">在 B 站打开 (00:24:50)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_29_00.png" alt="中断：死循环为何不毁掉系统" loading="lazy"><p class="video-caption"><span class="cap-text">中断：死循环为何不毁掉系统</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=1740" target="_blank" rel="noopener">在 B 站打开 (00:29:00)</a></span></p></div>
+
+<h3 id="_5">中断：死循环为何不会毁掉系统</h3>
+<p><strong>中断（外部设备通过专门线路通知 CPU「有事发生」的机制）</strong>：时钟、键盘、网卡都可以拉中断线。信号到来时，CPU 会<strong>强行跳转</strong>到中断处理程序，无论当前在执行什么（除非中断被屏蔽）。</p>
+<p>应用程序<strong>不能</strong>关中断——试用内联汇编关中断会得到段错误。只有操作系统代码有权限关中断；若 OS 在关中断时出 bug 死循环，系统才会真正死机。中断机制赋予了操作系统「霸主地位」。</p>
+<pre><code class="language-mermaid">flowchart LR
+    A[应用程序运行中] --&gt; B{中断线信号?}
+    B --&gt;|否| A
+    B --&gt;|是| C[CPU 强制跳转&lt;br&gt;操作系统中断处理]
+    C --&gt; D[处理完毕&lt;br&gt;恢复应用或切换进程]
+</code></pre>
+<hr />
+<h2 id="4-cpu-reset">4. CPU Reset、固件与启动</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 理解 PC、内存、指令执行
+- 知道「开机」会让系统从某个地方开始跑
+- 本章历史细节零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:33)</em></p>
+<p>Reset 后许多寄存器未定义（省电路），通常中断处于关闭状态；PC 会被规定成确定值。内存条是<strong>易失性存储（掉电即丢数据）</strong>，冷启动时内存里不能指望有合法指令。</p>
+<h3 id="_6">固件</h3>
+<p>答案是主板厂商把一段 <strong>ROM/闪存</strong> 内存映射到 reset 后 PC 所指的地址空间。这段代码出生就拥有完整机器控制权，称为 <strong>固件（厂商固定在硬件中、复位后最先执行的代码）</strong>，旧称 BIOS，现代多为 UEFI。</p>
+<p>固件职责：</p>
+<ol>
+<li>扫描、初始化、配置硬件（时钟、CPU 核、风扇等）；</li>
+<li>可弹出启动菜单（双系统选择）；</li>
+<li>把磁盘/网络上的操作系统加载到内存；</li>
+<li>释放自己占用的资源，跳转到 OS 入口。</li>
+</ol>
+<div class="video-card screenshot-card"><img src="images/shot_00_33_20.png" alt="固件配置界面：BIOS/UEFI" loading="lazy"><p class="video-caption"><span class="cap-text">固件配置界面：BIOS/UEFI</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=2000" target="_blank" rel="noopener">在 B 站打开 (00:33:20)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_53_50.png" alt="CPU reset 后第一条指令从哪来" loading="lazy"><p class="video-caption"><span class="cap-text">CPU reset 后第一条指令从哪来</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=3230" target="_blank" rel="noopener">在 B 站打开 (00:53:50)</a></span></p></div>
+
+<p>早期 DOS 时代固件常驻内存，应用通过 <code>int 0x10</code> 等中断向量调用固件服务（画点、读盘）。现代 OS 自己驱动设备；固件还要处理指纹锁、USB 扩展坞、网络启动等复杂硬件。</p>
+<p>固件曾是纯 ROM，后来变为可编程 ROM：厂商发软盘/补丁更新。写保护平时打开；更新时需向总线写入特定序列解锁——更新失败机器会「变砖」。</p>
+<p>UEFI（统一可扩展固件接口）本身像一个编程框架：FAT 分区里可放驱动与引导加载器。</p>
+<hr />
+<h2 id="5">5. 多处理器与操作系统的角色</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 理解单处理器状态机模型
+- 听过多核 CPU
+- 并发细节本章只建概念
+
+</div>
+
+<p><em>(参考时间: 00:45)</em></p>
+<h3 id="_7">多处理器模型</h3>
+<p>概念上很简单：</p>
+<ul>
+<li>每个 CPU 有<strong>自己独立的寄存器</strong>；</li>
+<li>它们<strong>共享内存</strong>（shared memory；大核小核访存延迟可能不同 → NUMA）。</li>
+</ul>
+<p>状态迁移变成：任选一个 CPU 执行一条指令；任一 CPU 都可能响应中断。因此多处理器上的程序运行多次结果可能不同——强大也带来了理解上的困难。</p>
+<h3 id="_8">操作系统启动后是什么</h3>
+<p>硬件视角下 OS 只是普通程序：初始化日志、Windows 的转圈圈结束后，操作系统变成：</p>
+<ul>
+<li><strong>中断处理程序</strong>；</li>
+<li><strong>系统调用服务程序</strong>。</li>
+</ul>
+<p>它常驻内存，但一般<strong>不在 CPU 上执行</strong>——只有中断到来或程序发起系统调用时，OS 代码才运行。它是服务提供者，并创建出应用世界。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_46_40.png" alt="多核 CPU：独立寄存器 + 共享内存" loading="lazy"><p class="video-caption"><span class="cap-text">多核 CPU：独立寄存器 + 共享内存</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=2800" target="_blank" rel="noopener">在 B 站打开 (00:46:40)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_51_30.png" alt="OS 启动后：中断与系统调用的服务者" loading="lazy"><p class="video-caption"><span class="cap-text">OS 启动后：中断与系统调用的服务者</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=3090" target="_blank" rel="noopener">在 B 站打开 (00:51:30)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_40_40.png" alt="现场 AI 写 RISC-V 最小启动代码" loading="lazy"><p class="video-caption"><span class="cap-text">现场 AI 写 RISC-V 最小启动代码</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV18fcozAEsy/?t=2440" target="_blank" rel="noopener">在 B 站打开 (00:40:40)</a></span></p></div>
+
+<h3 id="ai">用 AI 验证硬件概念</h3>
+<p>主讲人让 coding agent 编写 RISC-V/ARM 的最小启动代码：在模拟器中观察 reset 后寄存器现场，执行 <code>ecall</code>/<code>svc</code>。概念（reset、ISA、抽象层）比死记手册细节更重要；细节可以随时问 AI，甚至把手册丢进上下文。</p>
+<p>改变世界的 prompt 依然有效：相信任务能完成，并能说清楚要什么。</p>
+<hr />
+<h2 id="_9">附录：概念补给</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 读过正文各章即可；每条独立成卡
+- 本章零基础可跟
+
+</div>
+
+<h3 id="_10">抽象层</h3>
+<ul>
+<li><strong>是什么</strong>：隔开上下两层复杂性的中间接口。</li>
+<li><strong>课上为何出现</strong>：系统调用、指令集都是抽象；硬件不知道 OS。</li>
+<li><strong>和什么像</strong>：你按电梯按钮，不必知道曳引机怎么工作。</li>
+</ul>
+<h3 id="gpio">GPIO</h3>
+<ul>
+<li><strong>是什么</strong>：可用程序控制电平高低的通用引脚。</li>
+<li><strong>课上为何出现</strong>：说明计算机通过「线」与物理世界相连。</li>
+<li><strong>和什么像</strong>：可编程的电源开关排插。</li>
+</ul>
+<h3 id="interrupt">中断（Interrupt）</h3>
+<ul>
+<li><strong>是什么</strong>：外部或内部事件通知 CPU 暂停当前工作并处理该事件。</li>
+<li><strong>课上为何出现</strong>：死循环不卡死整机；OS 的霸主地位。</li>
+<li><strong>常见误解</strong>：应用程序不能随便关中断，否则可能段错误。</li>
+</ul>
+<h3 id="cpu-reset">CPU Reset</h3>
+<ul>
+<li><strong>是什么</strong>：硬件复位信号，使 CPU 进入手册规定的初始状态。</li>
+<li><strong>课上为何出现</strong>：完整计算机系统的起点。</li>
+<li><strong>和什么像</strong>：游戏机电源键重开，存档点回到关卡起点。</li>
+</ul>
+<h3 id="firmware-bios-uefi">固件（Firmware）/ BIOS / UEFI</h3>
+<ul>
+<li><strong>是什么</strong>：固化在硬件中、reset 后最先执行的代码。</li>
+<li><strong>课上为何出现</strong>：初始化硬件并加载操作系统。</li>
+<li><strong>常见误解</strong>：BIOS 是历史名称；现代多用 UEFI，二者常被混称。</li>
+</ul>
+<h3 id="volatile-memory">易失性存储（Volatile Memory）</h3>
+<ul>
+<li><strong>是什么</strong>：掉电后数据丢失的存储器（如 DRAM 内存条）。</li>
+<li><strong>课上为何出现</strong>：解释 reset 后内存里为何不能直接有合法代码。</li>
+<li><strong>和什么像</strong>：黑板上的字，断电（擦黑板）就没了。</li>
+</ul>
+<h3 id="isa">指令集体系结构（ISA）</h3>
+<ul>
+<li><strong>是什么</strong>：硬件对外提供的指令集合与行为规范。</li>
+<li><strong>课上为何出现</strong>：硬件视角的抽象层；模拟器按 spec 实现。</li>
+<li><strong>和什么像</strong>：电器说明书上的操作菜单。</li>
+</ul>
+<h3 id="memory-mapped">内存映射（Memory-Mapped）</h3>
+<ul>
+<li><strong>是什么</strong>：把设备/ROM 等映射到地址空间，用访存指令即可访问。</li>
+<li><strong>课上为何出现</strong>：固件如何出现在 reset 后的 PC 地址上。</li>
+<li><strong>和什么像</strong>：把校外实验室登记成校内房间号。</li>
+</ul>
+<h3 id="segmentation-fault">段错误（Segmentation Fault）</h3>
+<ul>
+<li><strong>是什么</strong>：访问非法地址时进程被强制终止。</li>
+<li><strong>课上为何出现</strong>：用户态关中断等非法操作的可能后果。</li>
+</ul>
+<h3 id="numa">NUMA / 共享内存多核</h3>
+<ul>
+<li><strong>是什么</strong>：多核共享内存，但不同核访问不同内存区域延迟不同。</li>
+<li><strong>课上为何出现</strong>：现代手机/电脑都是多处理器系统。</li>
+<li><strong>常见误解</strong>：「共享内存」不等于所有访存速度相同。</li>
+</ul>
+<h3 id="inline-assembly">内联汇编（Inline Assembly）</h3>
+<ul>
+<li><strong>是什么</strong>：在 C 代码中嵌入汇编指令片段的机制。</li>
+<li><strong>课上为何出现</strong>：演示关中断等底层操作；AI 也能写好。</li>
+<li><strong>和什么像</strong>：在中文作文里夹一段机器码。</li>
+</ul>
+<h3 id="prompt">改变世界的 prompt</h3>
+<ul>
+<li><strong>是什么</strong>：「如果你是这个领域的专家，你会怎么做？」</li>
+<li><strong>课上为何出现</strong>：AI 时代通用的学习与执行策略。</li>
+<li><strong>和什么像</strong>：先问老师傅的套路，再自己动手。</li>
+</ul>
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV18fcozAEsy</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../02%20-%20%E5%BA%94%E7%94%A8%E8%A7%86%E8%A7%92%E7%9A%84%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">应用视角的操作系统</span></a><a class="pager-btn next" href="../04%20%28Aside%29%20-%20LLM%2C%20Agents%20%E5%92%8C%20Scaling%20Law%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">LLM、Agents 与 Scaling Law</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

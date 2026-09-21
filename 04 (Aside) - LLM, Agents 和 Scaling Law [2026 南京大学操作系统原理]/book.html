@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM、Agents 与 Scaling Law</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 4 讲</p>
+        <h1>LLM、Agents 与 Scaling Law</h1>
+        <p class="book-summary">Hacking Day 专讲：解释大语言模型为何「大」且以语言为抽象，梳理 next token prediction、注意力与 thinking model，说明 Agent 如何借工作区与 Git 对抗死亡循环式失忆，并用棋类与 Kaplan/Chinchilla Scaling Law 串联苦涩的教训、抽象层设计与现场 AI 实现最小操作系统。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1gEcmzzE4P/" target="_blank" rel="noopener">BV1gEcmzzE4P</a> · 时长 1h22m · 标签：LLM、Scaling Law、Agentic AI、注意力机制、Git、苦涩的教训</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1gEcmzzE4P/">Bilibili · BV1gEcmzzE4P</a>
+<strong>课程</strong>：NJU《操作系统原理》2026 第 4 讲（Hacking Day）
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语；关键时间点均标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 为什么是「大」语言模型</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 用过或听说过 ChatGPT 一类工具
+- 知道「神经网络」这个词即可
+- 量子/物理史细节零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>本讲是 Hacking Day：不讲考试内容，讲 <strong>Scaling Law（模型能力随算力/参数/数据规模扩大而系统性提升的经验规律）</strong>、对 Agentic AI 的理解，以及现场演示让 AI 写最小操作系统。</p>
+<h3 id="_1">为什么必须「大」</h3>
+<p>薛定谔在小册子开篇问：「我们为什么这么大？」经典原子理论下单个原子携带的信息很少，几个原子不可能支撑生命这样复杂的行为。<strong>大是应对世界复杂性的必要条件</strong>——同理，大语言模型的「大」是能力的前提。</p>
+<h3 id="_2">为什么是「语言」</h3>
+<p>深度学习的爆炸案例先是图像（AlexNet）和围棋（AlphaGo，2016）。但质变发生在语言上，因为：</p>
+<p><strong>语言（人类沉淀数千年的、可在人与人之间对齐的世界模型）</strong>：一句话「路上看到一个美女」背后是说话人几十年的观察与文化共识。语言抽象掉了大量细节，但保留了可传承、可对齐的结构。</p>
+<p>人类共享相似的物理世界与教育体系，因此语言能对齐；语言模型无法直接和外星人对齐——除非对方也有可对齐的抽象。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_06_00.png" alt="语言作为世界模型的抽象" loading="lazy"><p class="video-caption"><span class="cap-text">语言作为世界模型的抽象</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=360" target="_blank" rel="noopener">在 B 站打开 (00:06:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_03_30.png" alt="薛定谔之问：为什么我们这么大" loading="lazy"><p class="video-caption"><span class="cap-text">薛定谔之问：为什么我们这么大</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=210" target="_blank" rel="noopener">在 B 站打开 (00:03:30)</a></span></p></div>
+
+<hr />
+<h2 id="2">2. 大语言模型如何工作</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道模型会「接着说」下一段文字
+- 听说过训练/推理
+- 注意力机制细节零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:08)</em></p>
+<p>GPT = Generative Pre-trained：先用海量文本<strong>预训练（学会说人话）</strong>，再<strong>后训练（调成助手）</strong>。</p>
+<p>工作机制：</p>
+<ol>
+<li>维护一个 <strong>上下文（context，模型当前能看到的全部文本）</strong>；</li>
+<li><strong>Next token prediction（根据已有文本给出下一个词的概率分布，再选一个）</strong>；</li>
+<li>图像等模态也可对齐成 token 向量（如 16×16 图块变成向量）。</li>
+</ol>
+<pre><code class="language-mermaid">flowchart LR
+    A[上下文 Context] --&gt; B[Self-Attention&lt;br&gt;关注相关片段]
+    B --&gt; C[下一 token 概率分布]
+    C --&gt; D[采样/选词]
+    D --&gt; E[拼回上下文]
+    E --&gt; B
+</code></pre>
+<h3 id="_3">从竞赛到「会写代码」</h3>
+<p><em>(参考时间: 00:10)</em></p>
+<p>AlphaCode（2022，ChatGPT 之前）已能在竞赛网站拿到 2000+ 分。人类竞赛选手的「预训练」是：想清伪代码后，把代码近乎顺序地写在纸上，一次通过。</p>
+<p>机器也是：在「脑内」（上下文/参数）形成 idea，再像翻译一样展开成代码。足够大的模型 + 足够多语料，理论上能做到这一点。</p>
+<h3 id="ai">给 AI 草稿纸</h3>
+<p>若把所有想法只放在脑子里，人是<strong>有限状态机（状态种类有限的自动机）</strong>；有了纸笔（外部工作记忆）就是<strong>图灵机（可无限扩展工作记忆的计算模型）</strong>。</p>
+<p>同理，让模型在文本里展开步骤：</p>
+<ul>
+<li><code>123+456</code> 可写成 <code>100+400 + 20+50 + 3+6</code> 再逐步合并——降低注意力负担；</li>
+<li>这就是 <strong>thinking model（先输出思考过程再给出答案的模型）</strong>；</li>
+<li>GPT-4 时代一句 <code>think step by step</code> 就能明显提升复杂任务表现。</li>
+</ul>
+<h3 id="_4">工具与感知</h3>
+<ul>
+<li>眼睛/耳朵：多模态对齐到同一 token 空间（GPT-4o）；</li>
+<li>计算器：模型输出特殊 token 触发外部计算再写回结果；</li>
+<li>ReAct / Toolformer：学会「查工具再回答」。</li>
+</ul>
+<p>今天模型能推理、会犯错、能纠正，越来越像人。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_19_30.png" alt="Next token prediction 与注意力" loading="lazy"><p class="video-caption"><span class="cap-text">Next token prediction 与注意力</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=1170" target="_blank" rel="noopener">在 B 站打开 (00:19:30)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_12_50.png" alt="AlphaCode：机器也会「先想后写」" loading="lazy"><p class="video-caption"><span class="cap-text">AlphaCode：机器也会「先想后写」</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=770" target="_blank" rel="noopener">在 B 站打开 (00:12:50)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_24_20.png" alt="thinking：像竖式一样展开步骤" loading="lazy"><p class="video-caption"><span class="cap-text">thinking：像竖式一样展开步骤</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=1460" target="_blank" rel="noopener">在 B 站打开 (00:24:20)</a></span></p></div>
+
+<hr />
+<h2 id="3-agentic-ai">3. Agentic AI：工作区与死亡循环</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 Git 可以管理文件历史（概念即可）
+- 用过 coding agent 更好
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:29)</em></p>
+<p>如何用好一个「智力极高、但每次醒来失忆」的概率分布模型？</p>
+<h3 id="working-memory">工作区就是 working memory</h3>
+<p>计算机世界里的工作记忆：<strong>工作区（workspace，一个组织良好的目录）</strong>，里面有：</p>
+<ul>
+<li>README / 设计意图；</li>
+<li>docs；</li>
+<li>源代码与测试；</li>
+<li>plan 等进度文件。</li>
+</ul>
+<p>软件工程多年的 best practice，恰好给 AI 搭好了舞台。</p>
+<h3 id="git">Git：平行宇宙</h3>
+<p><strong>版本控制系统 Git（管理目录快照、允许随时回退/分支的工具）</strong> 给了 AI（和人）平行世界：改坏了可以回到旧快照，可以 cherry-pick，可以开分支试验。</p>
+<p>主讲人甚至认为 Git 是给 AI 量身定制的：无记忆的 agent 在死亡循环里每次重新探索，但只要工作区与版本历史还在，就能持续推进。</p>
+<pre><code class="language-mermaid">flowchart TB
+    subgraph 死亡循环
+        A[醒来：参数 + system prompt] --&gt; B[读工作区]
+        B --&gt; C[规划 plan.md]
+        C --&gt; D[写代码 / 跑测试 / 看错误]
+        D --&gt; E[修正并提交]
+        E --&gt; F[结束本次会话]
+    end
+    F --&gt; A
+</code></pre>
+<h3 id="_5">规划与执行</h3>
+<p>Agent 收到任务后：粗粒度 plan → 写入 <code>plan.md</code> → 勾选完成项 → 继续下一步。开源社区的 milestone 文化同理。</p>
+<p>执行阶段与人一样：写代码、写测试、跑 lint、调试。这些工具调用在理论上与计算器等价——模型输出 token，环境执行并回传结果。</p>
+<h3 id="_6">可推广到非程序员</h3>
+<p>学习数学也可以：每个 lecture 一个目录，错题本、作业勾选、期末前让 AI 出模拟题。接上 Telegram bot 或 cron 定时任务，还能自动抓天气、发挑战题。火爆的「小龙虾」类产品有其历史必然性。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_33_30.png" alt="Agent 工作区：plan 与 Git" loading="lazy"><p class="video-caption"><span class="cap-text">Agent 工作区：plan 与 Git</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=2010" target="_blank" rel="noopener">在 B 站打开 (00:33:30)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_32_40.png" alt="死亡循环：每次醒来重新读工作区" loading="lazy"><p class="video-caption"><span class="cap-text">死亡循环：每次醒来重新读工作区</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=1960" target="_blank" rel="noopener">在 B 站打开 (00:32:40)</a></span></p></div>
+
+<hr />
+<h2 id="4-scaling-law">4. Scaling Law 与苦涩的教训</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道「算力」大致指计算能力
+- 听说过国际象棋/围棋人机大战更佳
+- 统计细节零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:38)</em></p>
+<h3 id="the-bitter-lesson">The Bitter Lesson</h3>
+<p>Richard Sutton（强化学习、图灵奖）指出：<strong>通用方法的巨大力量</strong>长期压过人类手工设计的启发式。可总结为「量变引起质变」——但只有找到<strong>能累积的那条轴</strong>，量变才会质变；在错误轴上优化只是原地踏步（给马车加速并不能造出高铁）。</p>
+<h3 id="_7">棋类：智能 ≈ 算力</h3>
+<ul>
+<li>国际象棋程序用 α-β 剪枝暴力搜索；</li>
+<li>搜索深度每增加一层，评分稳定上升；</li>
+<li>Ken Thompson（UNIX 之父）等人参与后意识到：要尽快击败人类，最有效的是<strong>造加速器</strong>；</li>
+<li>1997 年 Deep Blue 击败卡斯帕洛夫：超级计算机 + 专用下棋电路。</li>
+</ul>
+<p>AlphaGo（2016）用卷积网络「像看图一样看棋盘」+ 蒙特卡洛树搜索，再次验证：所谓智能在很大程度上可以还原为算力。</p>
+<h3 id="scaling-law">大模型的 Scaling Law</h3>
+<p><em>(参考时间: 00:48)</em></p>
+<p>Kaplan 等人的 Scaling Law 与 Chinchilla 论文表明：在对数坐标下，算力↑ → 可喂更多数据、更大模型 → training loss↓（预测更好，可近似理解为「更聪明」）。</p>
+<p>OpenAI 训练 GPT-3（175B）时并不确定能否成功，只是相信小规模实验可以外推。人类在尝试中造出了可用的智能机器。</p>
+<p>现存模型未必是最优架构——如同生物进化带上了大量历史包袱；未来或可由机器在设计空间中搜索更好的模型。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_49_00.png" alt="Scaling Law：算力、数据、模型规模" loading="lazy"><p class="video-caption"><span class="cap-text">Scaling Law：算力、数据、模型规模</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=2940" target="_blank" rel="noopener">在 B 站打开 (00:49:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_46_00.png" alt="Deep Blue / 棋类：智能 ≈ 算力" loading="lazy"><p class="video-caption"><span class="cap-text">Deep Blue / 棋类：智能 ≈ 算力</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=2760" target="_blank" rel="noopener">在 B 站打开 (00:46:00)</a></span></p></div>
+
+<h3 id="_8">启发式之死与抽象</h3>
+<p>Jim Gray 曾说 <em>Disk is tape, Flash is disk, RAM is local</em>。今天更接近：<strong>启发式已死，智能便宜</strong>。</p>
+<p>你需要的是：</p>
+<ol>
+<li><strong>分解问题</strong>：用独特视角切开疯狂想法；</li>
+<li><strong>构建合适抽象</strong>：系统调用之上的应用生态、指令集之上的计算机世界；</li>
+<li><strong>可扩展机制</strong>：能吸引人（和 AI）往上插东西的底座。</li>
+</ol>
+<p>主讲人展示自己的上课系统：子系统之间不用函数调用紧耦合，而用<strong>文件系统 + 日志协议</strong>解耦，前端、播放器、导出工具可并行开发，AI 可分别实现。</p>
+<hr />
+<h2 id="5-ai">5. 现场：让 AI 写最小操作系统</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道操作系统可以「从零实现」
+- 对 RISC-V 无先验要求
+- 翻车过程本身就是内容
+
+</div>
+
+<p><em>(参考时间: 01:09)</em></p>
+<p>演示目标：完全假装自己不懂 OS，把任务丢给 AI。</p>
+<ol>
+<li>先用 GPT 生成任务分解：启动运行时 → 创建内核线程 → 上下文切换 → 展示调度；</li>
+<li>工作风格约束：<code>keep the design tiny and explicit</code>，每步解释与测试；</li>
+<li>再让国产模型（豆包）执行写文件、Makefile、启动代码。</li>
+</ol>
+<p>结果可能翻车，也可能一次做对。关键是观察：</p>
+<ul>
+<li>AI 如何分解；</li>
+<li>犯错后如何根据 error message 修复；</li>
+<li>人应如何判断设计是否合理。</li>
+</ul>
+<p>这门课真正想传达的是：<strong>会编程，你会拥有全世界</strong>——包括指挥 AI 构建以前不敢想的系统。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_10_10.png" alt="现场 Web Coding 最小 OS" loading="lazy"><p class="video-caption"><span class="cap-text">现场 Web Coding 最小 OS</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=4210" target="_blank" rel="noopener">在 B 站打开 (01:10:10)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_01_07_30.png" alt="文件系统作子系统接口：前后端解耦" loading="lazy"><p class="video-caption"><span class="cap-text">文件系统作子系统接口：前后端解耦</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1gEcmzzE4P/?t=4050" target="_blank" rel="noopener">在 B 站打开 (01:07:30)</a></span></p></div>
+
+<hr />
+<h2 id="_9">附录：概念补给</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 读过正文各章即可；每条独立成卡
+- 本章零基础可跟
+
+</div>
+
+<h3 id="scaling-law_1">Scaling Law</h3>
+<ul>
+<li><strong>是什么</strong>：模型性能随算力/参数/数据规模扩大而可预测改善的经验规律。</li>
+<li><strong>课上为何出现</strong>：解释大模型能力来源；与棋类「智能≈算力」同构。</li>
+<li><strong>和什么像</strong>：引擎排量与马力的大致关系曲线。</li>
+</ul>
+<h3 id="the-bitter-lesson_1">The Bitter Lesson（苦涩的教训）</h3>
+<ul>
+<li><strong>是什么</strong>：依赖算力的通用方法长期胜过人类手工启发式。</li>
+<li><strong>课上为何出现</strong>：指导今天应投资可扩展机制而非雕花技巧。</li>
+<li><strong>常见误解</strong>：不是「细节不重要」，而是「要选对能累积的轴」。</li>
+</ul>
+<h3 id="next-token-prediction">Next Token Prediction</h3>
+<ul>
+<li><strong>是什么</strong>：根据上下文预测下一个词（token）的概率分布。</li>
+<li><strong>课上为何出现</strong>：LLM 的基本工作机制。</li>
+<li><strong>和什么像</strong>：输入法联想下一个字，只是强大无数倍。</li>
+</ul>
+<h3 id="context">上下文（Context）</h3>
+<ul>
+<li><strong>是什么</strong>：模型当前能「看到」的全部输入文本。</li>
+<li><strong>课上为何出现</strong>：溢出问题、注意力工程的基础。</li>
+<li><strong>常见误解</strong>：上下文不是模型的永久记忆，会话结束即丢。</li>
+</ul>
+<h3 id="self-attention">Self-Attention（自注意力）</h3>
+<ul>
+<li><strong>是什么</strong>：模型根据相关性分配「关注权重」的机制。</li>
+<li><strong>课上为何出现</strong>：提示词工程实质是 attention engineering。</li>
+<li><strong>和什么像</strong>：长文中自动盯住关键词。</li>
+</ul>
+<h3 id="thinking-model">Thinking Model / 思维链</h3>
+<ul>
+<li><strong>是什么</strong>：先输出推理步骤再给最终答案的模型/技巧。</li>
+<li><strong>课上为何出现</strong>：给 AI「草稿纸」，降低一步到位的难度。</li>
+<li><strong>常见误解</strong>：思考过程未必是人类意义上的意识活动。</li>
+</ul>
+<h3 id="token">Token</h3>
+<ul>
+<li><strong>是什么</strong>：模型处理文本的最小单位（词/子词/符号）。</li>
+<li><strong>课上为何出现</strong>：图像也可切成 token 对齐进语言模型。</li>
+<li><strong>和什么像</strong>：积木块，句子由积木拼成。</li>
+</ul>
+<h3 id="agentic-ai-coding-agent">Agentic AI / Coding Agent</h3>
+<ul>
+<li><strong>是什么</strong>：能规划、调用工具、与文件系统等环境交互的 AI。</li>
+<li><strong>课上为何出现</strong>：OS 课所处时代；工作区+Git 是其舞台。</li>
+<li><strong>和什么像</strong>：失忆但能干的实习生，靠工位便签续命。</li>
+</ul>
+<h3 id="workspace">工作区（Workspace）</h3>
+<ul>
+<li><strong>是什么</strong>：组织良好的项目目录，充当 AI/人的外部记忆。</li>
+<li><strong>课上为何出现</strong>：Agent 完成长程任务的必要条件。</li>
+<li><strong>和什么像</strong>：实验室工位：样品、笔记、仪器都在固定位置。</li>
+</ul>
+<h3 id="git_1">Git 快照 / 平行宇宙</h3>
+<ul>
+<li><strong>是什么</strong>：Git 保存目录历史状态，可回退、分支、挑选提交。</li>
+<li><strong>课上为何出现</strong>：Agent 犯错后可恢复；支撑试错文化。</li>
+<li><strong>常见误解</strong>：Git 主要不是「从网上下载代码的工具」。</li>
+</ul>
+<h3 id="vs">有限状态机 vs 图灵机</h3>
+<ul>
+<li><strong>是什么</strong>：前者状态有限；后者带无限长纸带，可做更复杂计算。</li>
+<li><strong>课上为何出现</strong>：说明为什么要用外部草稿纸/工作区。</li>
+<li><strong>和什么像</strong>：心算 vs 列竖式打草稿。</li>
+</ul>
+<h3 id="prompt-injection">提示词注入（Prompt Injection）</h3>
+<ul>
+<li><strong>是什么</strong>：在模型可见输入中插入指令，诱导其执行非预期行为。</li>
+<li><strong>课上为何出现</strong>：Agent 时代类似病毒/固件攻击的安全议题。</li>
+<li><strong>和什么像</strong>：在传单里夹一张「请打开金库」的假命令。</li>
+</ul>
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1gEcmzzE4P</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../03%20-%20%E7%A1%AC%E4%BB%B6%E8%A7%86%E8%A7%92%E7%9A%84%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">硬件视角的操作系统</span></a><a class="pager-btn next" href="../07%20-%20%E8%AE%BF%E9%97%AE%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%AF%B9%E8%B1%A1%EF%BC%9B%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">访问操作系统对象：文件描述符</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>虚拟机和容器</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 29 讲</p>
+        <h1>虚拟机和容器</h1>
+        <p class="book-summary">从 NEMU 全系统模拟与 JIT 优化讲到 Disco/VMware 的 x86 虚拟化黄金时代（Ring1、影子页表、硬件 VT-x/EPT）；再反向追问「操作系统为何不能虚拟化自己」，推导 namespace/cgroups/OverlayFS 组成的容器，以及 Kubernetes 式声明式编排。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1uaEB66EAH/" target="_blank" rel="noopener">BV1uaEB66EAH</a> · 时长 1h23m · 标签：虚拟化、虚拟机、VMware、JIT、容器、namespace、cgroups、Docker、Kubernetes</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1uaEB66EAH/">Bilibili · BV1uaEB66EAH</a>（时长约 84 分钟）
+<strong>课程</strong>：南京大学《操作系统原理》（2026）第 29 讲 · 虚拟机和容器
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语；关键思路标注 <em>(参考时间)</em>，<code>SCREENSHOT:</code> 占位对应演示时刻。本讲为补充内容。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 全系统模拟与性能瓶颈</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 做过或听说过 NEMU 这类「用程序模拟 CPU」的实验
+- 知道指令译码与执行循环
+- 本章概念零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p><strong>虚拟化</strong>对本课同学并不陌生：NEMU 就是 full system emulation（全系统模拟，用软件完整模拟一台计算机）。概念简单——从第一条指令起译码、执行，包含特权指令，其上可以跑真正的操作系统。</p>
+<p>真正难的是<strong>性能</strong>。同一程序在模拟器里往往只有真机 1/10 左右，图形密集的仙剑奇侠传很难满帧。有同学给 NEMU 加了 JIT 优化后，FC 模拟器可接近 60 帧。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_00_30.png" alt="NEMU 解释执行 vs 优化后的模拟器" loading="lazy"><p class="video-caption"><span class="cap-text">NEMU 解释执行 vs 优化后的模拟器</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1uaEB66EAH/?t=30" target="_blank" rel="noopener">在 B 站打开 (00:00:30)</a></span></p></div>
+
+<hr />
+<h2 id="2-jit">2. JIT：从基本块到「几乎编译」</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 CPU 有 PC，会顺序取指
+- 听说过基本控制流（分支、跳转、返回）
+- 本章优化细节零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:14:40 前后展开）</em></p>
+<h3 id="basic-block">Basic block</h3>
+<p><strong>基本块</strong>（basic block，从入口到下一条控制流转移之间、只能顺序执行的指令序列）的取指逻辑：一条条往下取，直到遇到跳转/返回等。块内执行顺序确定，适合做成一个可调用的翻译单元。</p>
+<h3 id="jit">典型 JIT 做法</h3>
+<ol>
+<li>把基本块生成为 C 代码（立即数硬编码进指令）；</li>
+<li>调用编译器得到共享库；</li>
+<li><code>dlopen</code> 装入地址空间，直接调用。</li>
+</ol>
+<p>对启动阶段只跑一次的冷代码，外挂 GCC 编译不可接受。成熟的 JIT（Java、Node 等）通常是：</p>
+<ul>
+<li>先<strong>解释执行</strong>保证进展；</li>
+<li>对热基本块计数，超过阈值再后台编译；</li>
+<li>下次执行跳进已编译代码。</li>
+</ul>
+<h3 id="qemu">QEMU 式模板拼接</h3>
+<p>QEMU 早期方案（<em>Fast and Portable Dynamic Translation</em>）介于解释与完整 JIT 之间：为每种指令准备<strong>宿主机器码模板</strong>，模板里对立即数等留占位；执行时按译码结果 <code>memcpy</code> 模板再 <strong>patch</strong> 立即数。</p>
+<p>实现技巧：把 <code>ADDI r1, r1, imm</code> 拆成 <code>t0 = r1; t0 += imm; r1 = t0</code>，每一步写成可编译的 C 小函数，预编译成宿主指令片段；运行时只做拷贝与重定位。模拟一条 guest 指令可能只花数条 host 指令。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_12_00.png" alt="模板拷贝 + 立即数 patch 的动态翻译" loading="lazy"><p class="video-caption"><span class="cap-text">模板拷贝 + 立即数 patch 的动态翻译</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1uaEB66EAH/?t=720" target="_blank" rel="noopener">在 B 站打开 (00:12:00)</a></span></p></div>
+
+<hr />
+<h2 id="3-disco-vmware">3. 虚拟机黄金时代：Disco 与 VMware</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道进程跑在用户态、内核跑在更高特权级
+- 听说过 x86 的 Ring 概念（即可）
+- 本章历史零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:16:00)</em></p>
+<h3 id="_1">商业动机</h3>
+<p>1970 年代就提出 VMM（virtual machine monitor，虚拟机监视器）：把一台物理机切成多台逻辑机。大型机时代需求合理，但长期未做成熟。</p>
+<p>1990 年代末 <strong>dot-com</strong> 泡沫：ISP 卖整机，业务（BBS、邮件、简单 Web）CPU 空闲率可达 80%–90%。若能把一台机器卖成五台、十台「看起来像物理机」的虚拟机，价格打对折仍有暴利。</p>
+<p>SOSP 1997 的 <strong>Disco</strong> 工作「bring back an idea popular in 1970s」：在共享内存多处理器上跑多个虚拟机，其上可运行未修改的操作系统。作者随后创办 <strong>VMware</strong>，成为云计算基础设施的重要起点。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_18_50.png" alt="Disco：一台机器上的多个完整 OS" loading="lazy"><p class="video-caption"><span class="cap-text">Disco：一台机器上的多个完整 OS</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1uaEB66EAH/?t=1130" target="_blank" rel="noopener">在 B 站打开 (00:18:50)</a></span></p></div>
+
+<h3 id="_2">技术难点：特权指令</h3>
+<p>同一 ISA 上模拟进程不难：构造地址空间即可。难在虚拟机里的 <strong>Guest OS</strong> 会执行关中断、改页表基址（如 <code>mov CR3</code>）等特权指令，不能直接在真 CPU 上跑。</p>
+<p>VMware 的经典技巧：</p>
+<ol>
+<li>Guest 的应用程序仍跑在 Ring3；</li>
+<li><strong>Guest 内核被放到 Ring1</strong>（x86 特意保留、日常几乎不用的特权级）；</li>
+<li>Ring1 无真实特权，执行敏感指令会陷入，由宿主 VMM 模拟；</li>
+<li>若架构没有可用 Ring，可扫描并 <strong>patch</strong> Guest 内核指令。</li>
+</ol>
+<p><strong>影子页表</strong>（shadow page table，VMM 维护的、Guest 虚拟地址到<strong>真实</strong>物理页的映射）：Guest 以为自己拥有整块「物理内存」并写自己的页表；VMM 在 <code>CR3</code> 切换时换成影子表。Guest 里 99% 的指令是普通计算，以近原生速度执行，只有特权/I/O 才 trap。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_48_40.png" alt="影子页表：两级「VR 眼镜」" loading="lazy"><p class="video-caption"><span class="cap-text">影子页表：两级「VR 眼镜」</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1uaEB66EAH/?t=2920" target="_blank" rel="noopener">在 B 站打开 (00:48:40)</a></span></p></div>
+
+<h3 id="_3">硬件跟进</h3>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>进展</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2005</td>
+<td>Intel VT-x 等硬件虚拟化：Guest 进入专用虚拟机模式，许多特权指令可直接执行</td>
+</tr>
+<tr>
+<td>2008 左右</td>
+<td>EPT（扩展页表）：影子页表由硬件维护，可达「四级 + 四级」嵌套</td>
+</tr>
+<tr>
+<td>更早/并行</td>
+<td>virtio 等虚拟 I/O 标准；如今甚至有 virtio-GPU</td>
+</tr>
+</tbody>
+</table>
+<p>疯狂而认真的后续 idea：记录 VM exit 与 I/O 返回值即可 <strong>replay</strong> 整台虚拟机；热迁移（暂停、拆网、拷贝内存、异地恢复）——Agent 与沙箱时代这些技术再次升温。</p>
+<hr />
+<h2 id="4">4. 反向问题：操作系统虚拟化自己</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道进程标识 PID
+- 知道文件系统根目录 `/`
+- 本章推导零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:54:00)</em></p>
+<p>虚拟机把「一台机器当十台卖」。但<strong>最终目的是跑应用</strong>，不是模拟硬件。操作系统自己能不能当十个小操作系统来卖？</p>
+<h3 id="osid">OSID：在对象上多打一个标签</h3>
+<p>教学内核（如 xv6）里的进程、文件等对象本来只有一套。若给每个对象加一个 <strong>OS ID</strong>（概念上的「这个对象属于哪个逻辑操作系统」）：</p>
+<ul>
+<li>遍历/kill 只能看到相同 OSID 的进程；</li>
+<li>资源分配仍从全局池子来，只是对象打上标签；</li>
+<li>启动时为不同 OSID 各准备一份 init ramfs。</li>
+</ul>
+<p>隔离成本极低（每对象多几个字节），性能远好于完整虚拟机。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_56_40.png" alt="OSID：同一内核上的多个逻辑 OS" loading="lazy"><p class="video-caption"><span class="cap-text">OSID：同一内核上的多个逻辑 OS</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1uaEB66EAH/?t=3400" target="_blank" rel="noopener">在 B 站打开 (00:56:40)</a></span></p></div>
+
+<p>PID 是 <strong>leaky abstraction</strong>（会泄漏细节的抽象）：会被回收，<code>grep | kill</code> 中间隔太久可能杀错进程。现代 Linux 用 <code>pidfd_open</code> 把 PID 变成引用计数的文件描述符，再对 fd 发信号。</p>
+<h3 id="chroot-namespace">从 chroot 到 namespace</h3>
+<p>1979 年 UNIX V7 的 <code>chroot</code>：把进程的文件系统视图限制在某子目录。前提是子目录里要有完整的 <code>/bin</code>、<code>/home</code> 等结构，否则 shell 都起不来。</p>
+<p>系统化做法：<strong>枚举操作系统对象类型，逐类虚拟化「命名空间」</strong>（namespace，一组对象只对同属该命名空间的进程可见）：</p>
+<ul>
+<li>PID、用户/组、文件系统与 mount 点；</li>
+<li>IPC（管道/信号量/共享内存）；</li>
+<li>网络（各自可有 localhost:5000）；</li>
+<li>UTS（主机名/域名）、time 等。</li>
+</ul>
+<p>进程在 <code>/proc/&lt;pid&gt;/ns/</code> 下可见自己属于哪些 namespace。PID 1 通常拥有「根命名空间」。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_06_20.png" alt="Linux namespaces：按对象类型的隔离视图" loading="lazy"><p class="video-caption"><span class="cap-text">Linux namespaces：按对象类型的隔离视图</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1uaEB66EAH/?t=3980" target="_blank" rel="noopener">在 B 站打开 (01:06:20)</a></span></p></div>
+
+<h3 id="cgroups">cgroups：控用量</h3>
+<p>只隔离还不够，「卖资源」还要<strong>限额</strong>。<strong>cgroups</strong>（control groups，把进程分组并限制/统计 CPU、内存、IO 等资源）与 namespace <strong>正交</strong>：</p>
+<ul>
+<li>组内进程共享一份 quota（如最多 20% CPU）；</li>
+<li>cgroup v2 呈树状：大组之间策略、小组之间策略可分别设置。</li>
+</ul>
+<p>namespace（看不见别人）+ cgroups（用不了超额）+ OverlayFS 分层镜像（共享底层只读层）≈ <strong>容器</strong>。</p>
+<p>FreeBSD jail（2000）早已走在类似路上；Linux 的 cgroups/namespace 约 2006 年引入（Google 工程师推动），2008 年 LXC 走红，之后 Docker 成为云原生事实标准。</p>
+<hr />
+<h2 id="5">5. 容器、镜像与编排</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 读过 Dockerfile 或见过 Docker 镜像分层
+- 听说过 Kubernetes
+- 本章产品细节零基础可跟
+
+</div>
+
+<p><em>(参考时间: 01:12:00)</em></p>
+<h3 id="vs">虚拟机 vs 容器</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>虚拟机</th>
+<th>容器</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>隔离</td>
+<td>强（各自 OS + 硬件虚拟化）</td>
+<td>较弱（共享宿主内核）</td>
+</tr>
+<tr>
+<td>开销</td>
+<td>模拟内存、影子页表等</td>
+<td>主要是 namespace/cgroups 标签</td>
+</tr>
+<tr>
+<td>镜像</td>
+<td>整盘镜像，笨重</td>
+<td>OverlayFS 分层，底层共享</td>
+</tr>
+<tr>
+<td>安全</td>
+<td>内核漏洞影响面相对独立</td>
+<td>内核漏洞或 cgroup 漏洞可能导致越权/DoS</td>
+</tr>
+</tbody>
+</table>
+<p>云上对用户而言容器与 VM 往往「用起来一样」，但调度与成本差一个数量级。</p>
+<h3 id="kubernetes">Kubernetes 式声明式编排</h3>
+<p>VMware 的 vSphere 一类方案「重」：要装专用软件、纳管整机。容器时代更流行 <strong>Kubernetes</strong> 式思路：</p>
+<ul>
+<li>声明：「这个服务在各数据中心保持 N 个副本」；</li>
+<li>控制器：容器挂了就在别的机器再起一个（镜像哈希确定，可复现）；</li>
+<li>Gateway：按服务名路由，自动负载均衡与健康检查；</li>
+<li>见缝插针：按 CPU/内存多维需求做装箱（背包问题，NP-hard）。</li>
+</ul>
+<p>又是一层虚拟化：你不知道请求落在哪台物理机。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_19_00.png" alt="声明式编排：期望状态 vs 实际调度" loading="lazy"><p class="video-caption"><span class="cap-text">声明式编排：期望状态 vs 实际调度</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1uaEB66EAH/?t=4740" target="_blank" rel="noopener">在 B 站打开 (01:19:00)</a></span></p></div>
+
+<h3 id="_4">品味与元机制</h3>
+<p>课上用 <em>The Bitter Lesson</em> 对照：强化学习与大模型强调<strong>可扩展的通用机制</strong>。虚拟化史上：</p>
+<ul>
+<li>1997 让 VMM 复活——疯狂而正确；</li>
+<li>1998 BSD jail 在 OS 内做隔离——同样疯狂；</li>
+<li>后来声明式容器编排——改变世界。</li>
+</ul>
+<p>但若无限优化「容器装箱 ILP 再快 0.1%」，而假设（静态、已知全部容器）与现实不符，研究品位就存疑。技术浪潮由真实需求与资本推动；做错路径也会沉淀技术。对学生的建议：看清机制、见识更好的工作，不必只被分数定义。</p>
+<hr />
+<h2 id="_5">附录：概念补给</h2>
+<h3 id="full-system-emulation">Full system emulation</h3>
+<ul>
+<li><strong>是什么</strong>：用软件模拟整台计算机（CPU、内存、设备）。</li>
+<li><strong>课上为何出现</strong>：NEMU 是课程实验主线，也是虚拟化入门。</li>
+<li><strong>和什么像</strong>：用游戏机模拟器玩老主机卡带。</li>
+</ul>
+<h3 id="jitjust-in-time-compilation">JIT（just-in-time compilation）</h3>
+<ul>
+<li><strong>是什么</strong>：运行时把热代码翻译成宿主机器码再执行。</li>
+<li><strong>课上为何出现</strong>：解释执行太慢时的标准加速手段。</li>
+<li><strong>和什么像</strong>：把常用菜先备好半成品，现点现炒。</li>
+</ul>
+<h3 id="basic-block_1">Basic block</h3>
+<ul>
+<li><strong>是什么</strong>：无分支中间的顺序指令序列。</li>
+<li><strong>课上为何出现</strong>：JIT/动态翻译的天然编译单元。</li>
+<li><strong>和什么像</strong>：公交线路中间「不拐弯的一段」。</li>
+</ul>
+<h3 id="vmm-hypervisor">VMM / Hypervisor</h3>
+<ul>
+<li><strong>是什么</strong>：创建与管理虚拟机的软件层。</li>
+<li><strong>课上为何出现</strong>：Disco/VMware 故事的主角。</li>
+<li><strong>和什么像</strong>：物业管理：房间（VM）背后统一管水电。</li>
+</ul>
+<h3 id="ring1-hack">Ring1 hack</h3>
+<ul>
+<li><strong>是什么</strong>：把 Guest 内核放在 x86 Ring1，敏感指令陷入 VMM。</li>
+<li><strong>课上为何出现</strong>：无硬件虚拟化时实现近原生速度的关键。</li>
+<li><strong>常见误解</strong>：不是「Guest 内核没权限」，而是<strong>故意</strong>让它没有，以便托管。</li>
+</ul>
+<h3 id="shadow-page-table">Shadow page table</h3>
+<ul>
+<li><strong>是什么</strong>：VMM 维护的 Guest 虚拟地址到真实物理页的映射。</li>
+<li><strong>课上为何出现</strong>：Guest 页表不能直接给硬件用。</li>
+<li><strong>和什么像</strong>：你按酒店房间号找人，前台另有一张真实门牌对照表。</li>
+</ul>
+<h3 id="vt-x-ept">VT-x / EPT</h3>
+<ul>
+<li><strong>是什么</strong>：CPU 硬件虚拟化扩展与两级页表机制。</li>
+<li><strong>课上为何出现</strong>：软件 hack 被硬件固化后的形态。</li>
+<li><strong>和什么像</strong>：以前用土办法搬货，后来修了专用货梯。</li>
+</ul>
+<h3 id="namespace">Namespace</h3>
+<ul>
+<li><strong>是什么</strong>：让进程只看见同一命名空间内对象的隔离机制。</li>
+<li><strong>课上为何出现</strong>：容器「看不见别人」的技术底座。</li>
+<li><strong>和什么像</strong>：同楼层不同公司的门禁，刷卡只能进本公司。</li>
+</ul>
+<h3 id="cgroups_1">cgroups</h3>
+<ul>
+<li><strong>是什么</strong>：按组限制与统计 CPU/内存等资源的内核机制。</li>
+<li><strong>课上为何出现</strong>：容器「用不了超额」的技术底座。</li>
+<li><strong>和什么像</strong>：电表限额：超过就跳闸，而不是禁止你插插头。</li>
+</ul>
+<h3 id="container">Container</h3>
+<ul>
+<li><strong>是什么</strong>：namespace + cgroups + 通常叠加分层 rootfs 的轻量隔离单元。</li>
+<li><strong>课上为何出现</strong>：与虚拟机对照的现代默认部署形态。</li>
+<li><strong>常见误解</strong>：不是「轻量虚拟机」，共享宿主内核，安全模型不同。</li>
+</ul>
+<h3 id="overlayfs">OverlayFS 分层镜像</h3>
+<ul>
+<li><strong>是什么</strong>：只读底层 + 可写上层构成容器文件系统。</li>
+<li><strong>课上为何出现</strong>：千个容器共享一份系统镜像，存储极省。</li>
+<li><strong>和什么像</strong>：同一本教材大家共用，笔记各写各的透明纸。</li>
+</ul>
+<h3 id="chroot">chroot</h3>
+<ul>
+<li><strong>是什么</strong>：把进程文件系统根切换到某子目录。</li>
+<li><strong>课上为何出现</strong>：容器文件系统视图的史前形式。</li>
+<li><strong>常见误解</strong>：只隔离路径视图，不隔离 PID/网络等。</li>
+</ul>
+<h3 id="kubernetes_1">Kubernetes / 声明式编排</h3>
+<ul>
+<li><strong>是什么</strong>：声明期望副本与路由，控制器自动维持实际状态。</li>
+<li><strong>课上为何出现</strong>：云原生时代管理海量容器的答案。</li>
+<li><strong>和什么像</strong>：告诉管家「始终保持 5 个苹果」，而不是每次自己去买。</li>
+</ul>
+<h3 id="leaky-abstractionpid">Leaky abstraction（PID）</h3>
+<ul>
+<li><strong>是什么</strong>：抽象在细节上泄漏，使用者仍可能踩坑。</li>
+<li><strong>课上为何出现</strong>：PID 复用导致误杀，需要 pidfd 等补丁。</li>
+<li><strong>和什么像</strong>：门牌号会重复使用，快递员可能送错隔壁。</li>
+</ul>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../28%20-%20%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E5%AE%89%E5%85%A8%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">计算机系统安全</span></a><a class="pager-btn next" href="../30%20-%20Agentic%20AI%20%E5%92%8C%E6%88%91%E4%BB%AC%E7%9A%84%E6%9C%AA%E6%9D%A5%EF%BC%9B%E8%AF%BE%E7%A8%8B%E6%80%BB%E7%BB%93%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">Agentic AI 与我们的未来：课程总结</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

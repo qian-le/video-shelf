@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>输入输出设备和驱动</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 22 讲</p>
+        <h1>输入输出设备和驱动</h1>
+        <p class="book-summary">从规范设备模型（status/command/data 寄存器与中断）讲起，经 LED、串口、打印机语言、UVC 摄像头、DMA/协处理器与 PCIe/USB/CXL 总线，落到 everything is a file：设备驱动、file_operations 与 ioctl（含 KVM）如何把设备接进 UNIX 世界。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1dYLq6gE8W/" target="_blank" rel="noopener">BV1dYLq6gE8W</a> · 时长 1h26m · 标签：IO设备、设备驱动、ioctl、DMA、总线、PCIe、USB、UVC、PostScript、KVM、file_operations</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1dYLq6gE8W/">Bilibili · BV1dYLq6gE8W</a>（时长约 87 分钟）
+<strong>课程</strong>：南京大学《操作系统原理》（2026）第 22 讲
+<strong>整理说明</strong>：本书由视频字幕经 AI 重构而成；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
+</blockquote>
+<hr />
+<h2 id="1-io-cpu">1. I/O 设备原理：CPU 眼中的世界接口</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 寄存器、load/store、内存映射的大意
+- 中断与系统调用概念
+- everything is a file / 文件描述符
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>虚拟化与并发部分结束后，本讲打开操作系统对象里的“黑盒子”：<strong>I/O 设备</strong>，并进入持久化（persistence）主题的前奏。</p>
+<h3 id="11">1.1 你看见的电脑其实是外设</h3>
+<p>日常接触的是键盘、屏幕、鼠标、打印机——<strong>输入输出设备</strong>（I/O device，CPU/内存与物理世界之间的桥梁）。CS 课学的是底下看不见的 CPU/内存；IO 是计算机的“手和眼”。</p>
+<p><strong>规范设备模型</strong>（canonical device model）：任何能与 CPU 交换数据的接口/控制器都可以是 IO 设备。对 CPU 而言，设备通常简化为若干<strong>寄存器</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>寄存器</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>status</td>
+<td>设备是否 ready / 状态</td>
+</tr>
+<tr>
+<td>command</td>
+<td>启动、配置等命令</td>
+</tr>
+<tr>
+<td>data</td>
+<td>读写的数据</td>
+</tr>
+</tbody>
+</table>
+<p>访问方式：</p>
+<ul>
+<li><strong>x86 port I/O</strong>：独立 IO 地址空间，<code>in</code>/<code>out</code> 指令（如 COM1 基址 <code>0x3F8</code>）；</li>
+<li><strong>内存映射 IO（MMIO）</strong>：设备寄存器映射到物理地址，直接 load/store（树莓派等 ARM/RISC-V 常见）。</li>
+</ul>
+<h3 id="12">1.2 中断与设备线程的想象</h3>
+<p>设备可通过中断线通知 CPU。用户态心智模型：</p>
+<pre><code class="language-text">线程 t_device:
+    P(信号量)          // 等待中断
+中断处理程序:
+    V(信号量)          // 数据到来等事件
+    唤醒 t_device
+</code></pre>
+<p>时钟中断保证 OS 对 CPU 的霸权地位；IO 中断则由内核处理后唤醒等待者。</p>
+<h3 id="13-led">1.3 从 LED 灯到“任何东西”</h3>
+<p>最简设备：一个可写寄存器连 LED。树莓派上可用 sysfs 路径（如 <code>/sys/class/leds/.../brightness</code>）<code>write</code> 闪烁。</p>
+<p>能控制 GPIO 电平 → 继电器/电机/门禁在工程上同构——演示里戏称“核弹发射器”，强调<strong>同一抽象覆盖所有设备</strong>。</p>
+<p>其他经典设备：</p>
+<ul>
+<li><strong>串口 / UART / TTY</strong>：配置寄存器后读写 data，即可实现终端；</li>
+<li><strong>PS/2 键盘鼠标</strong>：数据/时钟/VCC/GND 等引脚，端口 <code>0x60</code>/<code>0x64</code>；早期重复按键由键盘控制器完成，今多由软件处理；</li>
+<li><strong>ATA/IDE 磁盘</strong>：等待 ready → 写扇区号与数量 → 命令寄存器 → 从数据口读。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_00_10_00.png" alt="LED：最简 IO 设备即一个寄存器" loading="lazy"><p class="video-caption"><span class="cap-text">LED：最简 IO 设备即一个寄存器</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1dYLq6gE8W/?t=600" target="_blank" rel="noopener">在 B 站打开 (00:10:00)</a></span></p></div>
+
+<hr />
+<h2 id="2">2. 打印机、摄像头、协处理器与总线</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 编程语言/编译的直觉
+- DMA 可先零基础，本节会解释
+- 知道设备驱动“能让硬件工作”即可
+
+</div>
+
+<p><em>(参考时间: 00:20:25)</em></p>
+<h3 id="21">2.1 打印机：设备是程序的解释器</h3>
+<p>早期打印机/绘图仪：卷纸（Y）+ 机械臂（X）+ 提笔/放笔 → 可画任意图形。CPU 侧只需发送“提/放/移”的指令序列。</p>
+<p>设备变强后，描述语言升级：</p>
+<ul>
+<li><strong>PCL</strong>：<code>ESC</code> + 命令 + 图像数据；</li>
+<li><strong>PostScript</strong>：图灵完备的栈式语言，用路径/曲线/填充/字体描述矢量图形，长期是打印事实标准；</li>
+<li><strong>PDF</strong>：更安全的容器格式（去掉通用计算），保留矢量描述；LaTeX/markdown 编译到 PDF 再 <code>lp</code>/<code>lpr</code> 打印。</li>
+</ul>
+<blockquote>
+<p>打印机 = 解释专用语言的小计算机。</p>
+</blockquote>
+<h3 id="22-usb-uvc">2.2 USB 摄像头与 UVC</h3>
+<p>现代 USB 摄像头多免驱：<strong>UVC</strong>（USB Video Class，USB 摄像头标准协议）规定枚举方式、格式/分辨率/帧率协商、逐帧字节流。Linux 上常见 <code>/dev/video0</code>。行车记录仪、显微镜、内窥镜等本质都是 UVC 设备。</p>
+<h3 id="23-dma">2.3 协处理器与 DMA</h3>
+<p>设备能否与 CPU <strong>共享内存</strong>？可以——协处理器思路。</p>
+<ul>
+<li>早期：80386 无浮点，配 80387；</li>
+<li>现代：<strong>DMA</strong>（Direct Memory Access，专用引擎在内存与设备间搬运数据）：CPU 配置源/目的/长度后释放算力；</li>
+<li>Intel 8237 等多通道 DMA 历史实现；</li>
+<li>ATA 大数据量不再占用 CPU 循环端口读。</li>
+</ul>
+<p>GPU/NPU：</p>
+<ul>
+<li>CPU 经寄存器配置 GPU，经 DMA 把 kernel 与数据送入显存，再“启动”kernel；</li>
+<li>GPU 常有独立显存（认为比系统内存更“贵”更快）；NPU 多共享系统内存。</li>
+</ul>
+<h3 id="24">2.4 总线：设备的“地址空间”</h3>
+<p>IBM PC 时代端口写死；设备种类爆炸后需要动态发现——<strong>总线</strong>（连接 CPU 与多类设备、负责枚举与数据通路的互连系统）也是特殊 IO 设备。</p>
+<ul>
+<li>CPU 轮询/中断感知设备变化；</li>
+<li>总线可自带 DMA；</li>
+<li><strong>PCIe</strong>：显卡/网卡/NVMe 等高速设备；CPU 手册标明 PCIe lanes 分配；</li>
+<li><strong>USB</strong>：插上后枚举设备（<code>lsusb -t</code>），加载 UVC 等驱动；</li>
+<li><strong>CXL</strong>（Computer Express Link）：在 PCIe 物理层上的新协议，含 IO/cache/memory 语义，目标是更远端的内存共享（disaggregated memory）。</li>
+</ul>
+<p>插拔设备 → 中断 → 轮询总线 → 加载驱动：Windows 历史上的蓝屏名场面多与驱动/时序 bug 有关，Win7 后重构了驱动子系统。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_45_00.png" alt="PCIe/USB：总线发现并连接设备" loading="lazy"><p class="video-caption"><span class="cap-text">PCIe/USB：总线发现并连接设备</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1dYLq6gE8W/?t=2700" target="_blank" rel="noopener">在 B 站打开 (00:45:00)</a></span></p></div>
+
+<hr />
+<h2 id="3">3. 设备驱动程序：从寄存器到文件</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- open/read/write 与文件描述符
+- 结构体、函数指针（能想象“接口表”即可）
+- 内核态与用户态的区分
+
+</div>
+
+<p><em>(参考时间: 00:52:58)</em></p>
+<h3 id="31">3.1 为何不能让应用直接摸寄存器</h3>
+<ul>
+<li>多进程都要用 GPU/终端/打印机，必须同步；</li>
+<li>底层接口过 raw，同步交给应用必然出并发 bug；</li>
+<li>需要 OS <strong>虚拟化</strong>：把设备变成进程可见的<strong>对象</strong>。</li>
+</ul>
+<p>UNIX 抽象：<strong>everything is a file</strong>——<code>/dev</code> 下设备节点，用 open/read/write（及 flock 等）访问。</p>
+<p>显卡无驱动时的兼容模式：伪装成标准 <strong>framebuffer</strong>（帧缓冲：可当大数组写颜色），保证基本显示；加载驱动后才具备 DMA、3D、CUDA 等能力。</p>
+<h3 id="32">3.2 驱动 = 系统调用到设备语言的翻译</h3>
+<p>设备驱动是内核模块：把对设备文件的 read/write 等翻成寄存器操作（轮询 status、收发 data、等中断）。</p>
+<p>示例：<code>/dev/null</code></p>
+<ul>
+<li>read 返回 0；</li>
+<li>write 接受任意长度并丢弃（数据黑洞）。</li>
+</ul>
+<p>课堂驱动示例「launcher」：</p>
+<pre><code class="language-text">struct file_operations 中注册:
+    launcher_read  → 拷贝 &quot;this is dangerous&quot; 到用户态
+    launcher_write → 校验密码，成功则在内核日志“发射”
+    初始化/退出     → 注册/注销 /dev 节点
+</code></pre>
+<p>用 <code>insmod</code> 加载后，<code>cat /dev/launcher</code> 走 open+read；写入正确密码才触发副作用。旧驱动源码可让 AI 帮你适配新内核。</p>
+<h3 id="33-ioctlunix">3.3 ioctl：UNIX 脏但必要的一面</h3>
+<p>文件抽象默认设备是<strong>字节流/字节序列</strong>；但设备还有 status/command 类<strong>控制</strong>功能（停止打印、改 TTY 模式、磁盘健康、键盘灯、GPU 功能开关……）。</p>
+<p>UNIX 的答案是系统调用 <strong>ioctl</strong>（对设备文件发送与设备相关的控制请求）：参数以不加解释的方式交给驱动——所有非数据类复杂性几乎都堆在这里。</p>
+<ul>
+<li>打印机卡纸处理、清洁、装订；</li>
+<li>终端窗口大小与模式；</li>
+<li>网卡、GPU 的大量功能经 ioctl 配置；</li>
+<li>CUDA 的 memory copy 等也通过 ioctl 类路径通知驱动启动 DMA。</li>
+</ul>
+<p>复杂度体现：微软曾尝试 WSL1 用系统调用拦截模拟 Linux，因 <code>/proc</code>、ioctl 等隐藏细节无法 100% 兼容，最终改用运行真实 Linux 内核的虚拟机方案。</p>
+<h3 id="34-kvm-ioctl">3.4 KVM：一个 ioctl 承载整台虚拟机</h3>
+<p>Linux 上的 <code>/dev/kvm</code> 演示了 ioctl 的力量：</p>
+<ol>
+<li><code>open("/dev/kvm")</code>；</li>
+<li>ioctl 创建 VM、分配用户内存 region、创建 vCPU；</li>
+<li>把 guest 代码写入内存，设置初始寄存器；</li>
+<li>ioctl <code>KVM_RUN</code>——进程逻辑上变成虚拟机，连续执行 guest 指令；</li>
+<li>触发 MMIO/IO/超调用等时 <strong>VM exit</strong> 回到用户态，可模拟设备后再进入。</li>
+</ol>
+<p>课程早期的 CrazyOS（软件模拟 RV32 步进）与 KVM 对比，可见“专用硬件 + ioctl 抽象”的效率与复杂度。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_00_00.png" alt="设备驱动与 ioctl：用户 API 到寄存器" loading="lazy"><p class="video-caption"><span class="cap-text">设备驱动与 ioctl：用户 API 到寄存器</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1dYLq6gE8W/?t=3600" target="_blank" rel="noopener">在 B 站打开 (01:00:00)</a></span></p></div>
+
+<hr />
+<h2 id="4">4. 小结</h2>
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>物理</td>
+<td>灯、笔、镜头、磁头、GPU 芯片</td>
+</tr>
+<tr>
+<td>规范模型</td>
+<td>status / command / data 寄存器 + 中断</td>
+</tr>
+<tr>
+<td>互连</td>
+<td>port I/O、MMIO、PCIe/USB/CXL 总线</td>
+</tr>
+<tr>
+<td>OS 抽象</td>
+<td>/dev 文件、驱动、DMA、ioctl</td>
+</tr>
+<tr>
+<td>应用</td>
+<td>open/read/write + 少量设备相关控制</td>
+</tr>
+</tbody>
+</table>
+<p>下节课起更深入 <strong>存储设备</strong> 与文件系统：磁盘如何变成字节序列，再变成你每天用的文件树。</p>
+<hr />
+<h2 id="_1">附录：概念补给</h2>
+<h3 id="canonical-device-model">canonical device model</h3>
+<ul>
+<li><strong>是什么</strong>：把设备看作可访问的寄存器组（状态/命令/数据）。</li>
+<li><strong>课上为何出现</strong>：从 LED 到 GPU 的统一心智模型。</li>
+<li><strong>和什么像</strong>：所有电器都有开关、指示灯和功能键。</li>
+</ul>
+<h3 id="mmio-port-io">MMIO / port I/O</h3>
+<ul>
+<li><strong>是什么</strong>：用内存地址或专用 IO 端口访问设备寄存器的两种方式。</li>
+<li><strong>课上为何出现</strong>：x86 与 ARM/RISC-V 访问设备的差异。</li>
+<li><strong>和什么像</strong>：按货架编号取件 vs 走专门的取件窗口。</li>
+</ul>
+<h3 id="uart-tty">UART / TTY</h3>
+<ul>
+<li><strong>是什么</strong>：串行通信接口 / 终端设备抽象。</li>
+<li><strong>课上为何出现</strong>：有了串口，早期计算机才“能用”。</li>
+<li><strong>和什么像</strong>：一根电话线两端的电传打字机。</li>
+</ul>
+<h3 id="framebuffer">framebuffer</h3>
+<ul>
+<li><strong>是什么</strong>：显存中与屏幕像素对应的数组。</li>
+<li><strong>课上为何出现</strong>：显卡无驱动时的兼容显示模式。</li>
+<li><strong>和什么像</strong>：填色本——按格子涂，屏幕就显示颜色。</li>
+</ul>
+<h3 id="dma">DMA</h3>
+<ul>
+<li><strong>是什么</strong>：不占用 CPU 循环、在内存与设备间搬数据的引擎。</li>
+<li><strong>课上为何出现</strong>：把 CPU 从大批量 IO 中解放出来。</li>
+<li><strong>和什么像</strong>：物流车自己送货，老板不用亲自扛箱子。</li>
+</ul>
+<h3 id="pcie-usb-cxl">总线（PCIe / USB / CXL）</h3>
+<ul>
+<li><strong>是什么</strong>：连接 CPU 与设备的互连，负责枚举、数据传输与供电等。</li>
+<li><strong>课上为何出现</strong>：设备不能再写死端口，需要动态发现。</li>
+<li><strong>和什么像</strong>：园区路网 + 门牌系统，新商户入驻即可被找到。</li>
+</ul>
+<h3 id="_2">设备驱动</h3>
+<ul>
+<li><strong>是什么</strong>：内核中把文件 API 翻译成设备寄存器操作的模块。</li>
+<li><strong>课上为何出现</strong>：应用不应直接竞争底层接口。</li>
+<li><strong>和什么像</strong>：前台翻译——你说“打印”，她操作那台机器。</li>
+</ul>
+<h3 id="struct-file_operations">struct file_operations</h3>
+<ul>
+<li><strong>是什么</strong>：文件对象上的操作函数表（read/write/mmap 等）。</li>
+<li><strong>课上为何出现</strong>：驱动向 OS 注册“这个设备文件怎么读写”。</li>
+<li><strong>和什么像</strong>：电器说明书附的按键功能表。</li>
+</ul>
+<h3 id="ioctl">ioctl</h3>
+<ul>
+<li><strong>是什么</strong>：对设备文件发送控制类请求的系统调用。</li>
+<li><strong>课上为何出现</strong>：承载打印配置、TTY、GPU、KVM 等几乎所有非读写控制。</li>
+<li><strong>常见误解</strong>：everything is a file 很干净；控制面复杂性其实堆在 ioctl。</li>
+<li><strong>和什么像</strong>：遥控器上一堆厂商自定义按钮。</li>
+</ul>
+<h3 id="uvc">UVC</h3>
+<ul>
+<li><strong>是什么</strong>：USB 摄像头设备类标准。</li>
+<li><strong>课上为何出现</strong>：解释为何 USB 摄像头大多免驱。</li>
+<li><strong>和什么像</strong>：充电口统一后，数据线大多即插即用。</li>
+</ul>
+<h3 id="postscript-pdf">PostScript / PDF</h3>
+<ul>
+<li><strong>是什么</strong>：描述矢量打印内容的语言 / 更安全的文档容器格式。</li>
+<li><strong>课上为何出现</strong>：打印机从“画线指令”进化到可编程描述语言。</li>
+<li><strong>和什么像</strong>：从铅字排版到可无限放大的矢量设计稿。</li>
+</ul>
+<h3 id="_3">协处理器</h3>
+<ul>
+<li><strong>是什么</strong>：协助 CPU 完成特定计算或搬运的附加处理器。</li>
+<li><strong>课上为何出现</strong>：浮点单元、DMA、GPU/NPU 的共同位置。</li>
+<li><strong>和什么像</strong>：厨房里的洗碗机——不替代厨师，但卸下重活。</li>
+</ul>
+<h3 id="kvm">KVM（本讲语境）</h3>
+<ul>
+<li><strong>是什么</strong>：Linux 内核虚拟机设备，用户态经 ioctl 创建并运行 guest。</li>
+<li><strong>课上为何出现</strong>：展示 ioctl 能承载多么重的子系统。</li>
+<li><strong>和什么像</strong>：用一套物业接口就能申请一间“楼中实验室”。</li>
+</ul>
+<hr />
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1dYLq6gE8W</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../21%20-%20%E4%B8%80%E4%B8%AA%20Token%20%E7%9A%84%E6%97%85%E7%A8%8B%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">一个 Token 的旅程</span></a><a class="pager-btn next" href="../23%20-%20%E5%AD%98%E5%82%A8%E8%AE%BE%E5%A4%87%E5%8E%9F%E7%90%86%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">存储设备原理</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

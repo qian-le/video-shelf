@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C 标准库原理</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 9 讲</p>
+        <h1>C 标准库原理</h1>
+        <p class="book-summary">从系统调用生态分层切入 C 标准库：区分 Simple C 与 FFI/内联汇编如何接入系统调用，说明 free standing 与 hosted 两类环境及 setjmp/longjmp 等计算设施，结合 musl 源码讲解 FILE 如何封装文件描述符与缓冲，并讨论 perror、POSIX 与 libc 在应用生态中的地基作用。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1GHXCBkEZf/" target="_blank" rel="noopener">BV1GHXCBkEZf</a> · 时长 1h25m · 标签：C标准库、libc、musl、FFI、内联汇编、stdio、POSIX</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1GHXCBkEZf/">Bilibili · BV1GHXCBkEZf</a>
+<strong>课程</strong>：NJU《操作系统原理》2026 第 9 讲
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语；关键时间点均标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 从系统调用到库：生态的地基</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 fork/exec/exit、mmap 等系统调用大致做什么
+- 知道 C 程序会调用 printf 等库函数
+- 实验/手册使用零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>实验二已发布；环境变量与 Makefile 细节可让 AI 读并配置。Online Judge 并非唯一路径——测试用例也可以自己写，关键是动手体验。</p>
+<p>前几讲已说明：系统调用三大类足以实现应用世界中的几乎一切（进程、地址空间、文件对象）。但真实软件生态<strong>不是直接站在裸系统调用上的</strong>，而是：</p>
+<pre><code class="language-mermaid">flowchart TB
+    A[Python / JavaScript / Android] --&gt; B[C++ / 运行时]
+    B --&gt; C[libc / POSIX]
+    C --&gt; D[系统调用]
+    D --&gt; E[硬件]
+</code></pre>
+<p>C 语言与其标准库是这个洋葱的<strong>第一层可复用封装</strong>。本讲主题：<strong>C 标准库（libc）的原理与实现</strong>。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_08_30.png" alt="生态分层：libc 是第一层" loading="lazy"><p class="video-caption"><span class="cap-text">生态分层：libc 是第一层</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=510" target="_blank" rel="noopener">在 B 站打开 (00:08:30)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_04_00.png" alt="man 手册 + AI：检索系统接口" loading="lazy"><p class="video-caption"><span class="cap-text">man 手册 + AI：检索系统接口</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=240" target="_blank" rel="noopener">在 B 站打开 (00:04:00)</a></span></p></div>
+
+<h3 id="ai">手册与 AI</h3>
+<p>系统里处处有手册：<code>man 4 pts</code>、<code>man 5 proc</code>、<code>man 7 pipe</code>。把手册管道给 AI，可得到 summary 并继续追问实现。主讲人还让 AI 把全部 man page 做成可搜索的树状浏览器——现代学习方式是「知道有什么 + 会提取」，而非死记全文。</p>
+<hr />
+<h2 id="2-c-simple-c-ffi">2. C 的完全体：Simple C 与 FFI</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 理解 Simple C / 状态机模型（第 2 讲）
+- 知道程序最终是机器码
+- 汇编、调用约定概念本章会展开
+
+</div>
+
+<p><em>(参考时间: 00:08)</em></p>
+<p>Simple C 只覆盖了 C 的<strong>计算</strong>部分：赋值、分支、循环，可直译汇编。但 C 还有完整体：</p>
+<h3 id="ffi">跨语言调用 FFI</h3>
+<p><strong>外部函数接口（Foreign Function Interface，一种语言调用另一种语言实现的函数的机制）</strong>。Python 的 <code>mmap</code> 模块背后是系统调用，而系统调用必须用更低层的手段发出——C/汇编正是那一层。</p>
+<p>两种在 C 里接入汇编的方式：</p>
+<ol>
+<li><strong>链接汇编实现的函数</strong>：按 <strong>ABI（应用二进制接口）</strong> 的调用约定，x86-64 约定参数在 <code>RDI/RSI/...</code>，栈上保存返回地址等；</li>
+<li><strong>内联汇编（inline assembly）</strong>：在 C 源码中嵌入汇编片段。</li>
+</ol>
+<p>一旦 C 能调用汇编，就能发起系统调用——<code>fork</code>、<code>pipe</code> 等最终都落到汇编例程。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_12_20.png" alt="FFI：C 与汇编互相调用" loading="lazy"><p class="video-caption"><span class="cap-text">FFI：C 与汇编互相调用</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=740" target="_blank" rel="noopener">在 B 站打开 (00:12:20)</a></span></p></div>
+
+<hr />
+<h2 id="3-ai">3. 内联汇编：概念重要，细节交 AI</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道寄存器、指令序列
+- 了解编译器会优化代码
+- 本章只需建立正确心智模型
+
+</div>
+
+<p><em>(参考时间: 00:13)</em></p>
+<p>内联汇编是为了「在 C 的词法作用域里引用变量，同时执行一段指令序列」。代价是语法像一块<strong>领域特定语言（DSL，只服务某个领域的专用语言）</strong>：</p>
+<ul>
+<li>指令写在字符串里，像 <code>printf</code> 一样用 <code>%0</code>、<code>%1</code> 引用操作数；</li>
+<li>约束：<code>=r</code> 表示写入任意寄存器；读写同一变量要用 <code>+</code>；</li>
+<li>必须正确声明 <strong>clobber（被这段汇编破坏、编译器应避开的寄存器）</strong>。</li>
+</ul>
+<h3 id="_1">为什么人类容易写错</h3>
+<ul>
+<li>编译器<strong>不解析</strong>字符串里汇编的语义，只负责替换操作数后交给汇编器；</li>
+<li>漏写副作用（例如改了 X5 却未声明）时，今天可能碰巧正确，编译器升级后突然崩溃；</li>
+<li>系统调用约定要求把参数放进特定寄存器（如 ARM64 的 X0–X5、调用号 X8），与优化器寄存器分配存在张力。</li>
+</ul>
+<h3 id="_2">今天的正确态度</h3>
+<p>建立概念即可：内联汇编是 FFI 的一种，最终原样进入汇编器。写法细节交给 AI/文档；需要极致性能（矩阵乘法、向量点积）时，再让 AI 针对目标指令集生成优化片段。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_18_20.png" alt="内联汇编手册：DSL 的复杂性" loading="lazy"><p class="video-caption"><span class="cap-text">内联汇编手册：DSL 的复杂性</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=1100" target="_blank" rel="noopener">在 B 站打开 (00:18:20)</a></span></p></div>
+
+<hr />
+<h2 id="4-free-standing-hosted">4. Free Standing 与 Hosted</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道有的程序依赖操作系统，有的跑在裸机
+- 听说过「标准库」
+- 宏与类型概念有助于理解示例
+
+</div>
+
+<p><em>(参考时间: 00:24)</em></p>
+<p>C 程序有两类环境：</p>
+<table>
+<thead>
+<tr>
+<th>环境</th>
+<th>含义</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hosted</strong></td>
+<td>有操作系统与完整库：<code>fopen</code> 等最终会系统调用</td>
+<td>普通应用</td>
+</tr>
+<tr>
+<td><strong>Free standing</strong></td>
+<td>无 OS：只用不依赖系统调用的语言与库子集</td>
+<td>操作系统内核、固件</td>
+</tr>
+</tbody>
+</table>
+<p>Free standing 下可用：</p>
+<ul>
+<li>固定宽度类型与格式化宏：<code>int32_t</code>、<code>PRIu64</code> 等（<code>%d</code>/<code>%ld</code> 随机器字长变化，需宏展开成正确格式串）；</li>
+<li><code>offsetof</code>：结构体成员相对首地址的偏移；</li>
+<li><code>stdarg.h</code>：变参宏与 <code>va_list</code>（现代体系结构参数多在寄存器，库与编译器协作把变参正确落入内存）；</li>
+<li><code>memcpy</code>/<code>memmove</code>/<code>strcpy</code>、伪随机数、<code>atoi</code>、<code>qsort</code>、数学库等纯计算设施。</li>
+</ul>
+<p><code>qsort</code> 在 C 里比较难用（函数指针 + <code>void*</code>），因为 C 的语法机制有限——这是「高级汇编」的代价。</p>
+<h3 id="setjmp-longjmp">setjmp / longjmp</h3>
+<p><strong>setjmp/longjmp（记录/恢复执行位置，实现跨函数「大跳转」的一对函数）</strong> 在状态机模型下很自然：</p>
+<ul>
+<li><code>setjmp(buf)</code> 记下当前栈高度与 PC，正常返回 0；</li>
+<li>之后任意深入调用后 <code>longjmp(buf, val)</code> 会把栈弹回标记处，并让 <code>setjmp</code> 像刚返回一样取值为 <code>val</code>。</li>
+</ul>
+<p>无需系统调用，只要编译器生成正确指令并保存寄存器。用途包括：错误处理集中跳转、协程等。</p>
+<pre><code class="language-mermaid">stateDiagram-v2
+    [*] --&gt; setjmp
+    setjmp --&gt; first: 返回0继续执行
+    first --&gt; second
+    second --&gt; setjmp: longjmp 弹栈跳回
+</code></pre>
+<div class="video-card screenshot-card"><img src="images/shot_00_49_40.png" alt="setjmp/longjmp：跨栈帧跳转" loading="lazy"><p class="video-caption"><span class="cap-text">setjmp/longjmp：跨栈帧跳转</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=2980" target="_blank" rel="noopener">在 B 站打开 (00:49:40)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_37_50.png" alt="Hosted vs Free Standing 环境" loading="lazy"><p class="video-caption"><span class="cap-text">Hosted vs Free Standing 环境</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=2270" target="_blank" rel="noopener">在 B 站打开 (00:37:50)</a></span></p></div>
+
+<p>浮点数学还有坑：<code>NaN</code> 满足「不大于、不小于、不等于自己」。</p>
+<hr />
+<h2 id="5-musl-libc">5. musl libc：读懂标准库</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 Linux 常用 glibc，也存在其他 libc
+- 会编译程序或愿意让 AI 编译
+- 调试器零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:30)</em></p>
+<p>系统默认往往是 <strong>glibc（GNU C 库，功能全但历史包袱重）</strong>。适合学习的是 <strong>musl（更干净、贴合现代 Linux API 的 libc 实现）</strong>：</p>
+<ul>
+<li>可下载源码；</li>
+<li>让 AI 编译出带调试信息的版本与 <code>musl-gcc</code>；</li>
+<li>用 <code>musl-gcc -g3 -static</code> 编译教学小程序；</li>
+<li>用 GDB 单步进库函数源码。</li>
+</ul>
+<h3 id="_3">源码里能看到什么</h3>
+<ul>
+<li><code>stdio.h</code> 中 <code>SEEK_SET</code> 等就是普通宏；</li>
+<li><code>FILENAME_MAX</code>、buffer 大小等也是宏定义——计算机世界没有魔法；</li>
+<li>从 <code>inttypes.h</code> 宏展开可见字符串字面量拼接如何变成最终格式串。</li>
+</ul>
+<p>主讲人曾让早期模型实现教学版 libc（栈对齐都错）；2026 年的大模型已能实现完整教学 libc，偶尔出错也能根据报错自修。但<strong>读懂已有实现</strong>仍比从零写更有教学价值。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_34_30.png" alt="musl 源码：宏与标准 IO" loading="lazy"><p class="video-caption"><span class="cap-text">musl 源码：宏与标准 IO</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=2070" target="_blank" rel="noopener">在 B 站打开 (00:34:30)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_30_00.png" alt="下载并编译带调试信息的 musl" loading="lazy"><p class="video-caption"><span class="cap-text">下载并编译带调试信息的 musl</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=1800" target="_blank" rel="noopener">在 B 站打开 (00:30:00)</a></span></p></div>
+
+<hr />
+<h2 id="6-stdio">6. stdio：文件描述符上的面向对象</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 理解文件描述符
+- 知道 `printf`/`fopen`
+- 函数指针概念有助于理解 FILE
+
+</div>
+
+<p><em>(参考时间: 00:55)</em></p>
+<p>C 标准 IO 与 UNIX 系统调用几乎一一对应：</p>
+<table>
+<thead>
+<tr>
+<th>C 库</th>
+<th>系统调用侧</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fopen</code> / <code>fclose</code></td>
+<td><code>open</code> / <code>close</code></td>
+</tr>
+<tr>
+<td><code>fread</code> / <code>fwrite</code></td>
+<td><code>read</code> / <code>write</code></td>
+</tr>
+<tr>
+<td><code>fseek</code> / <code>ftell</code> / <code>feof</code></td>
+<td><code>lseek</code> 等</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>FILE</code>（标准库中代表打开文件的结构体）</strong> 内部包含：</p>
+<ul>
+<li>文件描述符（真正的 OS 句柄）；</li>
+<li>用户态 <strong>buffer（缓冲区，减少系统调用次数）</strong>；</li>
+<li>函数指针表：<code>read</code>/<code>write</code>/<code>seek</code>/<code>close</code>——这是 C 语言式的面向对象：同一 <code>FILE*</code> 可对接真实文件、<code>sprintf</code> 的字符串缓冲等不同后端。</li>
+</ul>
+<p><code>printf</code> 家族最终收敛到一份核心实现（解析格式串 + <code>va_list</code> 取参 + 往 <code>FILE</code> 写），<code>fprintf(stdout, ...)</code> 与 <code>printf</code> 等价，避免代码复制。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_56_10.png" alt="musl 的 struct FILE：fd + buffer + 函数表" loading="lazy"><p class="video-caption"><span class="cap-text">musl 的 struct FILE：fd + buffer + 函数表</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=3370" target="_blank" rel="noopener">在 B 站打开 (00:56:10)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_58_30.png" alt="printf 家族：一份核心实现" loading="lazy"><p class="video-caption"><span class="cap-text">printf 家族：一份核心实现</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=3510" target="_blank" rel="noopener">在 B 站打开 (00:58:30)</a></span></p></div>
+
+<h3 id="_4">进程退出相关</h3>
+<ul>
+<li><code>atexit</code>：注册正常退出时要跑的清理函数（删临时文件等）；</li>
+<li><code>exit</code>：执行 atexit 链表后走系统调用退出；</li>
+<li><code>abort</code>：给自己发 <code>SIGABRT</code>，常配合 <strong>core dump（把进程内存快照转储到文件，便于调试）</strong>——名称来自早期磁芯内存 core memory。</li>
+</ul>
+<hr />
+<h2 id="7-posix">7. 错误处理与 POSIX</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道系统调用失败会返回错误
+- 用过 `ls` 等命令
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 01:02)</em></p>
+<p>几乎每个系统调用/库函数失败时都可能出错；手册的 <strong>ERRORS</strong> 小节列出原因：</p>
+<ul>
+<li><code>EAGAIN</code>：暂时失败，可重试；</li>
+<li><code>ENOMEM</code>：资源不足；</li>
+<li><code>EACCES</code> / <code>ENOENT</code> / <code>EEXIST</code>：权限、不存在、已存在等。</li>
+</ul>
+<p>C 库通过全局 <code>errno</code>（或返回值约定）传递错误号；<code>perror</code> / <code>strerror</code> 把编号翻成当前 locale 的人话。因此<strong>同一个 <code>ls</code> 程序</strong>在 <code>LANG=zh_CN</code> 与 <code>LANG=en_US</code> 下报错语言不同——行为在 libc，不在内核。</p>
+<h3 id="system-popen">system / popen</h3>
+<ul>
+<li><code>system(cmd)</code>：启动 shell 执行命令，重但方便；</li>
+<li><code>popen</code>/<code>pclose</code>：返回单向 <code>FILE*</code> 管道，可读子进程输出（C 的 FILE 只有一个 fd，API 被迫单向，是有历史包袱的妥协）。</li>
+</ul>
+<h3 id="posix">POSIX 与一致性</h3>
+<p><strong>POSIX（规定 UNIX 类系统 API 行为的标准）</strong> 之上，libc 提供可移植封装。C 语言有 ISO 标准；只要遵循标准写 portable 的 C，从超级计算机到 1KB 内存设备都可能跑同一份代码。</p>
+<p>生态稳定性来自这种分层一致：今天自然语言编程 / AI 生成代码能成立，是因为底下有 C → libc → POSIX → 系统调用这条被标准化的地基。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_08_40.png" alt="perror：错误信息随 locale 变化" loading="lazy"><p class="video-caption"><span class="cap-text">perror：错误信息随 locale 变化</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=4120" target="_blank" rel="noopener">在 B 站打开 (01:08:40)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_01_03_00.png" alt="abort / assert：SIGABRT 与 core dump" loading="lazy"><p class="video-caption"><span class="cap-text">abort / assert：SIGABRT 与 core dump</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1GHXCBkEZf/?t=3780" target="_blank" rel="noopener">在 B 站打开 (01:03:00)</a></span></p></div>
+
+<hr />
+<h2 id="_5">附录：概念补给</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 读过正文各章即可；每条独立成卡
+- 本章零基础可跟
+
+</div>
+
+<h3 id="libcc">libc（C 标准库）</h3>
+<ul>
+<li><strong>是什么</strong>：C 语言语法之外的运行时库：stdio、string、math、进程等。</li>
+<li><strong>课上为何出现</strong>：应用生态在系统调用之上的第一层复用。</li>
+<li><strong>和什么像</strong>：毛坯房（系统调用）之上的标准装修部品。</li>
+</ul>
+<h3 id="glibc-vs-musl">glibc vs musl</h3>
+<ul>
+<li><strong>是什么</strong>：两种 C 库实现；glibc 历史包袱多，musl 更干净现代。</li>
+<li><strong>课上为何出现</strong>：学习 libc 原理时更适合读 musl。</li>
+<li><strong>常见误解</strong>：「Linux 的 libc」不唯一，Android 等还用 bionic。</li>
+</ul>
+<h3 id="ffi_1">FFI（外部函数接口）</h3>
+<ul>
+<li><strong>是什么</strong>：在一种语言里调用另一种语言函数的机制。</li>
+<li><strong>课上为何出现</strong>：Python/C/汇编如何衔接；系统调用的必经之路。</li>
+<li><strong>和什么像</strong>：跨国公司各部门之间的标准对接邮件格式。</li>
+</ul>
+<h3 id="abi">ABI（应用二进制接口）</h3>
+<ul>
+<li><strong>是什么</strong>：调用约定、寄存器用途、栈布局、数据对齐等二进制层约定。</li>
+<li><strong>课上为何出现</strong>：C 与汇编互相调用的前提。</li>
+<li><strong>常见误解</strong>：API 是源码级接口，ABI 是二进制级接口。</li>
+</ul>
+<h3 id="inline-assembly">内联汇编（Inline Assembly）</h3>
+<ul>
+<li><strong>是什么</strong>：嵌在 C 源码中的汇编字符串 + 操作数约束。</li>
+<li><strong>课上为何出现</strong>：FFI 的极端形式；系统调用、极致优化。</li>
+<li><strong>常见误解</strong>：编译器不校验其中汇编语义，漏声明 clobber 是经典坑。</li>
+</ul>
+<h3 id="free-standing">Free Standing 环境</h3>
+<ul>
+<li><strong>是什么</strong>：不要求完整宿主 OS 与标准库的 C 执行环境。</li>
+<li><strong>课上为何出现</strong>：内核/固件也能用 C；划定库能力边界。</li>
+<li><strong>和什么像</strong>：户外生存只带多功能刀，不带整套厨房。</li>
+</ul>
+<h3 id="hosted">Hosted 环境</h3>
+<ul>
+<li><strong>是什么</strong>：有操作系统与完整标准库支持的普通 C 程序环境。</li>
+<li><strong>课上为何出现</strong>：与 free standing 对比；<code>fopen</code> 依赖 OS。</li>
+</ul>
+<h3 id="setjmp-longjmp_1">setjmp / longjmp</h3>
+<ul>
+<li><strong>是什么</strong>：保存/恢复执行位置，实现跨栈帧跳转。</li>
+<li><strong>课上为何出现</strong>：不靠系统调用也能操纵状态机；协程基础。</li>
+<li><strong>常见误解</strong>：不是常规控制流，中间跳过的帧不会执行析构/清理（C 没有析构，C++ 中更危险）。</li>
+</ul>
+<h3 id="file-stdio">FILE / stdio</h3>
+<ul>
+<li><strong>是什么</strong>：标准库中带缓冲的打开文件对象。</li>
+<li><strong>课上为何出现</strong>：对文件描述符的封装与面向对象式后端。</li>
+<li><strong>常见误解</strong>：<code>printf</code> 不是系统调用，内部可能缓冲后再 <code>write</code>。</li>
+</ul>
+<h3 id="va_list-stdarg">变参（va_list / stdarg）</h3>
+<ul>
+<li><strong>是什么</strong>：处理参数个数不定的函数调用的机制。</li>
+<li><strong>课上为何出现</strong>：<code>printf</code> 一族的基础；现代 ABI 下实现更复杂。</li>
+<li><strong>和什么像</strong>：不固定件数的包裹单，按约定顺序在传送带上取。</li>
+</ul>
+<h3 id="errno-perror">errno / perror</h3>
+<ul>
+<li><strong>是什么</strong>：记录最近错误号；按 locale 打印错误说明。</li>
+<li><strong>课上为何出现</strong>：解释为何同一程序中英文报错都可能。</li>
+<li><strong>常见误解</strong>：errno 是线程局部的，且应在失败后立刻检查。</li>
+</ul>
+<h3 id="core-dump">Core Dump</h3>
+<ul>
+<li><strong>是什么</strong>：进程异常终止时把内存写入文件以便调试。</li>
+<li><strong>课上为何出现</strong>：<code>assert</code>/<code>abort</code> 与 <code>SIGABRT</code> 的关联。</li>
+<li><strong>和什么像</strong>：事故现场的完整监控备份。</li>
+</ul>
+<h3 id="posix_1">POSIX</h3>
+<ul>
+<li><strong>是什么</strong>：UNIX 类系统 API 与行为的国际标准族。</li>
+<li><strong>课上为何出现</strong>：解释 Linux/macOS/鸿蒙等为何能共享大量软件。</li>
+<li><strong>常见误解</strong>：POSIX 不是某个操作系统，而是一组标准。</li>
+</ul>
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1GHXCBkEZf</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../08%20%28Aside%29%20-%20%E7%BB%88%E7%AB%AF%E5%92%8C%20UNIX%20Shell%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">终端和 UNIX Shell</span></a><a class="pager-btn next" href="../10%20-%20%E8%B0%83%E8%AF%95%20C%20%E6%A0%87%E5%87%86%E5%BA%93%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">调试 C 标准库</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

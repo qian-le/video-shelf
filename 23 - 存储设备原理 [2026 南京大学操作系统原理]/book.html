@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>存储设备原理</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 23 讲</p>
+        <h1>存储设备原理</h1>
+        <p class="book-summary">从 bit 如何持久化讲起，沿磁带、磁鼓、机械硬盘、软盘到光盘与挖坑存储，再讲闪存/SSD 的浮栅原理、擦写寿命与 FTL/磨损均衡，最后落到操作系统的 block device 抽象与读写放大。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1RHLh6pEqn/" target="_blank" rel="noopener">BV1RHLh6pEqn</a> · 时长 1h19m · 标签：存储设备、持久化、磁带、HDD、软盘、光盘、SSD、Flash、FTL、block device、磨损均衡</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1RHLh6pEqn/">Bilibili · BV1RHLh6pEqn</a>（时长约 80 分钟）
+<strong>课程</strong>：南京大学《操作系统原理》（2026）第 23 讲
+<strong>整理说明</strong>：本书由视频字幕经 AI 重构而成；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
+</blockquote>
+<hr />
+<h2 id="1-ai">1. 开幕：AI 原生时代的“超级个体”</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- I/O 设备的规范模型（寄存器 + 中断）
+- everything is a file / 驱动大致做什么
+- 知道磁盘、SSD、U 盘是存数据的即可
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>课前以一则招聘（DeepSeek 等团队的 Agent / harness 研发）切入：岗位要求“<strong>在 AI 辅助下，在没有直接经验的领域进行有质量保障的编程</strong>”。传统“先学会再动手”的路径正在被重写——更重要的是知道<strong>世界上有什么机制、你能提出什么问题</strong>。</p>
+<p>本讲主题：<strong>一个 bit 如何持久化</strong>，以及操作系统如何把存储设备抽象成块设备。</p>
+<p><strong>持久化</strong>（persistence，在断电或时间流逝后仍能保存的信息）不限于几千年后的考古（石刻、甲骨文），也包括手机关机后你今天的照片与文档。</p>
+<p>童年玩具「磁性画板」就是一种持久化：铁粉被磁笔吸到表面成像，底部磁铁扫过后复位——只要有一个<strong>可反复改写且可读出的状态</strong>，就能 persist。计算机要求更严：每个 bit 必须能<strong>用电读写</strong>。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_04_00.png" alt="课堂实物：硬盘、NVMe、磁带、软盘与光盘" loading="lazy"><p class="video-caption"><span class="cap-text">课堂实物：硬盘、NVMe、磁带、软盘与光盘</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1RHLh6pEqn/?t=240" target="_blank" rel="noopener">在 B 站打开 (00:04:00)</a></span></p></div>
+
+<hr />
+<h2 id="2">2. 从磁带到磁盘：磁性存储</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 磁铁有 N/S 极，可磁化铁磁材料
+- 计算机按字节/bit 访问数据
+- 顺序访问 vs 随机访问的区别
+
+</div>
+
+<p><em>(参考时间: 00:02:03)</em></p>
+<h3 id="21-tape">2.1 磁带（tape）</h3>
+<p>近百年历史：一维（现代磁带有多磁道）介质上粘附铁磁单元，用磁场方向表示 0/1；磁头靠<strong>电磁感应</strong>读出电流方向，用强磁场写入。</p>
+<p>早期形态：纸带 + 铁磁体；小霸王学习机时代仍可用磁带保存 BASIC 程序（音频信号转写）。</p>
+<p>现代磁带的优点：</p>
+<table>
+<thead>
+<tr>
+<th>优点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>密度极高</td>
+<td>纳米级磁畴，可达约 300GB/平方英尺、单卷数十 TB 量级</td>
+</tr>
+<tr>
+<td>成本低</td>
+<td>主要是结晶介质，工艺相对集成电路简单</td>
+</tr>
+<tr>
+<td>可靠性高</td>
+<td>固态晶体结构，可存放数十年</td>
+</tr>
+<tr>
+<td>顺序读写尚可</td>
+<td>磁头跟得上时吞吐不差</td>
+</tr>
+</tbody>
+</table>
+<p><strong>致命缺点：随机读写极差</strong>——定位要把很长的磁带卷过去再卷回来。因此磁带适合<strong>冷数据归档、备份</strong>，以及本来就顺序消费的<strong>音视频</strong>（磁带 A/B 面、倒带重听是时代记忆）。</p>
+<p>若把磁带映射进地址空间再随机指针访问，延迟会高到不可用。</p>
+<h3 id="22-drum">2.2 磁鼓（drum）</h3>
+<p>改进：把一维磁带绕成圈，硬质鼓面高速旋转，<strong>多磁道并行</strong>布置读写头。</p>
+<ul>
+<li>最坏延迟 ≈ 等待旋转一周；</li>
+<li>转速可达每分钟千转量级；</li>
+<li>从“一维内卷”变成“1.5 维内卷”。</li>
+</ul>
+<h3 id="23-hdd">2.3 机械硬盘（HDD）</h3>
+<p>再进一步：把一圈圈“磁带”铺在<strong>二维盘片</strong>上：</p>
+<ul>
+<li>多盘片、双面读写；</li>
+<li>读写头可<strong>径向移动</strong>切换磁道，盘片旋转带来周向定位；</li>
+<li>密封环境、高转速（5400/7200 RPM 等）；</li>
+<li>垂直磁记录等工艺进一步提高面密度。</li>
+</ul>
+<p>特点：</p>
+<ul>
+<li>便宜、容量大、介质稳定；</li>
+<li><strong>怕震动</strong>：跌落时磁头可能划伤盘片（消费级笔记本风险；机柜内相对稳定）；</li>
+<li>顺序读写好；<strong>随机读写</strong>需寻道 + 等待旋转，可达毫秒级（约 8ms 对现代 CPU 很长）；</li>
+<li><strong>可数据恢复</strong>：盘片结构稳定，控制器坏了仍可能拆盘读取（SSD 颗粒损坏则往往不可逆）。</li>
+</ul>
+<p>磁盘内部已集成控制器（自带小计算机）：请求排队、电梯式寻道等调度在盘内完成。对外仍是<strong>大字节序列</strong>。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_20_00.png" alt="机械硬盘：盘片、磁道与磁头" loading="lazy"><p class="video-caption"><span class="cap-text">机械硬盘：盘片、磁道与磁头</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1RHLh6pEqn/?t=1200" target="_blank" rel="noopener">在 B 站打开 (00:20:00)</a></span></p></div>
+
+<h3 id="24-floppy-disk">2.4 软盘（floppy disk）</h3>
+<ul>
+<li>5.25 英寸盘片较软，驱动器读写头从窗口读取；</li>
+<li>3.5 英寸外壳更硬，有保护盖与<strong>写保护</strong>拨片（光电传感器检测）；</li>
+<li>驱动器成本低，介质密度与性能低于硬盘；</li>
+<li><strong>1980–90 年代人际传数据的主力</strong>：DOS 曾装在一张 1.44MB 软盘上；《仙剑》等游戏多盘发行，玩到一半要“请插入下一张软盘”。</li>
+</ul>
+<p>今天 Office/WPS 保存图标仍是软盘剪影——时代的吉祥物。</p>
+<hr />
+<h2 id="3">3. 挖坑存储：光盘与更极端的方案</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 激光、反射、干涉的大致直觉
+- 模拟信号（黑胶）与数字信号的区别
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:36:21)</em></p>
+<p>石碑、Rosetta Stone：在稳定介质上<strong>挖坑</strong>即可表示 bit（有坑/无坑）。现代工业把坑挖到肉眼不可见。</p>
+<h3 id="31-cddvdblu-ray">3.1 光盘（CD/DVD/Blu-ray）</h3>
+<ul>
+<li>坑在塑料层；激光照射产生干涉/反射差异 → 读出 0/1；</li>
+<li>数字编码（如 8–14 调制）+ 纠错；</li>
+<li>早期黑胶是<strong>模拟</strong>槽纹记录声波振动，杠杆放大还原声音；</li>
+<li>CD 由索尼/飞利浦等为数字音频设计，容量约对应贝多芬第九交响曲长度（约 700MB 一代 CD）。</li>
+</ul>
+<p><strong>复制革命（压盘）</strong>：</p>
+<ol>
+<li>做带凸起的<strong>母盘/钢模</strong>；</li>
+<li>塑料压模 → 镀反射膜 → 数百 MB 数据数秒写完；</li>
+<li>工厂并行压盘，等效写入吞吐可极高。</li>
+</ol>
+<p>因此软件、电影、随书光盘大规模分发；课堂展示 Win98 盗版盘、驱动盘、教材示例代码盘等。</p>
+<p>特点：成本极低、容量不低、可靠性尚可（划痕多在塑料面，坑在另一侧）；缺点是<strong>随机读性能差</strong>（开放旋转结构）、<strong>写入困难</strong>、母盘不可改——在“随时可更新 + 网络下载”的时代逐渐退出主流。</p>
+<h3 id="32-persistent-data-structure">3.2 Persistent data structure：只追加也能变一切</h3>
+<p>计算机科学问题：有 <strong>random read</strong> 的存储，但只允许 <strong>append-only</strong>（只能往后写）——如何实现任意可读写数据结构？</p>
+<p>以二叉树插入为例：<strong>不改旧节点</strong>，只复制从根到插入点的 O(log n) 路径，新根指向新路径，未改动的子树指针仍指旧节点。</p>
+<ul>
+<li>空间代价 O(log n)；</li>
+<li>历史版本全部保留（拿到旧根就是旧树）；</li>
+<li>这类结构叫 <strong>persistent data structure</strong>（持久化数据结构——与存储介质语义双关）。</li>
+</ul>
+<h3 id="33-project-silica">3.3 Project Silica：玻璃里挖坑</h3>
+<p>微软等探索：用聚焦激光在<strong>玻璃</strong>内部改变晶体结构写入 bit，append-only；读出靠光学定位。配套机器人图书馆做三维定位与取放。</p>
+<p>配方仍是：random read + append-only write = 任意数据结构；只是介质换成玻璃、寻址换成机器人。是否商用取决于成本，但说明“存储创新仍在发生”。</p>
+<hr />
+<h2 id="4-ssd">4. 闪存和 SSD</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 电路门可以充放电
+- 磁盘随机延迟来自机械结构
+- 了解“逻辑块 → 物理位置”映射有助理解 FTL
+
+</div>
+
+<p><em>(参考时间: 00:53:41)</em></p>
+<p>磁/坑都有机械定位代价。高性能电子计算机需要：<strong>电路密度 + 电路速度</strong>。</p>
+<h3 id="41-flash-memory">4.1 Flash memory：电路里的坑</h3>
+<p><strong>闪存</strong>（用浮栅等结构存住电子来表示 bit 的集成电路存储）与 MOS 管类似，多一个 <strong>floating gate</strong>：充电/放电表示 0/1；还可精确控制电荷量，在一个 cell 里存多个 bit（TLC 3bit、QLC 4bit 等）。</p>
+<p>优点近乎“不讲道理”：</p>
+<ul>
+<li>集成电路量产后价格可接受；</li>
+<li>密度高、全固态封装（不怕水、灰尘，相对耐摔）；</li>
+<li><strong>并行扩展性好</strong>：多颗颗粒多份带宽（评测里 1TB 常快于 512GB）。</li>
+</ul>
+<p>2006 年前后 Jim Gray 等已预见：flash 终将大量取代磁盘类设备。普及功臣其实是 <strong>U 盘</strong>（USB 接口 + 闪存芯片封装的专利思路），2000 年前后开始替代软盘成为交换媒介。</p>
+<h3 id="42-ftl">4.2 致命伤：擦写寿命与 FTL</h3>
+<p>放电放不干净 → cell 逐渐进入不可用状态（<strong>wear out</strong>）。QLC 级 cell 可能只有约千次擦写量级。若“逻辑第 1 块”永远写同一物理 cell，文件很快损坏——但你很少遇到，因为：</p>
+<p>SSD/U 盘/TF 卡内都有<strong>完整小计算机</strong>（主控 CPU + DRAM + 固件），其中关键软件是 <strong>FTL</strong>（Flash Translation Layer，把逻辑块号翻译到物理块的闪存转换层）：</p>
+<ul>
+<li>维护 logical → physical 映射表（类似 page table）；</li>
+<li>再次写同一逻辑块时<strong>写到新物理块</strong>，改映射；</li>
+<li><strong>wear leveling</strong>（磨损均衡：把写入摊到所有物理块）；</li>
+<li>映射表自身也要持久化 → 用 append-only / 类似 persistent data structure 的方式实现。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_01_02_30.png" alt="SSD 主控与 FTL：逻辑块到物理块的映射" loading="lazy"><p class="video-caption"><span class="cap-text">SSD 主控与 FTL：逻辑块到物理块的映射</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1RHLh6pEqn/?t=3750" target="_blank" rel="noopener">在 B 站打开 (01:02:30)</a></span></p></div>
+
+<p>廉价假盘风险：主控可被改写，把 64GB 颗粒伪装成 1TB——初用正常，超出真实容量后数据静默丢失。协议层的容量查询、健康信息都可伪造——“不要买便宜到不正常的存储”。</p>
+<h3 id="43">4.3 操作系统视角：块设备</h3>
+<p>设备再复杂，OS 侧常简化为 <strong>block device</strong>（以固定大小块读写的存储设备接口）：</p>
+<ul>
+<li>块大小常见 512B / 4KB / 16KB 等；</li>
+<li>目的：摊薄<strong>寻址电路</strong>成本（磁盘的磁头/转轴、闪存的行列选通）；</li>
+<li>接口主要是 <code>read_block</code> / <code>write_block</code>（及 flush 等一致性相关操作）。</li>
+</ul>
+<pre><code class="language-text">struct block_device_operations {
+    // 读一块、写一块……
+};
+</code></pre>
+<p>实现了块读写后，<code>read</code>/<code>write</code>/<code>mmap</code> 等文件语义由 OS 再向上构建。</p>
+<p>代价：<strong>读写放大</strong>——只改 1 字节也要整块读出、改写回；NVMe 等新接口开始允许更直接操作内部结构以减轻放大。</p>
+<p>课堂用 AI + eBPF 类工具观察真实系统上的 block 读写（find、写大文件时的读写颜色分布）：从 first principle（“磁盘读写一定由代码实现，故可观测”）出发，即便没有直接经验也可做出可用工具。</p>
+<hr />
+<h2 id="5">5. 小结</h2>
+<table>
+<thead>
+<tr>
+<th>介质</th>
+<th>bit 物理形态</th>
+<th>随机访问</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>磁带</td>
+<td>磁畴方向</td>
+<td>很差</td>
+<td>冷归档、顺序流</td>
+</tr>
+<tr>
+<td>磁鼓/软盘</td>
+<td>旋转磁介质</td>
+<td>中等偏差</td>
+<td>历史：交互与传数据</td>
+</tr>
+<tr>
+<td>HDD</td>
+<td>盘片磁道</td>
+<td>毫秒级</td>
+<td>大容量温数据</td>
+</tr>
+<tr>
+<td>光盘</td>
+<td>坑/反射</td>
+<td>较差，难写</td>
+<td>分发（渐退）</td>
+</tr>
+<tr>
+<td>Flash/SSD</td>
+<td>浮栅电子</td>
+<td>好，可并行</td>
+<td>主力热/温数据</td>
+</tr>
+<tr>
+<td>玻璃等</td>
+<td>材料相变</td>
+<td>依赖机械</td>
+<td>探索中的长期存档</td>
+</tr>
+</tbody>
+</table>
+<p>下节课起：块设备之上如何形成<strong>文件系统</strong>——从“读写块”到人类与程序使用的目录树。</p>
+<hr />
+<h2 id="_1">附录：概念补给</h2>
+<h3 id="persistence">persistence（持久化）</h3>
+<ul>
+<li><strong>是什么</strong>：信息在断电、关机、时间流逝后仍可读回。</li>
+<li><strong>课上为何出现</strong>：存储设备要解决的根本问题。</li>
+<li><strong>和什么像</strong>：刻在碑上比写在沙上更“持久”。</li>
+</ul>
+<h3 id="tape">磁带 tape</h3>
+<ul>
+<li><strong>是什么</strong>：顺序访问为主的磁性条带存储。</li>
+<li><strong>课上为何出现</strong>：最古老的现代存储之一，密度与归档价值高。</li>
+<li><strong>和什么像</strong>：一长卷电影胶片，要快进快退才能到目标帧。</li>
+</ul>
+<h3 id="sector-block">扇区 sector / 块 block</h3>
+<ul>
+<li><strong>是什么</strong>：设备一次定位读写的数据单元（如 512B）。</li>
+<li><strong>课上为何出现</strong>：用分组摊薄寻址成本，形成 block device 抽象。</li>
+<li><strong>和什么像</strong>：图书馆按整箱调书，而不是一本书一本书找。</li>
+</ul>
+<h3 id="block-device">block device</h3>
+<ul>
+<li><strong>是什么</strong>：OS 对存储设备“按块读写”的统一接口。</li>
+<li><strong>课上为何出现</strong>：文件系统之下的设备层抽象。</li>
+<li><strong>和什么像</strong>：把仓库简化成“整箱存取”的标准货架协议。</li>
+</ul>
+<h3 id="ftlflash-translation-layer">FTL（Flash Translation Layer）</h3>
+<ul>
+<li><strong>是什么</strong>：SSD 内部把逻辑块映射到物理页并做磨损均衡的固件层。</li>
+<li><strong>课上为何出现</strong>：解释为何闪存寿命有限却很少用坏。</li>
+<li><strong>和什么像</strong>：图书管理员把“第 1 本借阅记录”实际指向不同书架上的书。</li>
+</ul>
+<h3 id="wear-leveling">wear leveling（磨损均衡）</h3>
+<ul>
+<li><strong>是什么</strong>：把写入/擦除尽量摊到所有闪存单元。</li>
+<li><strong>课上为何出现</strong>：避免热点块先写穿。</li>
+<li><strong>和什么像</strong>：轮流坐庄，不让同一人天天加班。</li>
+</ul>
+<h3 id="_2">读放大 / 写放大</h3>
+<ul>
+<li><strong>是什么</strong>：逻辑小操作触发物理上更大的读写量。</li>
+<li><strong>课上为何出现</strong>：块设备粒度带来的副作用。</li>
+<li><strong>和什么像</strong>：改一页便签却要搬动整箱档案。</li>
+</ul>
+<h3 id="append-only">append-only / 追加写</h3>
+<ul>
+<li><strong>是什么</strong>：只允许在末尾写入，不原地修改。</li>
+<li><strong>课上为何出现</strong>：光盘、部分日志与 SSD 内部映射的共同约束。</li>
+<li><strong>和什么像</strong>：日记本只往后写，改错就贴一张新便条。</li>
+</ul>
+<h3 id="persistent-data-structure">persistent data structure（持久化数据结构）</h3>
+<ul>
+<li><strong>是什么</strong>：更新时保留历史版本的数据结构（路径复制等）。</li>
+<li><strong>课上为何出现</strong>：在 append-only 介质上实现任意逻辑结构。</li>
+<li><strong>和什么像</strong>：改合同不涂改原件，另附修订页并更新目录。</li>
+</ul>
+<h3 id="project-silica">Project Silica</h3>
+<ul>
+<li><strong>是什么</strong>：在玻璃介质中用激光写入、用于长期存档的研究项目。</li>
+<li><strong>课上为何出现</strong>：展示“挖坑存储”仍可现代化。</li>
+<li><strong>和什么像</strong>：把数据刻进“不会生锈的石板”，配机器人图书馆取放。</li>
+</ul>
+<h3 id="_3">压盘（光盘复制）</h3>
+<ul>
+<li><strong>是什么</strong>：用母盘压模批量复制光盘数据层的工艺。</li>
+<li><strong>课上为何出现</strong>：光盘成为软件/影音分发主流的原因。</li>
+<li><strong>和什么像</strong>：印章盖章——刻章贵，盖章便宜又快。</li>
+</ul>
+<hr />
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1RHLh6pEqn</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../22%20-%20%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA%E8%AE%BE%E5%A4%87%E5%92%8C%E9%A9%B1%E5%8A%A8%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">输入输出设备和驱动</span></a><a class="pager-btn next" href="../24%20-%20%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%20API%20%281%29%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">文件系统 API (1)</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

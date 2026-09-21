@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>终端和 UNIX Shell</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 8 讲</p>
+        <h1>终端和 UNIX Shell</h1>
+        <p class="book-summary">从打字机与电传打字机讲清终端与 TTY 的历史由来，解释 ASCII 控制字符、VT100 转义序列与伪终端如何构成现代终端接口，剖析规范模式下 Ctrl+C 与信号的关系，并用 session/进程组说明 job control 的前台后台语义与历史包袱。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1nQXsBuEUz/" target="_blank" rel="noopener">BV1nQXsBuEUz</a> · 时长 1h35m · 标签：终端、TTY、伪终端、信号、Shell、Job Control</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1nQXsBuEUz/">Bilibili · BV1nQXsBuEUz</a>
+<strong>课程</strong>：NJU《操作系统原理》2026 第 8 讲
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语；关键时间点均标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 键盘与打字机的遗产</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 用过键盘和命令行窗口
+- 知道 `printf` 里有 `\n` 之类转义字符
+- 历史细节零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>今天的终端看起来现代，接口却仍是「一个字节一个字节」的字符流——这套设计可以从钢琴与打字机讲起。</p>
+<h3 id="_1">从乐器到键盘</h3>
+<ul>
+<li>公元前水风琴已有按键；</li>
+<li>1500 年前后钢琴原型：按键 → 击弦；</li>
+<li>机械打字机：按键 → 锤子击打色带 → 纸上留字；松键时弹簧蓄力并把字车右移一格。</li>
+</ul>
+<p>两键同时按下容易卡死，因此 1860 年代出现了 <strong>QWERTY 键盘（通过键位排列降低打字速度以减少卡键的布局）</strong>。</p>
+<h3 id="_2">键位的机械含义</h3>
+<table>
+<thead>
+<tr>
+<th>键</th>
+<th>机械动作</th>
+<th>延续到今天</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shift</td>
+<td>整体抬起字锤一格，改打上档字符</td>
+<td>大写/符号</td>
+</tr>
+<tr>
+<td>Caps Lock</td>
+<td>锁定上档</td>
+<td>大写锁定</td>
+</tr>
+<tr>
+<td>Enter / CR</td>
+<td>字车推回行首</td>
+<td><code>\r</code></td>
+</tr>
+<tr>
+<td>LF</td>
+<td>纸上移一行</td>
+<td><code>\n</code></td>
+</tr>
+<tr>
+<td>Backspace</td>
+<td>光标左移一格</td>
+<td>退格</td>
+</tr>
+<tr>
+<td>Space</td>
+<td>光标右移</td>
+<td>空格</td>
+</tr>
+<tr>
+<td>Tab</td>
+<td>跳到下一个制表位</td>
+<td>对齐</td>
+</tr>
+</tbody>
+</table>
+<p>若在 <code>printf</code> 中插入 <code>\r</code>，光标回行首后再打印会<strong>覆盖</strong>同一行内容——打字机时代用退格 + 斜线「划掉」错字。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_04_10.png" alt="机械打字机与 QWERTY 遗产" loading="lazy"><p class="video-caption"><span class="cap-text">机械打字机与 QWERTY 遗产</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=250" target="_blank" rel="noopener">在 B 站打开 (00:04:10)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_01_30.png" alt="钢琴式击键：锤子、色带与弹簧" loading="lazy"><p class="video-caption"><span class="cap-text">钢琴式击键：锤子、色带与弹簧</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=90" target="_blank" rel="noopener">在 B 站打开 (00:01:30)</a></span></p></div>
+
+<hr />
+<h2 id="2-tty">2. 电传打字机与 TTY</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道终端窗口可以显示文字
+- 听说过 ASCII
+- 编码概念本章会展开
+
+</div>
+
+<p><em>(参考时间: 00:10)</em></p>
+<p><strong>电传打字机（teletypewriter，按下的字符可在导线另一端被打印出来的设备）</strong> 是跨时代产品：不必把纸交给邮差，只要线路和中继站可靠，字符可以跨大陆传输。</p>
+<p>每个字符被编成二进制码（早期 5 bit）。计算机时代沿用这一接口：</p>
+<ul>
+<li>对 OS 而言，终端接受 <code>putchar</code>：写入一个字符，它就打印一个字符；</li>
+<li>写入 <code>\r</code> 回行首，<code>\t</code> 跳制表位。</li>
+</ul>
+<p><strong>TTY</strong> 即 teletypewriter 的缩写，今天 Linux 设备名 <code>/dev/tty*</code> 源于此。</p>
+<h3 id="ascii">ASCII 与控制字符</h3>
+<p><strong>ASCII（美国信息交换标准代码，用数字对应字符的编码表）</strong> 不只含字母数字，前面还有大量控制字符——它们就是给电传打字机用的：</p>
+<ul>
+<li>Ctrl+C → 编码值 3；</li>
+<li>Ctrl+D → 编码值 4（传统「传输结束」）；</li>
+<li>ESC → 0x1B；</li>
+<li>回车 → <code>\r</code>（0x0D），不是 <code>\n</code>。</li>
+</ul>
+<p>键盘上的 <strong>Shift 本身不产生送往计算机的数据</strong>，它只是终端本地的换挡状态；真正按 <code>A</code> 时才送出大写 A。</p>
+<h3 id="vt100">VT100 与转义序列</h3>
+<p>1978 年 DEC <strong>VT100</strong> 成为事实标准：支持完整的 <strong>转义序列（escape sequence，以 ESC 开头的字符组合，用来控制颜色、光标、滚动等）</strong>，80×24 字符布局沿用至今。</p>
+<p>ASCII 没有「上下左右」方向键编码，因此方向键会被编码成 ESC + 若干字符（如 <code>ESC [ A</code>）。终端模拟器（terminal emulator）软件模拟了 VT100 行为。</p>
+<p>Unicode 加入后，终端还能用框线、色块字符拼出复杂 UI 甚至图像。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_17_20.png" alt="VT100 与 escape sequence" loading="lazy"><p class="video-caption"><span class="cap-text">VT100 与 escape sequence</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=1040" target="_blank" rel="noopener">在 B 站打开 (00:17:20)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_11_50.png" alt="电传打字机：字符编码表" loading="lazy"><p class="video-caption"><span class="cap-text">电传打字机：字符编码表</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=710" target="_blank" rel="noopener">在 B 站打开 (00:11:50)</a></span></p></div>
+
+<hr />
+<h2 id="3">3. 终端作为输入设备：原始字节</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道程序可以从标准输入读数据
+- 用过或见过 `cat`、`strace`
+- 信号概念本章后半展开
+
+</div>
+
+<p><em>(参考时间: 00:21)</em></p>
+<p>终端既是输出设备（接收字符并打印），也是输入设备：按键被编码成字节送入操作系统，<strong>是否回显、如何解释，由操作系统与应用程序共同决定</strong>。</p>
+<p>主讲人准备了一个「原始模式」demo：终端收到的所有按键原样打印。</p>
+<p>观察到：</p>
+<ul>
+<li>普通字母：ASCII 码正常；</li>
+<li>Shift：不产生字节；</li>
+<li>Ctrl+C：得到单个字节 <code>0x03</code>，<strong>程序并没有立刻被杀</strong>（因为关闭了默认解释）；</li>
+<li>Ctrl+D：<code>0x04</code>；</li>
+<li>方向键：一串 ESC 序列。</li>
+</ul>
+<p>若程序配置成「所有字符直通」，Ctrl+C / Ctrl+Z 都无效，只能另开终端 <code>kill</code>。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_24_00.png" alt="原始读取终端字节流" loading="lazy"><p class="video-caption"><span class="cap-text">原始读取终端字节流</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=1440" target="_blank" rel="noopener">在 B 站打开 (00:24:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_24_20.png" alt="Shift 不产生字节；Ctrl+C = 0x03" loading="lazy"><p class="video-caption"><span class="cap-text">Shift 不产生字节；Ctrl+C = 0x03</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=1460" target="_blank" rel="noopener">在 B 站打开 (00:24:20)</a></span></p></div>
+
+<hr />
+<h2 id="4">4. 伪终端与终端中的终端</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道「一切皆文件」
+- 知道 `open` 可以打开设备文件
+- fork/exec 概念有助于理解 shell
+
+</div>
+
+<p><em>(参考时间: 00:28)</em></p>
+<p>现代操作系统可以无限分配<strong>伪终端（pseudo-terminal，模拟 VT100 行为的虚拟设备对）</strong>：<code>/dev/pts/N</code>。要多少有多少，用完销毁，名字可复用。</p>
+<p>创建方式（一切皆文件）：</p>
+<ol>
+<li><code>open("/dev/ptmx")</code> 请求新的 master 端；</li>
+<li><code>grantpt</code> / <code>unlockpt</code> 完成权限与从端准备；</li>
+<li>得到 master 文件描述符与从端路径（如 <code>/dev/pts/4</code>）；</li>
+<li>在从端上运行程序；master 侧可读写转发。</li>
+</ol>
+<p><strong>tmux / 终端分屏器</strong> 的原理就是：在当前终端里再开伪终端，把输入输出在多个 PTY 之间转发。主讲人现场 web coding 的 <code>mini-tty</code> 在 <code>/dev/pts/3</code> 里创建 <code>/dev/pts/4</code>，实现「终端中的终端」。</p>
+<h3 id="ttyrec">ttyrec</h3>
+<p>利用 PTY 可以录制会话：劫持字符流并带时间戳保存，<code>ttyreplay</code> 可完整回放，甚至渲染成网页里的 SVG 动画。教学演示与 AI 配讲解脚本都建立在这一机制上。</p>
+<pre><code class="language-mermaid">flowchart LR
+    K[键盘/模拟器] --&gt; T[PTY 从端 pts/4]
+    T &lt;--&gt;|字节流| M[PTY 主端 ptmx]
+    M --&gt; P[用户程序 mini-tty]
+    P --&gt; O[显示到外层终端 pts/3]
+</code></pre>
+<div class="video-card screenshot-card"><img src="images/shot_00_29_40.png" alt="mini-tty：请求新的伪终端" loading="lazy"><p class="video-caption"><span class="cap-text">mini-tty：请求新的伪终端</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=1780" target="_blank" rel="noopener">在 B 站打开 (00:29:40)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_32_50.png" alt="ttyrec：录制并回放终端会话" loading="lazy"><p class="video-caption"><span class="cap-text">ttyrec：录制并回放终端会话</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=1970" target="_blank" rel="noopener">在 B 站打开 (00:32:50)</a></span></p></div>
+
+<hr />
+<h2 id="5-ctrlc">5. 规范模式与 Ctrl+C</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 Ctrl+C 常用来终止程序
+- 听说过信号或愿意先接受「OS 会发信号」
+- 进程树概念有助于理解进程组
+
+</div>
+
+<p><em>(参考时间: 00:42)</em></p>
+<h3 id="_3">系统启动时如何准备终端</h3>
+<ol>
+<li>固件 → 操作系统初始化；</li>
+<li>扫描并初始化终端设备；</li>
+<li><code>init</code> 启动 <strong>getty（打开终端、提示登录并启动 login 的程序）</strong>；</li>
+<li><code>login</code> 打开对应 TTY，把文件描述符 0/1/2 指向它，建立 session；</li>
+<li>远程 SSH 则由 <code>sshd</code> 分配 PTY 再启动 shell。</li>
+</ol>
+<p>早期还有波特率（baud rate）等串口参数；现代模拟终端常假显示为 38400。</p>
+<h3 id="canonical-mode">行编辑：Canonical mode</h3>
+<p><code>cat</code> 在等待输入时：你敲 <code>AAAA</code> 可退格修改，但 <code>read</code> 尚未返回；按回车后才一次性读到一行。</p>
+<p>这是因为默认 <strong>规范模式（canonical mode，操作系统终端驱动提供行缓冲与行编辑的模式）</strong>：</p>
+<ul>
+<li>字符先进入驱动内部 buffer；</li>
+<li>支持退格等行编辑；</li>
+<li>可关闭回显（输入密码时）；</li>
+<li>回车后才把整行交给进程。</li>
+</ul>
+<p>用 <code>stty -a</code> 可以看到当前配置，例如：</p>
+<ul>
+<li><code>intr = ^C</code>：中断键；</li>
+<li><code>quit = ^\</code>：退出键；</li>
+<li><code>eof = ^D</code>：文件结束。</li>
+</ul>
+<h3 id="_4">信号</h3>
+<p><strong>信号（操作系统异步通知进程「发生了某事」的机制）</strong> 可以在程序任意执行点强制跳转到处理函数。</p>
+<ul>
+<li>未自定义处理时：Ctrl+C 触发默认行为 → 终止；</li>
+<li><code>signal(SIGINT, handler)</code> 可打印消息、选择忽略或自行退出；</li>
+<li><code>kill -INT &lt;pid&gt;</code> 与终端 Ctrl+C 效果相同（同一信号）。</li>
+</ul>
+<p>Ctrl+C 在<strong>规范模式</strong>下才被驱动解释成中断；原始模式下它只是字节 <code>0x03</code>。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_52_50.png" alt="stty -a 与 canonical mode" loading="lazy"><p class="video-caption"><span class="cap-text">stty -a 与 canonical mode</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=3170" target="_blank" rel="noopener">在 B 站打开 (00:52:50)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_43_30.png" alt="getty / login：把人绑到终端上" loading="lazy"><p class="video-caption"><span class="cap-text">getty / login：把人绑到终端上</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=2610" target="_blank" rel="noopener">在 B 站打开 (00:43:30)</a></span></p></div>
+
+<hr />
+<h2 id="6-session-job-control">6. Session、进程组与 Job Control</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 理解 fork 会形成进程树
+- 知道 shell 可以启动程序
+- 本章机制较「历史包袱」，听懂概念即可
+
+</div>
+
+<p><em>(参考时间: 00:57)</em></p>
+<p>问题：Ctrl+C 时，进程树里哪些进程该被杀？父进程死了子进程可能被 init 收养，按父子关系杀并不准确。</p>
+<p>UNIX 引入两级分组：</p>
+<ul>
+<li><strong>Session（会话，一次登录关联的进程集合，拥有 controlling terminal）</strong>；</li>
+<li><strong>Process group（进程组，shell 启动一个命令时分配的前台/后台分组）</strong>。</li>
+</ul>
+<p>行为：</p>
+<ul>
+<li>Ctrl+C：向<strong>前台进程组</strong>内所有进程发送 <code>SIGINT</code>；</li>
+<li>后台进程组不会收到，可继续跑；</li>
+<li>Session leader 退出（如 SSH 断开）→ 组内进程收到 <code>SIGHUP</code> 默认退出；</li>
+<li>长任务可用 <code>nohup</code> 忽略挂断，或挂在 <code>tmux</code> 里（session 不随 SSH 结束）。</li>
+</ul>
+<h3 id="job-control">Job Control</h3>
+<p>Shell 提供类似窗口管理器的能力：</p>
+<table>
+<thead>
+<tr>
+<th>Shell 操作</th>
+<th>类比 Windows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ctrl+Z（SIGTSTP）</td>
+<td>最小化</td>
+</tr>
+<tr>
+<td><code>jobs</code></td>
+<td>Alt+Tab 窗口列表</td>
+</tr>
+<tr>
+<td><code>fg %1</code></td>
+<td>切换到某窗口</td>
+</tr>
+<tr>
+<td><code>bg</code></td>
+<td>后台继续运行</td>
+</tr>
+<tr>
+<td>Ctrl+C</td>
+<td>关闭前台程序</td>
+</tr>
+</tbody>
+</table>
+<p>背后是 <code>setpgid</code>、<code>tcsetpgrp</code> 等系统调用，用来标记前台/后台进程组。</p>
+<p>这一套成为 POSIX 标准，兼容性很强，但也是历史包袱：现代容器/沙箱（按用户隔离、namespace/cgroup）本可以用更干净的模型。Android 甚至按「每个 App 一个用户」做权限隔离，强停时直接杀该 UID 下全部进程。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_09_00.png" alt="Job Control：进程组与前台/后台" loading="lazy"><p class="video-caption"><span class="cap-text">Job Control：进程组与前台/后台</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=4140" target="_blank" rel="noopener">在 B 站打开 (01:09:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_57_00.png" alt="Ctrl+C 发给谁：前台进程组" loading="lazy"><p class="video-caption"><span class="cap-text">Ctrl+C 发给谁：前台进程组</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1nQXsBuEUz/?t=3420" target="_blank" rel="noopener">在 B 站打开 (00:57:00)</a></span></p></div>
+
+<hr />
+<h2 id="_5">附录：概念补给</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 读过正文各章即可；每条独立成卡
+- 本章零基础可跟
+
+</div>
+
+<h3 id="tty">TTY / 电传打字机</h3>
+<ul>
+<li><strong>是什么</strong>：通过线路收发字符的打字设备；今为终端子系统代称。</li>
+<li><strong>课上为何出现</strong>：解释 <code>/dev/tty</code>、终端接口的由来。</li>
+<li><strong>和什么像</strong>：传真机与打字机的结合体。</li>
+</ul>
+<h3 id="escape-sequence">转义序列（Escape Sequence）</h3>
+<ul>
+<li><strong>是什么</strong>：以 ESC 开头、控制终端显示/光标等行为的字节串。</li>
+<li><strong>课上为何出现</strong>：ASCII 无法表达颜色、方向键等功能。</li>
+<li><strong>和什么像</strong>：文档里的「打印机控制码」。</li>
+</ul>
+<h3 id="canonical-mode_1">规范模式（Canonical Mode）</h3>
+<ul>
+<li><strong>是什么</strong>：终端驱动做行缓冲与行编辑，回车后才把一行交给进程。</li>
+<li><strong>课上为何出现</strong>：解释 <code>cat</code> 为何 read 不立刻返回。</li>
+<li><strong>常见误解</strong>：回显和行编辑是 OS 驱动做的，不是 <code>cat</code> 自己实现的。</li>
+</ul>
+<h3 id="pty">伪终端（PTY）</h3>
+<ul>
+<li><strong>是什么</strong>：由 master/slave 组成的虚拟终端设备对。</li>
+<li><strong>课上为何出现</strong>：tmux、SSH、终端录制的基础。</li>
+<li><strong>和什么像</strong>：电话总机：你这头说话，另一头假扮成一台打字机。</li>
+</ul>
+<h3 id="signal">信号（Signal）</h3>
+<ul>
+<li><strong>是什么</strong>：OS 异步通知进程的机制，可触发自定义处理函数。</li>
+<li><strong>课上为何出现</strong>：Ctrl+C、Ctrl+Z、SIGHUP 的底层语言。</li>
+<li><strong>和什么像</strong>：门铃——可选择去开门、忽略或按你的规矩处理。</li>
+</ul>
+<h3 id="sigint-sigtstp-sighup">SIGINT / SIGTSTP / SIGHUP</h3>
+<ul>
+<li><strong>是什么</strong>：中断（Ctrl+C）、停止（Ctrl+Z）、挂断（终端断开）信号。</li>
+<li><strong>课上为何出现</strong>：前台作业与 SSH 断开时进程命运不同。</li>
+<li><strong>常见误解</strong>：Ctrl+C 不是「硬件直接杀进程」，而是信号约定。</li>
+</ul>
+<h3 id="session">Session / 控制终端</h3>
+<ul>
+<li><strong>是什么</strong>：一次登录对应的进程集合及其绑定的终端。</li>
+<li><strong>课上为何出现</strong>：决定 SIGHUP 发给谁；job control 的边界。</li>
+<li><strong>和什么像</strong>：一次值班班次：人走灯灭（leader 退出则通知全体）。</li>
+</ul>
+<h3 id="_6">进程组 / 前后台</h3>
+<ul>
+<li><strong>是什么</strong>：shell 为每个命令分配的进程分组，区分前台与后台。</li>
+<li><strong>课上为何出现</strong>：Ctrl+C 只作用于前台组。</li>
+<li><strong>和什么像</strong>：前台窗口 vs 最小化到后台的应用。</li>
+</ul>
+<h3 id="job-control_1">Job Control</h3>
+<ul>
+<li><strong>是什么</strong>：shell 中挂起、切换、后台继续运行作业的机制。</li>
+<li><strong>课上为何出现</strong>：命令行里的「窗口管理器」。</li>
+<li><strong>常见误解</strong>：后台进程默认可能是「停止」状态，需 <code>bg</code> 继续。</li>
+</ul>
+<h3 id="qwerty">QWERTY</h3>
+<ul>
+<li><strong>是什么</strong>：为降低打字机卡键而设计的键盘布局。</li>
+<li><strong>课上为何出现</strong>：现代键盘布局的历史成因。</li>
+<li><strong>常见误解</strong>：并非单纯为「提高速度」而设计。</li>
+</ul>
+<h3 id="getty-login">getty / login</h3>
+<ul>
+<li><strong>是什么</strong>：打开终端、提示并完成登录的程序。</li>
+<li><strong>课上为何出现</strong>：系统如何把「人」与进程、TTY 绑定起来。</li>
+<li><strong>和什么像</strong>：前台接待：先验身份，再带你进入工位。</li>
+</ul>
+<h3 id="unicode">Unicode 与终端图形</h3>
+<ul>
+<li><strong>是什么</strong>：统一字符集，终端可用大量符号拼 UI/图像。</li>
+<li><strong>课上为何出现</strong>：从 80×24 文本到现代 TUI/图片显示。</li>
+<li><strong>和什么像</strong>：用有限积木块拼出复杂浮雕。</li>
+</ul>
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1nQXsBuEUz</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../07%20-%20%E8%AE%BF%E9%97%AE%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%AF%B9%E8%B1%A1%EF%BC%9B%E6%96%87%E4%BB%B6%E6%8F%8F%E8%BF%B0%E7%AC%A6%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">访问操作系统对象：文件描述符</span></a><a class="pager-btn next" href="../09%20-%20C%20%E6%A0%87%E5%87%86%E5%BA%93%E5%8E%9F%E7%90%86%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">C 标准库原理</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

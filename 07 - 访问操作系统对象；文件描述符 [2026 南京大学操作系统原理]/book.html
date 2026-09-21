@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>访问操作系统对象：文件描述符</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 7 讲</p>
+        <h1>访问操作系统对象：文件描述符</h1>
+        <p class="book-summary">对比 UNIX 与 Windows 两种操作系统 API 哲学，阐述 everything is a file 与字节序列抽象，讲解 open/read/write/lseek 与文件描述符如何间接引用内核对象，分析 fork 后 offset 共享的设计取舍，并用 /proc 展示文件系统如何暴露进程打开的所有对象。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1QFQmB7EQD/" target="_blank" rel="noopener">BV1QFQmB7EQD</a> · 时长 1h28m · 标签：文件描述符、UNIX哲学、一切皆文件、procfs、fork、文件系统</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1QFQmB7EQD/">Bilibili · BV1QFQmB7EQD</a>
+<strong>课程</strong>：NJU《操作系统原理》2026 第 7 讲
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语；关键时间点均标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 从实验与对象说起</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道实验代码在 Git 仓库里，会更新
+- 听说过 fork / 进程（前几讲内容）
+- 文件与目录概念零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>课程实验已发布；代码可用 AI 辅助获取与阅读。若老师说「某日更新了 main 分支」，即使你不熟 Git，也可以让 agent：查看提交历史 → <code>git fetch</code> → 合并远程更新。短时间内就能学会 <code>git log</code>、<code>reset</code>、<code>fetch</code>、<code>merge</code> 等命令的概念。</p>
+<p>上讲已覆盖：<code>fork</code> / <code>execve</code> / <code>exit</code> 管理进程状态；<code>mmap</code> / <code>munmap</code> / <code>mprotect</code> 管理地址空间。进程之间若要交换数据（例如 128 个进程各算一个数再求和），光靠复制进程状态不够——需要操作系统里<strong>共享的对象</strong>。</p>
+<p>本讲主题：<strong>操作系统中的对象，以及管理它们的 API</strong>。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_03_20.png" alt="实验代码与 Git 更新" loading="lazy"><p class="video-caption"><span class="cap-text">实验代码与 Git 更新</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=200" target="_blank" rel="noopener">在 B 站打开 (00:03:20)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_04_00.png" alt="AI 帮你同步远程 main 分支" loading="lazy"><p class="video-caption"><span class="cap-text">AI 帮你同步远程 main 分支</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=240" target="_blank" rel="noopener">在 B 站打开 (00:04:00)</a></span></p></div>
+
+<hr />
+<h2 id="2-unix-windows-api">2. UNIX 与 Windows：两种 API 哲学</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道操作系统「提供接口给开发者」
+- 用过文件与目录
+- 两套系统设计差异零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:10)</em></p>
+<p>应用开发者想做的事很具体：读 <code>/proc/1234/maps</code>、改另一个进程的内存、发网络请求。操作系统设计者则提供<strong>通用机制</strong>：简单、稳定、可支撑整个生态的 API。</p>
+<h3 id="_1">两种路线</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>UNIX / Linux</th>
+<th>Windows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>理念</td>
+<td>把对象暴露成文件，用小工具组合</td>
+<td>开发者要什么就提供什么 API</td>
+</tr>
+<tr>
+<td>查进程内存</td>
+<td>读 <code>/proc/&lt;pid&gt;/maps</code>（文本）</td>
+<td><code>OpenProcess</code> + <code>ReadProcessMemory</code> / <code>VirtualQueryEx</code></td>
+</tr>
+<tr>
+<td>性能</td>
+<td>文本序列化/解析有开销</td>
+<td>直接传参进内核，更高效</td>
+</tr>
+<tr>
+<td>用户假设</td>
+<td>hacker / power user</td>
+<td>软件开发者</td>
+</tr>
+</tbody>
+</table>
+<p>UNIX 选择 <strong>everything is a file（一切皆文件）</strong>：进程信息、设备、管道都伪装成文件，复用 <code>open</code>/<code>read</code>/<code>write</code>/<code>readdir</code>。</p>
+<p>Windows 更像软件工程产品：功能对应明确 API，句柄（handle）里还带权限信息。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_14_00.png" alt="UNIX vs Windows：对象如何暴露" loading="lazy"><p class="video-caption"><span class="cap-text">UNIX vs Windows：对象如何暴露</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=840" target="_blank" rel="noopener">在 B 站打开 (00:14:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_13_00.png" alt="Linux 系统调用列表：历史层层叠加" loading="lazy"><p class="video-caption"><span class="cap-text">Linux 系统调用列表：历史层层叠加</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=780" target="_blank" rel="noopener">在 B 站打开 (00:13:00)</a></span></p></div>
+
+<hr />
+<h2 id="3">3. 一切皆文件：文件作为抽象</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道文件是「有名字的数据」
+- 用过 `open`/`fopen` 或等价工具
+- 字节序列概念本章会展开
+
+</div>
+
+<p><em>(参考时间: 00:17)</em></p>
+<p><strong>文件（有名字的数据对象）</strong> 的经典模型是<strong>字节序列（一串可按顺序读写的字节）</strong>。它足够朴实，几乎能表示一切：</p>
+<ul>
+<li>键盘输入流；</li>
+<li>图片、JSON、数据结构数组；</li>
+<li>网页 HTML（含头部 + 空行 + 正文）；</li>
+<li>打印机、终端、显卡；</li>
+<li>锁、管道。</li>
+</ul>
+<p>只要都是文件，就能用同一套工具（<code>cat</code>、<code>wc</code>、<code>grep</code>…）处理。UNIX 的设计准则是：把操作系统对象暴露出来，再给一组可组合的工具。</p>
+<h3 id="_2">文件系统可构建信息系统</h3>
+<p>课程提交系统将每个学生的作业存成目录里的文件；评测器扫描目录生成 result 文件。批量 rejudge 只需 <code>find</code> + 删除 result，不必在数据库产品里实现专用后台。</p>
+<p>代价是<strong>一致性较弱</strong>（写多个文件时崩溃可能留下中间状态）；换来的是极强的可组合性，AI agent 也能直接改目录。</p>
+<pre><code class="language-mermaid">flowchart LR
+    A[浏览器提交 zip] --&gt; B[后端写入&lt;br&gt;receive/作业/日期文件]
+    B --&gt; C[Online Judge 扫描目录]
+    C --&gt; D[生成 result 文件]
+    D --&gt; E[网页读取结果]
+</code></pre>
+<div class="video-card screenshot-card"><img src="images/shot_00_24_00.png" alt="课程 OJ：文件系统作为后端" loading="lazy"><p class="video-caption"><span class="cap-text">课程 OJ：文件系统作为后端</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=1440" target="_blank" rel="noopener">在 B 站打开 (00:24:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_17_50.png" alt="everything is a file：字节序列表示一切" loading="lazy"><p class="video-caption"><span class="cap-text">everything is a file：字节序列表示一切</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=1070" target="_blank" rel="noopener">在 B 站打开 (00:17:50)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_30_50.png" alt="FHS：Linux 目录层次标准" loading="lazy"><p class="video-caption"><span class="cap-text">FHS：Linux 目录层次标准</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=1850" target="_blank" rel="noopener">在 B 站打开 (00:30:50)</a></span></p></div>
+
+<h3 id="unix">UNIX 哲学要点</h3>
+<ul>
+<li>每个工具只做一件事并做好；</li>
+<li>工具可组合；</li>
+<li><strong>文本流作为通用接口</strong>（人可读、机器可读）。</li>
+</ul>
+<p>1970 年代用性能换可组合性是勇敢的取舍；今天文本接口对大模型格外友好。命令行是自然语言与编程语言之间的平衡点——quick and dirty，但高效。</p>
+<p>文本接口的代价：空格分隔会把带空格的文件名拆成两个参数；<code>make</code> 至今对空格支持不佳。</p>
+<hr />
+<h2 id="4">4. 打开的文件与文件描述符</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 理解「进程有内存和寄存器」
+- 听说过指针
+- 系统调用概念来自前几讲
+
+</div>
+
+<p><em>(参考时间: 00:42)</em></p>
+<p>在教学用 CrazyOS 里，<code>putchar</code> 的实现往往就是往进程的一个 buffer 写字符——这其实就是「打开的文件」。</p>
+<p>操作系统内部的典型结构：</p>
+<ul>
+<li>进程持有若干<strong>打开的文件对象</strong>：指针指向 OS 里的文件/设备 + 当前读写位置 offset；</li>
+<li>文件系统里则是「路径 → 字节序列」的映射。</li>
+</ul>
+<h3 id="_3">文件描述符</h3>
+<p>应用程序的地址空间里只有普通内存；OS 内核里的「打开的文件表」不能用指针直接访问。UNIX 的办法：</p>
+<p><strong>文件描述符（file descriptor，进程用来引用操作系统对象的小整数，从 0 开始编号）</strong></p>
+<ul>
+<li><code>0, 1, 2</code> 惯例为标准输入、标准输出、标准错误；</li>
+<li><code>open</code> 从最小的未用编号开始分配（常为 3）；</li>
+<li><code>read</code>/<code>write</code>/<code>lseek</code>/<code>close</code>/<code>dup</code> 都以该整数为句柄。</li>
+</ul>
+<p>因为 everything is a file，它实际上是 <strong>everything descriptor（一切对象描述符）</strong>。</p>
+<p>Windows 中类似概念叫 <strong>handle（句柄/把柄，抓住它就能操作那个对象）</strong>。任务管理器里的「句柄」即此；中文译名来自早期编译教材的误译并沿用至今。</p>
+<pre><code class="language-mermaid">flowchart LR
+    P[进程用户态] --&gt;|fd=3| T[进程打开文件表]
+    T --&gt; O[内核 file 对象&lt;br&gt;指针+offset]
+    O --&gt; F[文件/终端/管道...]
+</code></pre>
+<div class="video-card screenshot-card"><img src="images/shot_00_49_00.png" alt="文件描述符：0/1/2 与后续分配" loading="lazy"><p class="video-caption"><span class="cap-text">文件描述符：0/1/2 与后续分配</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=2940" target="_blank" rel="noopener">在 B 站打开 (00:49:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_44_30.png" alt="内核中的打开文件对象与 offset" loading="lazy"><p class="video-caption"><span class="cap-text">内核中的打开文件对象与 offset</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=2670" target="_blank" rel="noopener">在 B 站打开 (00:44:30)</a></span></p></div>
+
+<h3 id="lseek-dup">lseek 与 dup</h3>
+<ul>
+<li><code>lseek</code>：重定位读写 offset（从头/当前位置/末尾）；</li>
+<li><code>dup</code>：再创建一个描述符指向<strong>同一个</strong>打开文件对象。</li>
+</ul>
+<p>打开失败时返回负数，可用 <code>perror</code> 按系统语言打印原因（如 <code>No such file or directory</code>）。</p>
+<hr />
+<h2 id="5-fork-offset">5. fork 与文件 offset 的共享语义</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 `fork` 会复制进程
+- 理解文件描述符是指向打开文件的编号
+- 本章会用「写日志」例子展开
+
+</div>
+
+<p><em>(参考时间: 00:59)</em></p>
+<p>假设 <code>log.txt</code> 被进程打开为 fd=3，写 <code>1</code> 后 offset 后移。此时 <code>fork</code>：</p>
+<ul>
+<li>方案 A：父子各有一份独立的打开文件结构与 offset → 可能都写在位置 0，互相覆盖；</li>
+<li>方案 B：父子共享同一打开文件对象与 offset → 依次写 <code>1</code>、<code>2</code>，日志追加不丢。</li>
+</ul>
+<p><strong>UNIX 选择方案 B（浅拷贝）</strong>：希望父子共享文件追加时不覆盖。若需要独立 offset，应再次 <code>open</code>。</p>
+<p>Windows handle <strong>默认不继承</strong>，符合最小权限；UNIX 默认继承，后来才补充 <code>O_CLOEXEC</code>（执行 <code>execve</code> 时关闭描述符），避免子进程意外获得敏感文件访问权。</p>
+<p>这说明：<code>fork</code> 看起来只是「复制」，实际上要与几乎每一种操作系统对象约定复制语义；设计系统时处处要考虑交互。有论文（<em>A Fork in the Road</em>）甚至主张不要继续以 fork 为中心教学。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_00_00.png" alt="fork 后共享 offset：日志追加" loading="lazy"><p class="video-caption"><span class="cap-text">fork 后共享 offset：日志追加</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=3600" target="_blank" rel="noopener">在 B 站打开 (01:00:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_01_05_00.png" alt="Windows 句柄 vs UNIX fd 继承策略" loading="lazy"><p class="video-caption"><span class="cap-text">Windows 句柄 vs UNIX fd 继承策略</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=3900" target="_blank" rel="noopener">在 B 站打开 (01:05:00)</a></span></p></div>
+
+<hr />
+<h2 id="6">6. 在文件系统里看见一切</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 `/proc` 可能存在
+- 用过 `ls`、管道或愿意让 AI 写命令
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 01:07)</em></p>
+<p>因为一切皆文件，可以枚举：</p>
+<pre><code class="language-bash">ls -l /proc/*/fd/*
+</code></pre>
+<p>每个进程打开的文件描述符都出现在 <code>/proc/&lt;pid&gt;/fd/</code> 下，符号链接指向真实对象：终端 <code>/dev/pts/N</code>、管道 <code>pipe:[inode]</code>、普通文件路径等。</p>
+<p>主讲人将清洗后的列表管道给 coding agent 解释，或直接演示：向某人的伪终端设备 <code>write</code>，对方屏幕上就会出现字符——权限允许时，终端也只是文件。</p>
+<h3 id="_4">启发</h3>
+<ul>
+<li>计算机世界没有魔法，都有干净解释；</li>
+<li>想知道系统在干什么，文件系统往往是入口；</li>
+<li>文本 + 管道 + AI，极大降低观察内核状态的成本。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_01_07_40.png" alt="proc 下的 fd：谁打开了什么" loading="lazy"><p class="video-caption"><span class="cap-text">proc 下的 fd：谁打开了什么</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1QFQmB7EQD/?t=4060" target="_blank" rel="noopener">在 B 站打开 (01:07:40)</a></span></p></div>
+
+<hr />
+<h2 id="_5">附录：概念补给</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 读过正文各章即可；每条独立成卡
+- 本章零基础可跟
+
+</div>
+
+<h3 id="fd">文件描述符（fd）</h3>
+<ul>
+<li><strong>是什么</strong>：进程引用 OS 对象的小整数，从 0 起编号。</li>
+<li><strong>课上为何出现</strong>：用户态无法拿内核指针，需要间接编号。</li>
+<li><strong>常见误解</strong>：它不只是「磁盘文件编号」，终端、管道也是 fd。</li>
+</ul>
+<h3 id="handle">句柄（Handle）</h3>
+<ul>
+<li><strong>是什么</strong>：Windows 中指向系统对象的引用，常含权限信息。</li>
+<li><strong>课上为何出现</strong>：与 UNIX fd 对比；任务管理器中的「句柄」。</li>
+<li><strong>和什么像</strong>：门把手/把柄——抓住它才能开关这扇门。</li>
+</ul>
+<h3 id="everything-is-a-file">一切皆文件（Everything is a File）</h3>
+<ul>
+<li><strong>是什么</strong>：把 OS 对象统一成可读写的字节序列接口。</li>
+<li><strong>课上为何出现</strong>：UNIX API 哲学；一套工具处理一切。</li>
+<li><strong>常见误解</strong>：不是所有对象都存在磁盘上，设备/proc 是虚拟文件。</li>
+</ul>
+<h3 id="_6">字节序列</h3>
+<ul>
+<li><strong>是什么</strong>：按顺序排列的字节，文件的经典抽象。</li>
+<li><strong>课上为何出现</strong>：几乎能表示流、数组、网页、设备数据。</li>
+<li><strong>和什么像</strong>：无限长的纸带，上面写满字节。</li>
+</ul>
+<h3 id="offset">offset（文件读写位置）</h3>
+<ul>
+<li><strong>是什么</strong>：打开文件对象中「当前读到/写到哪」的指针。</li>
+<li><strong>课上为何出现</strong>：<code>read</code>/<code>write</code>/<code>lseek</code> 的核心状态。</li>
+<li><strong>常见误解</strong>：offset 属于「打开的文件对象」，不是磁盘上的文件本身。</li>
+</ul>
+<h3 id="open-read-write-lseek-close">open / read / write / lseek / close</h3>
+<ul>
+<li><strong>是什么</strong>：访问文件对象的基本系统调用族。</li>
+<li><strong>课上为何出现</strong>：UNIX 提供的最小通用 API。</li>
+<li><strong>和什么像</strong>：开门 → 读写 → 关门；lseek 是翻页。</li>
+</ul>
+<h3 id="dup">dup（描述符复制）</h3>
+<ul>
+<li><strong>是什么</strong>：创建新的文件描述符，指向同一打开文件对象。</li>
+<li><strong>课上为何出现</strong>：管道、重定向、继承场景的基础。</li>
+<li><strong>常见误解</strong>：dup 通常共享 offset，不是复制文件内容。</li>
+</ul>
+<h3 id="vs">浅拷贝 vs 深拷贝</h3>
+<ul>
+<li><strong>是什么</strong>：浅拷贝共享子对象；深拷贝整棵结构复制。</li>
+<li><strong>课上为何出现</strong>：fork 后文件 offset 是共享还是独立的设计选择。</li>
+<li><strong>和什么像</strong>：复印通讯录条目 vs 把整本通讯录重抄一份。</li>
+</ul>
+<h3 id="o_cloexec">O_CLOEXEC</h3>
+<ul>
+<li><strong>是什么</strong>：标志位，使文件描述符在 execve 时自动关闭。</li>
+<li><strong>课上为何出现</strong>：修补 UNIX 默认继承带来的敏感 fd 泄露。</li>
+<li><strong>和什么像</strong>：搬家时自动不带上的钥匙。</li>
+</ul>
+<h3 id="procfs">procfs</h3>
+<ul>
+<li><strong>是什么</strong>：以文件树暴露进程与内核信息的虚拟文件系统。</li>
+<li><strong>课上为何出现</strong>：<code>/proc/&lt;pid&gt;/fd</code>、<code>maps</code>、<code>mem</code> 等观察入口。</li>
+<li><strong>常见误解</strong>：其中多数文件不占用磁盘空间。</li>
+</ul>
+<h3 id="unix-kiss">UNIX 哲学 / KISS</h3>
+<ul>
+<li><strong>是什么</strong>：工具做一件事、可组合、文本作通用接口。</li>
+<li><strong>课上为何出现</strong>：解释为何用目录而不是专用数据库也能搭系统。</li>
+<li><strong>常见误解</strong>：文本接口不是「落后」，而是可组合性的代价与收益。</li>
+</ul>
+<h3 id="perror">perror</h3>
+<ul>
+<li><strong>是什么</strong>：按当前 locale 打印最近一次失败原因的库函数。</li>
+<li><strong>课上为何出现</strong>：open 失败时解释「为什么」。</li>
+<li><strong>和什么像</strong>：客服根据错误码念出人话说明。</li>
+</ul>
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1QFQmB7EQD</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../04%20%28Aside%29%20-%20LLM%2C%20Agents%20%E5%92%8C%20Scaling%20Law%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">LLM、Agents 与 Scaling Law</span></a><a class="pager-btn next" href="../08%20%28Aside%29%20-%20%E7%BB%88%E7%AB%AF%E5%92%8C%20UNIX%20Shell%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">终端和 UNIX Shell</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

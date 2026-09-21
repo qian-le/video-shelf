@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>并行算法和数据结构</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 18 讲</p>
+        <h1>并行算法和数据结构</h1>
+        <p class="book-summary">从期中测验与 AI 时代「该学什么」切入，用 sum++ 说明锁的 serializability 与可扩展性代价；介绍计算图、HPC、embarrassingly parallel 与 OpenMP；再落到并行数据结构：sloppy counter、thread_local、读写锁与 hash table 细粒度锁的陷阱。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1WqdTBiEkN/" target="_blank" rel="noopener">BV1WqdTBiEkN</a> · 时长 1h26m · 标签：并行算法、并行数据结构、HPC、OpenMP、embarrassingly parallel、thread_local、sloppy counter、hash table、可扩展性</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1WqdTBiEkN/">Bilibili · BV1WqdTBiEkN</a>（时长约 87 分钟）
+<strong>课程</strong>：南京大学《操作系统原理》（2026）第 18 讲
+<strong>整理说明</strong>：本书由视频字幕经 AI 重构而成；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 期中测验回顾与并发学习的姿态</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 文件描述符、fork/execve、进程地址空间
+- 互斥锁的基本用法（lock / unlock）
+- 了解 AI 可以帮你写代码、查资料
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>本讲主题是<strong>并行算法和数据结构</strong>（在多核/多机上让性能随资源增长的算法与并发数据结构设计）。开课先回顾期中测验，不是为了排名，而是为了澄清：在 Agentic AI 时代，概念为什么仍然重要。</p>
+<p>期中题目偏向「如果你是操作系统设计者会怎么做」，而不是死记 API：</p>
+<ul>
+<li><strong>文件描述符</strong>（file descriptor，进程用来指代已打开对象的小整数）：地址空间隔离导致不能直接用指针，UNIX 选择「进程私有表 + 整数下标」，背后是内核对象（everything is a file）。</li>
+<li><strong>fork 之后文件描述符如何处理</strong>：子进程应共享打开文件与偏移量，否则父子同时写日志会互相覆盖；shell 里 <code>cmd1; cmd2</code> 合并输出，也依赖共享 offset。</li>
+<li><strong>execve</strong>：换掉代码与数据段，但文件描述符表和 PID 等身份信息应尽量保留，管道与重定向才得以实现。</li>
+<li><strong>终端 UI 的构成</strong>：画界面不只靠 Unicode，更靠 <strong>escape code</strong>（控制光标、擦除区域的控制序列）；再叠加 PTY 与信号（如 Ctrl+C）。</li>
+<li><strong>调试与定位</strong>：二进制是否动态加载看 ELF 的 interpreter；谁改了变量可用 watchpoint；<code>mmap</code> 系统调用可用 trace/单步定位。</li>
+<li><strong>struct file 的定义</strong>：实际类型是 <code>__IO_FILE</code> 等 typedef；也可用预处理器 <code>gcc -E</code> 看到编译器看到的世界。</li>
+<li><strong>多线程 fork</strong>：只有调用 fork 的线程在子进程存活，锁状态可能永远等不到释放；工程上通常 <strong>fork 后立刻 execve</strong>。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_00_01_20.png" alt="期中测验：站在设计者角度理解系统调用" loading="lazy"><p class="video-caption"><span class="cap-text">期中测验：站在设计者角度理解系统调用</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1WqdTBiEkN/?t=80" target="_blank" rel="noopener">在 B 站打开 (00:01:20)</a></span></p></div>
+
+<p>AI 对这些问题的回答出人意料地完整，甚至反问「你不需要记住所有答案，只要想：如果我来设计会怎么做」。主讲人由此提出一个真实的困惑：</p>
+<blockquote>
+<p>每一个训练 batch 对模型都是一场「考试」，模型会越考越强；而人类若完全不建立概念，对 AI 的失控感会越来越强。</p>
+</blockquote>
+<p>课程仍坚持把概念讲清楚：<strong>你至少要知道该让 AI 往哪个方向努力</strong>；在架构、系统设计、工具品位上，AI 目前仍难独立给出「更好但不那么显眼」的选择。</p>
+<hr />
+<h2 id="2-sum">2. 从 sum++ 看锁的代价与可扩展性</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 线程与共享变量、data race
+- 互斥锁如何保证同一时刻只有一个线程进入临界区
+- 大致知道 CPU 有私有缓存
+
+</div>
+
+<p><em>(参考时间: 00:14:00)</em></p>
+<h3 id="21">2.1 一个过度简化却足够典型的模式</h3>
+<p>并发程序里常见如下模式：</p>
+<pre><code class="language-c">void *tsum(void *arg) {
+    pthread_mutex_lock(&amp;lock);
+    sum++;
+    pthread_mutex_unlock(&amp;lock);
+    return NULL;
+}
+</code></pre>
+<p>现实中，<code>sum++</code> 往往代表<strong>对共享数据结构的一次操作</strong>：往 print 缓冲写一块、更新字典项、点赞计数加一等。锁保护的是数据结构不变量，不是那一行加法本身。</p>
+<h3 id="22">2.2 实验：不同实现随线程数的曲线</h3>
+<p>课上对比过多种实现（在树莓派上随线程数增长）：</p>
+<table>
+<thead>
+<tr>
+<th>实现</th>
+<th>行为特征</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>原子指令 <code>sum++</code></td>
+<td>无锁，最快</td>
+</tr>
+<tr>
+<td>pthread mutex</td>
+<td>进入内核/原子指令保护，线程增多后趋于饱和</td>
+</tr>
+<tr>
+<td>自旋锁（spin lock）</td>
+<td>用户态忙等拿钥匙，竞争激烈时更差</td>
+</tr>
+<tr>
+<td>Futex 强行进内核</td>
+<td>每次操作代价高，随线程数明显变差</td>
+</tr>
+</tbody>
+</table>
+<p><strong>真正好的实现</strong>应满足：CPU 从 1 核到 2 核、4 核，吞吐近似翻倍。互斥锁最多做到「不继续崩溃」，却<strong>不能 scale</strong>——串行化阻止了并行。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_17_00.png" alt="多种锁实现随线程数的性能对比" loading="lazy"><p class="video-caption"><span class="cap-text">多种锁实现随线程数的性能对比</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1WqdTBiEkN/?t=1020" target="_blank" rel="noopener">在 B 站打开 (00:17:00)</a></span></p></div>
+
+<p>互斥锁给出的保证是完整的 <strong>serializability</strong>（所有临界区像排好队一样依次发生）以及 unlock→lock 的 happens-before 与可见性；代价是 <strong>scalability</strong>（性能无法随 CPU/机器数量增长）。</p>
+<h3 id="23">2.3 计算图视角</h3>
+<p>任何一个并行计算问题本质都是<strong>计算图</strong>：</p>
+<ul>
+<li>节点：一次计算</li>
+<li>边：依赖关系</li>
+</ul>
+<p>若节点内计算量大、且几乎不需要共享变量上锁，则「串行化区域」被压得很小，系统才能 scale up（单机多核）与 scale out（多机扩展）。</p>
+<p>反例：若每个 <code>dp[i][j]</code> 都做一个节点，同步代价远大于算术本身，计算图设计就很糟糕。更好的切法是：</p>
+<ol>
+<li>开始并行度不足时，整块串行算；</li>
+<li>并行度上来后按对角线切成 2 块、3 块……</li>
+<li>块间只保留层间依赖。</li>
+</ol>
+<div class="video-card screenshot-card"><img src="images/shot_00_22_00.png" alt="动态规划计算图：粗粒度分块降低同步" loading="lazy"><p class="video-caption"><span class="cap-text">动态规划计算图：粗粒度分块降低同步</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1WqdTBiEkN/?t=1320" target="_blank" rel="noopener">在 B 站打开 (00:22:00)</a></span></p></div>
+
+<hr />
+<h2 id="3-embarrassingly-parallel">3. 高性能计算：从科学模拟到 embarrassingly parallel</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道多核 CPU / 计算集群可以一起干活
+- 了解「把大问题拆成小问题」的基本思想
+- 本章零基础可跟，会用 for 循环即可
+
+</div>
+
+<p><em>(参考时间: 00:24:00)</em></p>
+<h3 id="31-hpc">3.1 HPC 的定义与客户</h3>
+<p><strong>高性能计算</strong>（High Performance Computing，用超算或集群解决需要海量算力的问题）的经典定义：harness the power of supercomputers or computer clusters to solve problems that require massive computation。</p>
+<p>主要客户一直是数值密集型科学计算：</p>
+<ul>
+<li>有模型就能模拟：粒子系统、气流、爆炸、有机物反应（量子化学）；</li>
+<li>精度与算力近似可交换：投入越多计算，结果越接近真实；</li>
+<li>应用覆盖天气预报、航天、制造、能源等；</li>
+<li>后来加入矿场（PoW 需要证明算力）与 AI 推理/训练。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_00_28_00.png" alt="从 1976 Cray-1 到今天超算的算力跨越" loading="lazy"><p class="video-caption"><span class="cap-text">从 1976 Cray-1 到今天超算的算力跨越</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1WqdTBiEkN/?t=1680" target="_blank" rel="noopener">在 B 站打开 (00:28:00)</a></span></p></div>
+
+<p>算力量级示意：</p>
+<ul>
+<li>1976 年 Cray-1：约 138 MFLOPS，功耗 115 kW（被称为 “the world’s most expensive love seat”）；</li>
+<li>Apple M4 iPad Pro：约 3.8 TFLOPS；</li>
+<li>专用推理 ASIC：可达数百 TFLOPS 量级，芯片功耗仅数十瓦；</li>
+<li>今日超算榜单以 PFLOPS 计。</li>
+</ul>
+<p>强烈推荐阅读 Cray-1 原论文中的整机设计图（指令集 + 物理布局）。</p>
+<h3 id="32">3.2 什么样的程序能跑在超算上？</h3>
+<p>驱动 HPC 的科学计算问题常可<strong>切网格</strong>：物理系统足够大时，切成百万/千万份；每份内部独立计算，仅在边界上需要同步。</p>
+<p>评估超算常用 <strong>LINPACK</strong>（求解大规模线性方程组 <code>Ax=b</code> 的基准）。几乎所有用微分方程描述的非线性系统，都可通过牛顿法等化为线性方程组求解；稀疏问题也会局部稠密化再求解。</p>
+<h3 id="33-embarrassingly-parallel">3.3 embarrassingly parallel</h3>
+<p><strong>embarrassingly parallel</strong>（令人尴尬地容易并行：计算图几乎不需要同步与通信）指：一个节点可以散出成千上万个独立任务，最后汇总即可。</p>
+<pre><code class="language-mermaid">flowchart LR
+  A[问题切分] --&gt; T1[任务1]
+  A --&gt; T2[任务2]
+  A --&gt; T3[任务N...]
+  T1 --&gt; R[汇总结果]
+  T2 --&gt; R
+  T3 --&gt; R
+</code></pre>
+<p>课上例子：</p>
+<ul>
+<li><strong>树搜索</strong>：围棋等状态空间可指数展开；fork-based DFS 把搜索子树分到多线程/多机。十几倍加速很有意义——1 分钟任务变 6 秒，不打断工作流。</li>
+<li><strong>蒙特卡洛</strong>：独立采样再求均值，天然可分片。</li>
+<li><strong>视频编解码</strong>：关键帧切好后，段间可独立处理。</li>
+<li><strong>Mandelbrot 集</strong>：每个像素（或像素块）的逃逸时间计算完全独立。</li>
+</ul>
+<h3 id="34-mandelbrot-julia">3.4 Mandelbrot / Julia 集：课堂上的并行演示</h3>
+<p>从递归 <code>x_n = x_{n-1}^2</code> 出发：</p>
+<ul>
+<li>实数轴上可讨论收敛/发散；</li>
+<li>复平面上乘法含旋转，轨迹更丰富；</li>
+<li>再加常数 <code>c</code>（<code>x_n = x_{n-1}^2 + c</code>），改变 <code>c</code> 得到不同 <strong>Julia set</strong>；</li>
+<li>固定 <code>x_0=0</code>、遍历复平面上的 <code>c</code>，得到 <strong>Mandelbrot set</strong>。</li>
+</ul>
+<p>分形边界无穷精细；渲染时可把图像切成块，每块由一个线程/机器独立算完再拼回。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_44_00.png" alt="Mandelbrot 集渲染：像素级独立计算" loading="lazy"><p class="video-caption"><span class="cap-text">Mandelbrot 集渲染：像素级独立计算</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1WqdTBiEkN/?t=2640" target="_blank" rel="noopener">在 B 站打开 (00:44:00)</a></span></p></div>
+
+<h3 id="35-openmp">3.5 OpenMP：把同步复杂度藏进编译器</h3>
+<p>对科学计算开发者，不希望把 data race 的自由度全交给程序员。领域常用 <strong>MPI</strong> / <strong>OpenMP</strong>（在串行代码上用编译指导并行化的编程模型）。</p>
+<p>OpenMP 典型写法：在顺序循环前加一行并行指导，例如：</p>
+<pre><code class="language-c">#pragma omp parallel for num_threads(nthreads)
+for (int i = 0; i &lt; NSIZE; i++) {
+    if (mine(i)) {
+        picture[i] = mandelbrot(i);
+    }
+}
+</code></pre>
+<p>课上对比：单线程约 18 秒扫完整幅图；16 线程约 3 秒。物理系同学不必先上操作系统课，只要会一句「魔法」，就能用好多核。</p>
+<p>HPC 真正难的部分还包括：机房高速网络、机柜内外带宽不对称、功耗/散热/稳定性、存储容错与工具链——共享内存访问代价并不均等，跨机通信更慢且可能不可靠。</p>
+<h3 id="36-gptc">3.6 课程实验 gpt.c 的提示</h3>
+<p>实验基于裁剪后的 llama.c / GPT-2 推理代码：</p>
+<ul>
+<li>源码在检测到 OpenMP 时自动启用并行，否则是纯单线程；</li>
+<li>学生要用课程线程库自己找出推理中<strong>最可并行的循环</strong>，提取计算图并做同步；</li>
+<li>建议用 profiler（如 perf）定位热点，而不是直接让 AI「并行化整个文件」。</li>
+</ul>
+<p>AI 默认更可能给出 pthread 实现；若 prompt 里写明「可以用 OpenMP」，更可能保持代码结构干净。</p>
+<hr />
+<h2 id="4">4. 并行数据结构：放松可见性以换取扩展性</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 互斥锁与 data race
+- hash table 的基本思想（关键字 → 桶）
+- 知道「多个线程同时改同一结构」需要同步
+
+</div>
+
+<p><em>(参考时间: 00:59:11)</em></p>
+<h3 id="41">4.1 为何算法可并行之后，数据结构仍会卡住</h3>
+<p>HPC 场景里，串行化的 <code>sum++</code> 相对海量计算只是零头。但现实里有许多<strong>操作本身就是共享数据结构读写</strong>的场景：</p>
+<ul>
+<li>操作系统内核：进程/文件对象几乎每次访问都要保护，否则就是 data race；</li>
+<li>数据库：热点帖子点赞计数；</li>
+<li>网游服务器：大量玩家挤在同一坐标；</li>
+<li>量化交易：极短时间内的共享状态更新。</li>
+</ul>
+<p>若程序主体就是「线程 → 上锁 → sum++ → 解锁」，再强的锁也不能 scale。</p>
+<h3 id="42-sloppy-counter">4.2 sloppy counter：牺牲及时可见性</h3>
+<p>互斥锁的 release/acquire 保证：unlock 之后，其他线程 acquire 一定能看到最新值。代价来自硬件：每个 CPU 有私有 cache，store 要通过总线/一致性协议传播到其他核心。</p>
+<p><strong>Sloppy counter</strong>（宽松计数器：允许读到的计数暂时落后）的做法：</p>
+<ol>
+<li>每个线程维护 <code>sum_local</code>；</li>
+<li>多数时候只做本地 <code>sum_local++</code>；</li>
+<li>本地累加到阈值（如 100）或超时（如 1ms）时，再上锁把本地值并入全局 <code>sum</code>。</li>
+</ol>
+<p>读者几乎永远看到「稍旧」的值，但在超时上界内；换来的是绝大部分计算留在本地、很少争用全局锁。社交产品的点赞数往往就是这类实现。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_04_00.png" alt="Sloppy counter：线程本地累积再批量合并" loading="lazy"><p class="video-caption"><span class="cap-text">Sloppy counter：线程本地累积再批量合并</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1WqdTBiEkN/?t=3840" target="_blank" rel="noopener">在 B 站打开 (01:04:00)</a></span></p></div>
+
+<h3 id="43-thread_local">4.3 thread_local 语言支持</h3>
+<p>没有人喜欢手写 <code>sum_local[tid]</code>。从 C++11 起有 <strong>thread_local</strong>（每个线程一份的存储期修饰符），C23 也正式引入。</p>
+<pre><code class="language-c">thread_local int x = 100;  // 每线程一份
+</code></pre>
+<p>要点：</p>
+<ul>
+<li>类型任意（int、struct、指针），可赋初值；</li>
+<li>函数栈帧作用域里定义 thread_local 会与「每调用一份」冲突，编译器会拒绝；</li>
+<li>普通全局 <code>int x</code> 在多线程下 <code>x++</code> 可能看到 100,101,102…；thread_local 则每线程各自到 101，且取地址各不相同。</li>
+</ul>
+<p>实现直觉（x86）：</p>
+<ul>
+<li>全局变量：相对 PC/RIP 寻址；</li>
+<li>栈上变量：相对 RSP；</li>
+<li>thread_local：相对线程控制块，常用 FS 段 + 偏移。</li>
+</ul>
+<p>初值问题：全局 <code>.data</code> 靠 loader 搬一次即可；thread_local 的初值在线程创建时由 <strong>TLS 初始化</strong>（如 <code>copy_tls</code> / <code>.tdata</code>）复制到该线程的 TLS 区域。细节比课上第一眼线程模型更复杂，但对理解「每线程一份」足够。</p>
+<h3 id="44">4.4 抽象数据类型与锁拆分</h3>
+<p><strong>抽象数据类型</strong>（ADT，只暴露 push/pop 等接口、隐藏实现的数据结构）：数组、链表、树、集合、映射等。结构变大后天然有局部性——线程 A 改节点 5、线程 B 读节点 7，往往并不冲突。</p>
+<p>于是优化方向是<strong>把大锁拆开</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>原子指令</td>
+<td>能用原子加就不要整段锁（如在线评测的无锁日志槽：原子递增拿 slot，再写内容）</td>
+</tr>
+<tr>
+<td>读写锁</td>
+<td>多个读者共享，写者独占；读多写少时收益大</td>
+</tr>
+<tr>
+<td>锁拆分 / 细粒度锁</td>
+<td>按数据结构部位上锁，如 hash 每个桶一把锁</td>
+</tr>
+</tbody>
+</table>
+<div class="video-card screenshot-card"><img src="images/shot_01_22_00.png" alt="Hash table 按桶上锁的细粒度并发" loading="lazy"><p class="video-caption"><span class="cap-text">Hash table 按桶上锁的细粒度并发</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1WqdTBiEkN/?t=4920" target="_blank" rel="noopener">在 B 站打开 (01:22:00)</a></span></p></div>
+
+<h3 id="45-hash-table">4.5 并发 Hash Table 的陷阱</h3>
+<p><strong>Hash table</strong>（关键字经哈希函数映射到桶，期望 O(1) 查找）在冲突处理上分叉：</p>
+<ul>
+<li><strong>链地址法</strong>：桶内挂链表/树。并发时访问某 key 往往只需保护对应桶。</li>
+<li><strong>开放寻址</strong>（open addressing，冲突时按探测序列找下一个空槽）：并发更难。</li>
+<li><strong>删除</strong>不能直接抹掉：探测链会断，后面元素找不到；需要 <strong>tombstone</strong>（墓碑，标记已删但探测仍可穿过）。</li>
+<li><strong>resize</strong>：要分配更大表并迁移元素。若 resize 期间上所有大锁，数据结构会整段不可用（可能秒级）。实际系统会用细粒度锁<strong>渐进迁移</strong>——这里极易出错，也是 malloc 类实验高发区。</li>
+</ul>
+<p><strong>对库函数保持敬畏</strong>：malloc/free 的并发语义、与锁的交互，比课堂第一层抽象复杂得多。</p>
+<hr />
+<h2 id="_1">附录：概念补给</h2>
+<h3 id="scale-up-scale-out">scale up 与 scale out</h3>
+<ul>
+<li><strong>是什么</strong>：scale up 是单机加核/加资源后性能仍增长；scale out 是加机器后总吞吐仍增长。</li>
+<li><strong>课上为何出现</strong>：并发算法与数据结构的核心目标，就是让系统能继续扩展。</li>
+<li><strong>和什么像</strong>：一家店增加收银台 vs 再开一家分店。</li>
+</ul>
+<h3 id="serializability">serializability</h3>
+<ul>
+<li><strong>是什么</strong>：并发执行的结果看起来像某种串行顺序。</li>
+<li><strong>课上为何出现</strong>：互斥锁的强正确性保证。</li>
+<li><strong>常见误解</strong>：正确性强 ≠ 性能可扩展；锁往往正确但不 scale。</li>
+</ul>
+<h3 id="happens-before">happens-before 与缓存可见性</h3>
+<ul>
+<li><strong>是什么</strong>：通过同步原语保证一个线程的写对另一个线程在 acquire 后可见。</li>
+<li><strong>课上为何出现</strong>：解释为何「不用锁也可能看到旧值」以及 sloppy counter 的代价来源。</li>
+<li><strong>和什么像</strong>：公告必须贴到各办公室门口大家才能看到。</li>
+</ul>
+<h3 id="_2">计算图</h3>
+<ul>
+<li><strong>是什么</strong>：节点是计算、边是依赖的有向图。</li>
+<li><strong>课上为何出现</strong>：并行化前先识别「哪些能独立算、哪里必须同步」。</li>
+<li><strong>和什么像</strong>：菜谱步骤——有的菜能同时炒，有的必须等汤开。</li>
+</ul>
+<h3 id="embarrassingly-parallel">embarrassingly parallel</h3>
+<ul>
+<li><strong>是什么</strong>：任务之间几乎无依赖、无通信，拆完就能分头算。</li>
+<li><strong>课上为何出现</strong>：树搜索、蒙特卡洛、像素渲染等模式的共同名字。</li>
+<li><strong>和什么像</strong>：全班各改同一道选择题的不同份答卷，互不影响。</li>
+</ul>
+<h3 id="linpack">LINPACK</h3>
+<ul>
+<li><strong>是什么</strong>：通过求解大规模线性方程组来衡量超算性能的基准。</li>
+<li><strong>课上为何出现</strong>：解释超算榜单数字从何而来，以及科学计算为何高度依赖线性代数。</li>
+<li><strong>和什么像</strong>：用「单位时间能跑多少标准步」给跑步机评级。</li>
+</ul>
+<h3 id="openmp">OpenMP</h3>
+<ul>
+<li><strong>是什么</strong>：用编译指导（pragma）把串行循环并行化的模型。</li>
+<li><strong>课上为何出现</strong>：给非系统程序员一条低门槛的多核路径。</li>
+<li><strong>和什么像</strong>：在清单上标注「这一段可以分给全组」，秘书自动派活。</li>
+</ul>
+<h3 id="mpi">MPI</h3>
+<ul>
+<li><strong>是什么</strong>：面向分布式内存集群的消息传递并行编程接口。</li>
+<li><strong>课上为何出现</strong>：HPC 领域与 OpenMP 互补的经典工具。</li>
+<li><strong>和什么像</strong>：各办公室不共享白板，只能互相发邮件同步进度。</li>
+</ul>
+<h3 id="fork-based-dfs">fork-based DFS</h3>
+<ul>
+<li><strong>是什么</strong>：用进程复制把搜索树的子树分给不同执行者。</li>
+<li><strong>课上为何出现</strong>：embarrassingly parallel 在搜索问题上的课上演示。</li>
+<li><strong>和什么像</strong>：总馆把书单拆开，分馆各自检索再交回总馆。</li>
+</ul>
+<h3 id="mandelbrot-set-julia-set">Mandelbrot set / Julia set</h3>
+<ul>
+<li><strong>是什么</strong>：复二次迭代在参数平面上定义的分形集合。</li>
+<li><strong>课上为何出现</strong>：像素独立计算的典型 embarrassingly parallel 工作负载。</li>
+<li><strong>和什么像</strong>：一张巨大的地图，每格自己决定「留下还是逃逸」。</li>
+</ul>
+<h3 id="sloppy-counter">sloppy counter</h3>
+<ul>
+<li><strong>是什么</strong>：线程本地计数、阈值或超时再合并到全局的宽松计数器。</li>
+<li><strong>课上为何出现</strong>：演示如何用「稍旧的一致性」换可扩展性。</li>
+<li><strong>和什么像</strong>：各班自行记考勤，课间才汇总到教务处。</li>
+</ul>
+<h3 id="thread_local">thread_local</h3>
+<ul>
+<li><strong>是什么</strong>：语言级「每个线程一份」的变量存储期。</li>
+<li><strong>课上为何出现</strong>：实现线程本地数据，避免手写 tid 索引。</li>
+<li><strong>和什么像</strong>：每人抽屉里同一本草稿纸，互不覆盖。</li>
+</ul>
+<h3 id="tls">TLS（线程本地存储）</h3>
+<ul>
+<li><strong>是什么</strong>：运行时为每线程分配的私有数据区，thread_local 变量放在这里。</li>
+<li><strong>课上为何出现</strong>：解释初值为何在线程创建时复制，以及 x86 上 FS 段寻址。</li>
+<li><strong>和什么像</strong>：员工入职时人事给每人发一套独立档案袋。</li>
+</ul>
+<h3 id="rwlock">读写锁（rwlock）</h3>
+<ul>
+<li><strong>是什么</strong>：读共享、写独占的锁。</li>
+<li><strong>课上为何出现</strong>：读多写少时提升并发度的常见手段。</li>
+<li><strong>和什么像</strong>：图书馆阅览室多人可同时看，改书架必须清场。</li>
+</ul>
+<h3 id="tombstone">tombstone（墓碑）</h3>
+<ul>
+<li><strong>是什么</strong>：开放寻址删除时留下的「已删但可探测穿过」标记。</li>
+<li><strong>课上为何出现</strong>：并发哈希表删除不能直接置空，否则探测链断裂。</li>
+<li><strong>和什么像</strong>：货架空位贴「此位已撤」，顾客继续往里找。</li>
+</ul>
+<h3 id="lock-striping">锁拆分（lock striping / 细粒度锁）</h3>
+<ul>
+<li><strong>是什么</strong>：按数据结构部位上多把锁，而不是一把大锁锁全局。</li>
+<li><strong>课上为何出现</strong>：并行数据结构从「正确」走向「可扩展」的关键。</li>
+<li><strong>和什么像</strong>：超市按收银台排队，而不是全商场一个柜台。</li>
+</ul>
+<hr />
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1WqdTBiEkN</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../17%20-%20%E5%B9%B6%E5%8F%91%20Bugs%20%E5%92%8C%E5%BA%94%E5%AF%B9%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">并发 Bugs 和应对</span></a><a class="pager-btn next" href="../19%20-%20%E5%8D%8F%E7%A8%8B%E3%80%81Goroutine%E3%80%81%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">协程、Goroutine、异步编程</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

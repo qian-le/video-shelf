@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一个 Token 的旅程</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 21 讲</p>
+        <h1>一个 Token 的旅程</h1>
+        <p class="book-summary">以一次大模型 API 调用串起并发与系统全景：从环境变量与 strace 看 DNS/TCP/HTTP，到数据中心的 CRUD、C10K、CAP 与 Serverless/幂等；再讲从 Token 到 Tensor——forward、注意力 Q/K/V、KV cache、CUDA kernel 与 PD 分离。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1zS5R6tEWZ/" target="_blank" rel="noopener">BV1zS5R6tEWZ</a> · 时长 1h30m · 标签：数据中心、C10K、CAP、Serverless、幂等、LLM、token、tensor、attention、CUDA、PD分离、strace</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1zS5R6tEWZ/">Bilibili · BV1zS5R6tEWZ</a>（时长约 91 分钟）
+<strong>课程</strong>：南京大学《操作系统原理》（2026）第 21 讲
+<strong>整理说明</strong>：本书由视频字幕经 AI 重构而成；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 引言：从并发实验到数据中心</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 线程、锁、计算图；SIMD / SIMT / CUDA 的大意
+- 文件描述符、环境变量、系统调用（strace）
+- 知道 HTTP 请求大致如何发出
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>并发部分收官：从 spawn/join 打开“魔鬼盒子”，到协程、Go、Promise，再到 GPU 上的海量线程——本质都是<strong>描述计算图</strong>。malloc 实验提醒我们：真实系统里一点小错误都致命，工具（sanitizer、检测器）和敬畏心不可少。</p>
+<p>本讲用<strong>一次对大语言模型的对话</strong>串起：客户端 → 网络 → 数据中心的增删改查 → 从 token 到 tensor 的推理。</p>
+<h3 id="11-api">1.1 用户侧：API 调用长什么样</h3>
+<p>典型用法（DeepSeek 等兼容 API）：</p>
+<pre><code class="language-bash">export DEEPSEEK_API_KEY=...
+curl https://api.deepseek.com/... 
+</code></pre>
+<ul>
+<li>密钥放在<strong>环境变量</strong>（进程创建时加载到栈上，可被子进程继承）——shell 里设置后，<code>curl</code>、Python 等子进程都能读到；</li>
+<li>请求体是 JSON，响应也是 JSON（chat completion 等）；</li>
+<li>与 <code>make submit</code> 类似：脚本下载 + 执行即可完成提交；改服务端脚本可关闭入口。</li>
+</ul>
+<h3 id="12-strace">1.2 用 strace 打开网络过程</h3>
+<p>在操作系统课上可以用 <strong>strace</strong>（跟踪系统调用）看客户端究竟做了什么：</p>
+<ol>
+<li><strong>DNS 解析</strong>（常见端口 53）；</li>
+<li><strong>TCP 连接</strong>：<code>connect</code> 到目标 IP 的 443（HTTPS）；</li>
+<li>TLS/应用层请求与响应；</li>
+<li><code>read</code>/<code>write</code>/<code>send</code>/<code>recv</code> 等在文件描述符上交换字节。</li>
+</ol>
+<p>课堂用 AI 分析 <code>strace</code> 日志：DNS 查询、三次握手、HTTP 头里的 <code>Server</code> 字段（如 openresty）、CDN 提示等。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_10_00.png" alt="strace 观察一次 HTTPS API 调用" loading="lazy"><p class="video-caption"><span class="cap-text">strace 观察一次 HTTPS API 调用</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1zS5R6tEWZ/?t=600" target="_blank" rel="noopener">在 B 站打开 (00:10:00)</a></span></p></div>
+
+<p>严肃服务往往<strong>不止一个 IP</strong>：同一域名可能解析到多个地址、经 CDN（如腾讯云）而非直连源站；<code>traceroute</code> 可观察路径与 TTL。</p>
+<h3 id="13">1.3 请求到达数据中心之后</h3>
+<p>业务节点收到的包括：Header 里的 API Key、Body 里的 JSON。大模型服务除了“算一个 completion”，还要：</p>
+<ul>
+<li><strong>鉴权</strong>（key 是否合法）；</li>
+<li><strong>计费与审计</strong>（dashboard 上的用量可能有延迟才更新）；</li>
+<li>内容策略与日志。</li>
+</ul>
+<p>与 Web 1.0 / 社交网络时代的“查库返回”相比，LLM 后端多了推理集群，CRUD 仍在。</p>
+<hr />
+<h2 id="2-curd">2. 数据中心的 CURD</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 增删改查：对数据库读写记录
+- hash table、网络分区的大意
+- 了解“云端服务”即可
+
+</div>
+
+<p><em>(参考时间: 00:20:43)</em></p>
+<p><strong>数据中心</strong>（network of computing and storage resources，支撑共享应用与数据的算力存储网络）可粗分上下半场：</p>
+<table>
+<thead>
+<tr>
+<th>时代</th>
+<th>主要负载</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1990s–移动互联网</td>
+<td>静态页 → Facebook/微信/淘宝：海量 CRUD、同步云端状态</td>
+</tr>
+<tr>
+<td>2022–</td>
+<td>AI 推理/训练：如 DeepSeek 各版本的激活参数规模差异很大</td>
+</tr>
+</tbody>
+</table>
+<p>数据中心是<strong>产业链</strong>：土地、电、水、人、散热、供应链……课堂技术只是其中一环；驱动系统演化的是<strong>市场供需</strong>，不只是 API 本身。</p>
+<h3 id="21-c10k-c10m">2.1 C10K 到 C10M</h3>
+<p>1999 年 Dan Kegel 提出 <strong>C10k problem</strong>（单机如何支撑约一万个并发客户端）：</p>
+<ul>
+<li>每请求 <code>pthread_create</code> 在负载升高时不够用；</li>
+<li><code>select</code>/<code>poll</code> 接口并非为万级连接设计；</li>
+<li>催生 <strong>epoll</strong>、事件驱动（nginx）、Goroutine 等。</li>
+</ul>
+<p>C10K 之后很快是千万级并发：仅靠语言级并发不够，需要<strong>数据中心级</strong>的架构。</p>
+<p>体验红线：一次 hash table resize 的几十毫秒级拷贝，可能让 P99 延迟爆炸；有调研称延迟每增加约 100ms，用户流失成倍上升。突发流量（如发布会上全国设备同时唤醒语音助手）可形同拒绝服务。</p>
+<h3 id="22-cap">2.2 CAP：分布式系统的一堵墙</h3>
+<p><strong>CAP 定理</strong>（Consistency / Availability / Partition tolerance 不可兼得）：</p>
+<ul>
+<li><strong>一致性</strong>：全局看起来操作像按顺序发生；</li>
+<li><strong>可用性</strong>：请求能较快得到响应；</li>
+<li><strong>分区容忍</strong>：机房之间网络可能断开仍要继续服务。</li>
+</ul>
+<p>课堂例子：先拉黑母亲再发朋友圈——拉黑请求与朋友圈可能落在不同数据中心；分区下若还要立即返回，就看不到对面的最新状态，一致性被牺牲。API Key 的启用/停用与计费延迟也是同类问题。</p>
+<p>真实系统用副本、延迟一致、工程手段把 CAP “藏”得让你几乎无感，但不可能三角仍在。</p>
+<h3 id="23">2.3 把计算带到数据</h3>
+<p>分布式编程的 <strong>mindset change</strong>：</p>
+<blockquote>
+<p>UNIX 习惯把数据带到程序；分布式时代要把<strong>计算带到数据</strong>（程序可能随时消失）。</p>
+</blockquote>
+<p>Google 路线（GFS → Bigtable → MapReduce）的共同点：</p>
+<ul>
+<li>先做好<strong>分布式文件系统</strong>（文件分片存多台机器，程序员只看见文件）；</li>
+<li>在文件之上构建 <strong>Key-value / 数据库</strong>（鉴权、配额、计费状态）；</li>
+<li>大文件计算用 <strong>MapReduce</strong> 等批处理框架；</li>
+<li>每台机器底层仍是 Linux，对外是更高层抽象。</li>
+</ul>
+<h3 id="24-serverless">2.4 Serverless 与幂等</h3>
+<p>程序最好写成<strong>描述计算图</strong>；分发与容错交给平台 → <strong>serverless / FaaS</strong>（无服务器：按事件处理请求，平台弹性扩缩）。</p>
+<pre><code class="language-javascript">// 示意：事件驱动的鉴权 + 推理入口
+async function handler(event) {
+  const key = event.headers.authorization;
+  if (!(await isValid(key))) return { status: 401 };
+  return await runInference(event.body);
+}
+</code></pre>
+<p>要求：函数应尽量 <strong>幂等</strong>（同一操作执行多次效果相同）。计费若写成“读-加-存”，崩溃重试会记两次账；可用唯一键 + set 大小等结构避免。</p>
+<p>云厂商还通过：计算与存储分离、SSD 集群多副本、压缩与去重（相同 libc 只存一份）等，在可靠的同时压低实际存储成本。</p>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1zS5R6tEWZ&t=2700&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="分布式请求：CDN → 网关 → 多副本业务与存储"></iframe></div><p class="video-caption"><span class="cap-text">分布式请求：CDN → 网关 → 多副本业务与存储</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1zS5R6tEWZ/?t=2700" target="_blank" rel="noopener">在 B 站打开 (00:45:00)</a></span></p></div>
+
+<hr />
+<h2 id="3-token-tensor">3. 从 Token 到 Tensor</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 矩阵乘法、向量点积（高中/线性代数）
+- CUDA：海量线程跑同一段代码
+- 前面实验见过 gpt2.c 的 forward 循环更好
+
+</div>
+
+<p><em>(参考时间: 01:00:43)</em></p>
+<h3 id="31">3.1 推理本质是“很大的函数求值”</h3>
+<p>看 <code>gpt2.c</code> / llama.c：核心是 <strong>forward pass</strong>（正向传播）——按层做大量加权运算。热点往往是：</p>
+<ul>
+<li><code>matmul_forward</code>：矩阵乘法；</li>
+<li><code>attention_forward</code>：注意力。</li>
+</ul>
+<p>代码形态高度规则（多重 for），正是 SIMD/SIMT 最喜欢的形状。</p>
+<h3 id="32-tensor">3.2 Tensor：高维数组的工程名字</h3>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>形状</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>标量 scalar</td>
+<td>一个数</td>
+</tr>
+<tr>
+<td>向量 vector</td>
+<td>一维数组</td>
+</tr>
+<tr>
+<td>矩阵 matrix</td>
+<td>二维数组</td>
+</tr>
+<tr>
+<td>张量 tensor</td>
+<td>更高维数组</td>
+</tr>
+</tbody>
+</table>
+<p>图像：宽×高×RGB，再叠 batch、层数……深度学习自然需要 <strong>tensor</strong> 抽象（PyTorch/TensorFlow）。</p>
+<h3 id="33-attention">3.3 Attention 的“一层书本”比喻</h3>
+<p>大模型做 <strong>next token prediction</strong>（根据上下文预测下一个 token）。每一层 Transformer 可想成一本书：</p>
+<ul>
+<li><strong>Q（query）</strong>：要补全的问题；</li>
+<li><strong>K（key）</strong>：书的目录；</li>
+<li><strong>V（value）</strong>：正文内容。</li>
+</ul>
+<p>流程示意：</p>
+<pre><code class="language-mermaid">flowchart LR
+  Q[当前问题 Q] --&gt; A[用 Q 查 K&lt;br/&gt;关注相关章节]
+  K[目录 K] --&gt; A
+  A --&gt; S[softmax 得权重]
+  V[正文 V] --&gt; C[加权求和]
+  S --&gt; C
+  C --&gt; M[短时记忆向量]
+  M --&gt; R[改写成下一层的结构]
+  R --&gt; N[进入下一层 Transformer]
+</code></pre>
+<p>层数加深后，中间表示越来越不像原始 token，信息密度更接近最终要输出的 token。每层的 K/V 可缓存为 <strong>KV cache</strong>——API 上常见 cache hit / miss 价格差异。</p>
+<h3 id="34-gpu-kernel-tensor-core">3.4 GPU 上的执行：kernel、分块与 Tensor Core</h3>
+<p>CPU 把 kernel 与数据交给 GPU（CUDA memory copy → 排队执行）。问题：多个 kernel 串行边界处，GPU 利用率会掉尾——推动 <strong>kernel fusion</strong>（如 flash attention 把多层计算打包）。</p>
+<p>再往下压榨：在 SIMT 里再引入矩阵指令 → <strong>Tensor Core</strong>（硬件矩阵乘加单元，NVIDIA 对矩阵乘法的“打包指令”）。真正难点常是<strong>访存布局</strong>：</p>
+<ul>
+<li>行优先 vs 列优先，总有一方不利于 cache；</li>
+<li>现代 GPU 用 <strong>tile</strong>（分块）让块内可驻留缓存；</li>
+<li>还要处理稀疏拷贝、转置、跨步访问等。</li>
+</ul>
+<p>生态与 UNIX 类比：</p>
+<pre><code class="language-text">应用 / Chat UI
+PyTorch 等训练推理框架
+算子融合 / flash attention
+cuBLAS、通信库等
+CUDA / Tensor Core
+GPU 硬件
+</code></pre>
+<p>就像 libc 扩展指令集一样，每代 GPU 需要更新数学库与编译策略。</p>
+<h3 id="35-pd">3.5 超大模型与 PD 分离</h3>
+<p>小模型（如 1.5B、短上下文）单卡即可“一个 kernel 跑完推理”。1.6T 级参数 + 长上下文则必须多卡、多机。</p>
+<p><strong>PD 分离</strong>（Prefill / Decode 分离：把填充上下文的阶段与逐 token 解码阶段拆到不同资源）：</p>
+<ul>
+<li>Prefill：读完整 prompt，构建/填充 KV cache，算力密集；</li>
+<li>Decode：根据已有 KV 与当前 Q 生成下一 token，访存密集；</li>
+<li>API 定价区分 cache hit/miss，与 KV 是否仍热有关。</li>
+</ul>
+<p>推理集群内还有 tensor parallelism、pipeline parallelism、MoE 专家并行等——最终吐出一个 <strong>next token</strong>，再经过审计、计费、HTTP 流式响应返回给客户端。</p>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1zS5R6tEWZ&t=5250&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="Token 经历的完整路径"></iframe></div><p class="video-caption"><span class="cap-text">Token 经历的完整路径</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1zS5R6tEWZ/?t=5250" target="_blank" rel="noopener">在 B 站打开 (01:27:30)</a></span></p></div>
+
+<h3 id="36">3.6 收束：永远变化的“正确答案”</h3>
+<ul>
+<li>UNIX 时代：进程/系统调用是最先进抽象；</li>
+<li>云计算时代：分布式 CRUD 是主战场；</li>
+<li>当下：PD 分离的 LLM 推理是前沿。</li>
+</ul>
+<p>教科书上的 cache 延迟数字在真实集群里可能全不对，但<strong>分析方法</strong>（profiler、拆阶段、看瓶颈）仍然有用。Scaling law 只说明 Transformer 在长上下文上优于部分旧架构，并未证明这是最优解——从 first principle 出发做真正有生态位的工作，而不是学术裁缝。</p>
+<hr />
+<h2 id="_1">附录：概念补给</h2>
+<h3 id="_2">环境变量</h3>
+<ul>
+<li><strong>是什么</strong>：进程启动时继承的键值配置，可含 API Key 等。</li>
+<li><strong>课上为何出现</strong>：命令行调用大模型 API 的常见方式。</li>
+<li><strong>和什么像</strong>：进实验室前工牌上写好的权限，门禁自动认。</li>
+</ul>
+<h3 id="strace">strace</h3>
+<ul>
+<li><strong>是什么</strong>：跟踪进程系统调用与参数的工具。</li>
+<li><strong>课上为何出现</strong>：把“神秘的 HTTP 请求”拆成 DNS/connect/read。</li>
+<li><strong>和什么像</strong>：给程序装行车记录仪，记下它每一次进出内核。</li>
+</ul>
+<h3 id="dns">DNS</h3>
+<ul>
+<li><strong>是什么</strong>：域名到 IP 地址的解析服务。</li>
+<li><strong>课上为何出现</strong>：API 调用的第一步；大站常返回多个 IP / CDN。</li>
+<li><strong>和什么像</strong>：问路时得到的可能不止一个入口。</li>
+</ul>
+<h3 id="cdn">CDN</h3>
+<ul>
+<li><strong>是什么</strong>：内容分发网络，把服务/静态内容放到离用户更近的节点。</li>
+<li><strong>课上为何出现</strong>：解析结果可能指向代理而非源站。</li>
+<li><strong>和什么像</strong>：连锁仓配，不必每单都回总仓。</li>
+</ul>
+<h3 id="crud">CRUD</h3>
+<ul>
+<li><strong>是什么</strong>：Create/Read/Update/Delete，对数据的基本增删改查。</li>
+<li><strong>课上为何出现</strong>：数据中心上半场业务的主体。</li>
+<li><strong>和什么像</strong>：图书馆借还登记。</li>
+</ul>
+<h3 id="c10k-c10m">C10k / C10M</h3>
+<ul>
+<li><strong>是什么</strong>：单机万级 / 系统千万级并发连接的挑战代称。</li>
+<li><strong>课上为何出现</strong>：从线程模型到 epoll、事件驱动、分布式的历史动力。</li>
+<li><strong>和什么像</strong>：从“一个柜台”到“全国同时取件”的压力测试。</li>
+</ul>
+<h3 id="cap">CAP 定理</h3>
+<ul>
+<li><strong>是什么</strong>：一致性、可用性、分区容忍三者不可同时完美满足。</li>
+<li><strong>课上为何出现</strong>：解释拉黑后朋友圈仍可能对母亲可见。</li>
+<li><strong>和什么像</strong>：三人传话，电话线断了时，要么等接通要么可能听错。</li>
+</ul>
+<h3 id="partition">分区（partition）</h3>
+<ul>
+<li><strong>是什么</strong>：分布式节点间网络断开或延迟极大的状态。</li>
+<li><strong>课上为何出现</strong>：CAP 中的 P，数据中心地理部署下不可避免。</li>
+<li><strong>和什么像</strong>：两地仓库之间的公路被挖断。</li>
+</ul>
+<h3 id="idempotent">幂等（idempotent）</h3>
+<ul>
+<li><strong>是什么</strong>：同一操作执行一次和多次效果相同。</li>
+<li><strong>课上为何出现</strong>：Serverless 函数被重试时不能重复计费。</li>
+<li><strong>和什么像</strong>：按多次“电梯上行”按钮，结果仍是上行一次。</li>
+</ul>
+<h3 id="serverless-faas">Serverless / FaaS</h3>
+<ul>
+<li><strong>是什么</strong>：按事件运行函数，无需自管服务器，平台负责伸缩。</li>
+<li><strong>课上为何出现</strong>：把计算带到数据、描述计算图的现代形态。</li>
+<li><strong>和什么像</strong>：按次叫上门维修，不必自己养一支工程队。</li>
+</ul>
+<h3 id="mapreduce-gfs-bigtable">MapReduce / GFS / Bigtable</h3>
+<ul>
+<li><strong>是什么</strong>：Google 分布式存储与批处理计算的经典三件套。</li>
+<li><strong>课上为何出现</strong>：说明“文件抽象 + 把计算调度到数据旁”的路线。</li>
+<li><strong>和什么像</strong>：总仓（GFS）+ 分类货架（Bigtable）+ 分拣流水线（MapReduce）。</li>
+</ul>
+<h3 id="forward-pass-inference">forward pass / 推理（inference）</h3>
+<ul>
+<li><strong>是什么</strong>：给定权重与输入，算出模型输出的过程。</li>
+<li><strong>课上为何出现</strong>：Token 旅程中数据中心真正“算”的那一步。</li>
+<li><strong>和什么像</strong>：按固定菜谱把原料加工成成品，不再改菜谱。</li>
+</ul>
+<h3 id="tensor">张量（tensor）</h3>
+<ul>
+<li><strong>是什么</strong>：多维数组在深度学习中的统称。</li>
+<li><strong>课上为何出现</strong>：图像、batch、多层特征都需要高维结构。</li>
+<li><strong>和什么像</strong>：从单个数字到表格再到“表格的书架”。</li>
+</ul>
+<h3 id="q-k-v">Q / K / V（注意力）</h3>
+<ul>
+<li><strong>是什么</strong>：查询、键、值——用问题去书中检索再加权汇总。</li>
+<li><strong>课上为何出现</strong>：解释一层 Transformer 如何“读书再写短时记忆”。</li>
+<li><strong>和什么像</strong>：带着问题查目录，再精读相关章节做笔记。</li>
+</ul>
+<h3 id="kv-cache">KV cache</h3>
+<ul>
+<li><strong>是什么</strong>：推理时缓存历史键值对，避免重复计算注意力。</li>
+<li><strong>课上为何出现</strong>：API 缓存命中/未命中计价不同的原因。</li>
+<li><strong>和什么像</strong>：常翻的书页折角，下次不用从头找。</li>
+</ul>
+<h3 id="kernel-fusion">kernel fusion</h3>
+<ul>
+<li><strong>是什么</strong>：把多个 GPU kernel 合成更少的大 kernel，减少调度空隙。</li>
+<li><strong>课上为何出现</strong>：多 kernel 排队导致利用率掉尾的对策。</li>
+<li><strong>和什么像</strong>：把多趟快递合并成一趟大车，少跑空程。</li>
+</ul>
+<h3 id="tensor-core">Tensor Core</h3>
+<ul>
+<li><strong>是什么</strong>：GPU 中专做矩阵乘加的硬件单元。</li>
+<li><strong>课上为何出现</strong>：SIMT 之后进一步摊薄矩阵运算成本。</li>
+<li><strong>和什么像</strong>：厨房里专切配的流水线，不占用炒菜灶台。</li>
+</ul>
+<h3 id="tile">tile（分块）</h3>
+<ul>
+<li><strong>是什么</strong>：把大矩阵/图像切成适合缓存的小块再计算。</li>
+<li><strong>课上为何出现</strong>：行列访存无法同时连续时的工程解。</li>
+<li><strong>和什么像</strong>：整墙书一次搬不动，先按箱打包再上架。</li>
+</ul>
+<h3 id="pd-prefilldecode">PD 分离（Prefill/Decode）</h3>
+<ul>
+<li><strong>是什么</strong>：把推理的上下文填充阶段与逐 token 解码阶段分开部署。</li>
+<li><strong>课上为何出现</strong>：超大模型长上下文服务的主流架构之一。</li>
+<li><strong>和什么像</strong>：先集中阅卷（Prefill），再逐题盖章下发（Decode）。</li>
+</ul>
+<h3 id="scaling-law">Scaling law</h3>
+<ul>
+<li><strong>是什么</strong>：模型性能随规模/数据/算力变化的经验规律。</li>
+<li><strong>课上为何出现</strong>：说明为何选 Transformer 等架构，但未证明终极最优。</li>
+<li><strong>和什么像</strong>：体重与食量的大致关系——有趋势，不等于告诉你唯一菜谱。</li>
+</ul>
+<hr />
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1zS5R6tEWZ</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../20%20-%20CPU%E3%80%81SIMD%20%E5%92%8C%20GPU%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">CPU、SIMD 和 GPU</span></a><a class="pager-btn next" href="../22%20-%20%E8%BE%93%E5%85%A5%E8%BE%93%E5%87%BA%E8%AE%BE%E5%A4%87%E5%92%8C%E9%A9%B1%E5%8A%A8%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">输入输出设备和驱动</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

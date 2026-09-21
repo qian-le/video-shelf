@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentic AI 与我们的未来：课程总结</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 30 讲</p>
+        <h1>Agentic AI 与我们的未来：课程总结</h1>
+        <p class="book-summary">以「操作系统是一组管理硬件资源、支撑应用生态的 API」收束全课；对比 Windows 巨型应用与 UNIX 管道协作哲学，用 UNIX 命令行组合出复习提纲，再带 coding agent 走一遍学期代码，讨论 AI 时代如何复习、做研究与面对未来。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1q2jh6FEhX/" target="_blank" rel="noopener">BV1q2jh6FEhX</a> · 时长 1h24m · 标签：课程总结、操作系统、UNIX 哲学、管道、Agentic AI、复习方法、研究品位</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1q2jh6FEhX/">Bilibili · BV1q2jh6FEhX</a>（时长约 84 分钟）
+<strong>课程</strong>：南京大学《操作系统原理》（2026）第 30 讲 · Agentic AI 与我们的未来；课程总结
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语；关键思路标注 <em>(参考时间)</em>，<code>SCREENSHOT:</code> 占位对应演示时刻。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 一句话定义：操作系统是什么</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 上过本学期操作系统课，或读过前几讲书稿
+- 本章零基础可跟（作为全课收束阅读）
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>全课反复出现的定义是：</p>
+<blockquote>
+<p>从应用程序的视角看，操作系统就是<strong>一组管理硬件资源、提供应用生态支撑的 API</strong>（系统调用）。</p>
+</blockquote>
+<p>学完这门课后，这句话可以这样展开：</p>
+<ol>
+<li>你写的是程序；程序在<strong>进程</strong>里运行，拥有自己的地址空间；</li>
+<li>进程通过系统调用请求服务：创建进程、<code>mmap</code> 扩地址空间、建线程与同步、在文件系统上留下持久化痕迹、等待落盘……</li>
+<li><strong>公理</strong>：若你认为某件事对应用程序是合理的，系统里就应当有办法做到——纯计算可在进程内完成；要与外部世界交互，就必须借操作系统。</li>
+</ol>
+<div class="video-card screenshot-card"><img src="images/shot_00_01_40.png" alt="应用视角：进程 + 地址空间 + 系统调用" loading="lazy"><p class="video-caption"><span class="cap-text">应用视角：进程 + 地址空间 + 系统调用</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1q2jh6FEhX/?t=100" target="_blank" rel="noopener">在 B 站打开 (00:01:40)</a></span></p></div>
+
+<p>这套形态从单片机玩具芯片、手机、PC 到数据中心推理集群大体同构。AI 时代人们说需要「Agent 操作系统」——多半<strong>不会</strong>从裸机重写，而会像 Android/iOS 那样，站在 Linux 等成熟系统之上再封装应用运行时。</p>
+<p><strong>硬件视角</strong>同样贯穿全课：CPU 是无情的指令执行机（也可看成动态数据流分析的「编译器」）；它与操作系统共同进化——多处理器、GPU、非易失内存出现，系统机制随之增加。</p>
+<hr />
+<h2 id="2-first-principles">2. 精神内核：追问与 first principles</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:07:20)</em></p>
+<p>具体知识点会考、需要掌握；但长期会忘记的细节之上，应留下一种<strong>精神内核</strong>：</p>
+<ul>
+<li>每当想到一个问题，都可以<strong>往回追问一步</strong>：若要更好地复习操作系统，有没有办法？去问 AI、对质几轮；</li>
+<li>计算机世界<strong>没有魔法</strong>：再奇怪的行为（如 fork 后缓冲区打印出 6 还是 8）都有原因；</li>
+<li><strong>first principles</strong>：操作系统是服务应用程序的；设计取舍要从「服务谁、代价是什么」推出来。</li>
+</ul>
+<p>课上点名了几位同学「整学期没下载过 coding agent、没打开过课件代码链接」。门槛往往只是「浏览器点进去看到 raw 文件很丑」。正确的一步是：把链接丢给 agent，让它整理目录、编译运行——在那一刻你会发现事情没那么难。这门课希望你<strong>总是愿意多跨一步</strong>。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_10_50.png" alt="把课件仓库丢给 coding agent 整理并运行" loading="lazy"><p class="video-caption"><span class="cap-text">把课件仓库丢给 coding agent 整理并运行</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1q2jh6FEhX/?t=650" target="_blank" rel="noopener">在 B 站打开 (00:10:50)</a></span></p></div>
+
+<hr />
+<h2 id="3-unix-vs">3. UNIX 哲学 vs 巨型应用</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 用过一点 Linux 命令行或 Windows 应用
+- 本章对比零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:11:50)</em></p>
+<p>技术层面最值得带走的，是 <strong>UNIX philosophy</strong>（UNIX 哲学：小工具做好一件事，并通过统一接口协作）。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Windows 生态倾向</th>
+<th>UNIX 生态倾向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代表</td>
+<td>Adobe 全家桶、Office、大型 IDE</td>
+<td>命令行工具、管道、脚本</td>
+</tr>
+<tr>
+<td>形态</td>
+<td>单个巨型应用包办</td>
+<td>小程序组合完成大事</td>
+</tr>
+<tr>
+<td>新手</td>
+<td>功能都在手边，上手平滑</td>
+<td>概念多，一开始有恐惧感</td>
+</tr>
+<tr>
+<td>熟手</td>
+<td>深度仍可能被工具边界限制</td>
+<td>组合空间大，可管道进 AI</td>
+</tr>
+</tbody>
+</table>
+<p>操作系统不只是 API，还有<strong>生态设计哲学</strong>。UNIX 的关键机制是<strong>管道</strong>（pipe，把前一进程 stdout 接到后一进程 stdin）：工具进入系统后成为所有其他工具的一部分。</p>
+<p>课上现场用命令行从课件仓库抽出本学期全部 code demo：</p>
+<pre><code class="language-bash"># 示意：找到课件文件 → 排序 → 抽出 os demo 行 → 去重 → 进剪贴板
+find ... | sort -V | grep ... | ... | pbcopy
+</code></pre>
+<p>今天的标准答案也可以是：直接让 coding agent 收集并去重所有 demo。两条路都成立——前者让你看见力量来自<strong>可组合的机制</strong>。</p>
+<pre><code class="language-mermaid">flowchart LR
+    A[&quot;find/glob&quot;] --&gt; B[&quot;sort&quot;]
+    B --&gt; C[&quot;grep/筛选&quot;]
+    C --&gt; D[&quot;去重/格式化&quot;]
+    D --&gt; E[&quot;剪贴板或文件&quot;]
+    E --&gt; F[&quot;可选：交给 LLM 总结&quot;]
+</code></pre>
+<p>从用户角度，未来或许「所有代码都会消失」，只需表达意图；但计算机专业学生仍须清楚：<strong>力量来自底层可组合的系统机制</strong>。</p>
+<hr />
+<h2 id="4">4. 怎样复习与对待考试</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 即将面对期末或任何闭卷/开卷考试
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:29:40 前后）</em></p>
+<h3 id="_1">不要只丢一句「猜考题」</h3>
+<p>把整学期讲义丢给 AI 问「老师会考什么」并非最高效方式。更接近高考复习的做法是：</p>
+<ol>
+<li><strong>划定范围</strong>（某一讲、某一概念）；</li>
+<li><strong>穷尽角度</strong>生成练习题（exhaustiveness）；</li>
+<li>做题验收，而不是反过来。</li>
+</ol>
+<p>有了 AI，几乎可以对每个 lecture、每个知识点生成多套模拟题，概念题覆盖率可以很高；开放题与「品味题」仍考你的理解。宿舍同学分工出题再互测，也是可行的社会实验。</p>
+<h3 id="_2">考试预期（课上态度）</h3>
+<ul>
+<li>会考基本概念与代码理解，不考犄角旮旯；</li>
+<li>记不住细节时，可沿 first principles 推出合理答案，有理有据会给分；</li>
+<li><strong>并发编程</strong>几乎年年有：条件变量「万能同步方法」是稳妥送分；也可写更聪明的同步，但课上会化身「人肉模型检查器」找交错错误；</li>
+<li>文件系统侧常见 <strong>crash consistency</strong>、fork 与文件描述符、地址空间等问题。</li>
+</ul>
+<p>AI 出的示例题（风格仅供体会）：fork 后缓冲区输出 6 还是 8；父子进程写同一文件 offset；UNIX 为何让 fork 继承文件描述符；线程安全链表的资源泄漏等。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_22_30.png" alt="AI 生成的模拟题与课堂点评" loading="lazy"><p class="video-caption"><span class="cap-text">AI 生成的模拟题与课堂点评</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1q2jh6FEhX/?t=1350" target="_blank" rel="noopener">在 B 站打开 (00:22:30)</a></span></p></div>
+
+<hr />
+<h2 id="5-walkthrough">5. 学期知识 Walkthrough</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 建议对照本学期课件/代码阅读
+- 本章零基础可跟（当作目录导读）
+
+</div>
+
+<p><em>(参考时间: 00:33:40)</em></p>
+<p>课上以 code demo 为线索快速回放全学期（完整逻辑仍在 slides）：</p>
+<h3 id="_3">起点：从逻辑门到程序</h3>
+<ul>
+<li>逻辑电路模拟器：用<strong>管道</strong>把程序输出接到另一程序输入——全课动机的起点；</li>
+<li>RISC-V 模拟器：寄存器 + CSR + memory 构成最小 CPU 状态；</li>
+<li>汉诺塔与 <strong>Simple C</strong>：把递归/栈帧打开，明确每条语句如何改变状态机；理解编译优化在「顺序等价」边界内改写代码。</li>
+</ul>
+<h3 id="_4">系统调用：不可穿过的边界</h3>
+<ul>
+<li><code>syscall</code> 像麻醉：陷入内核时进程对外部世界失去感知；</li>
+<li>控制流进入操作系统后，内存映射等都可能变化；</li>
+<li><strong>系统调用是编译优化不可穿过的边界</strong>。</li>
+</ul>
+<h3 id="virtualization">Virtualization</h3>
+<ul>
+<li>进程树：从 init 经 fork/execve/exit 展开；</li>
+<li>地址空间：mmap、malloc 实现、甚至入侵别的进程；</li>
+<li>Everything is a file：<code>/proc</code>、<code>sysfs</code>、文件描述符与 handle；</li>
+<li>管道、终端（tty）、可执行文件、动态链接与加载；</li>
+<li>文件系统 API 与实现、崩溃一致性（见第 25–26 讲）。</li>
+</ul>
+<h3 id="concurrency">Concurrency</h3>
+<ul>
+<li>多处理器、互斥、条件变量、信号量；</li>
+<li>并发 bug 与应对；并行算法与数据结构；</li>
+<li>协程/Goroutine/异步；GPU 与 SIMD。</li>
+</ul>
+<h3 id="persistence">Persistence 与外设</h3>
+<ul>
+<li>输入输出与驱动；存储设备；</li>
+<li>一个 Token 的旅程等综合案例。</li>
+</ul>
+<h3 id="_5">补充与展望</h3>
+<ul>
+<li>系统安全、虚拟机与容器；</li>
+<li>Agentic AI：在经典系统之上组合出新的应用形态。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_00_35_00.png" alt="课程地图：逻辑门 → 程序 → 系统调用 → 虚拟化/并发/持久化" loading="lazy"><p class="video-caption"><span class="cap-text">课程地图：逻辑门 → 程序 → 系统调用 → 虚拟化/并发/持久化</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1q2jh6FEhX/?t=2100" target="_blank" rel="noopener">在 B 站打开 (00:35:00)</a></span></p></div>
+
+<hr />
+<h2 id="6-agentic-ai">6. Agentic AI 与我们的未来</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 用过 ChatGPT / Claude / coding agent 任一即可
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:50:00 之后的讨论，结合课程主线）</em></p>
+<h3 id="_6">你仍然需要系统课的原因</h3>
+<ul>
+<li>用户界面可以极简，但<strong>专业判断</strong>建立在你知道系统能做什么之上；</li>
+<li>文件系统监控、崩溃一致性、namespace、访问控制——这些「以前觉得没用」的知识，会在你做 Agent 沙箱、可靠存储、安全隔离时突然有用；</li>
+<li>AI 替你写代码，<strong>不能替你定义规格、验收与止损</strong>。</li>
+</ul>
+<h3 id="_7">做研究的品味</h3>
+<p>课上借 Disco/VMware 与容器编排再次强调：</p>
+<ul>
+<li>好工作往往来自「把 1970 年代该做而未做成的事，用今天的条件做出来」；</li>
+<li>警惕 benchmark crime：隐藏不利数据、只报 state of the art，会污染人类与模型共同的语料；</li>
+<li>用 LLM 扩大实验规模有价值，但更应去做<strong>没人做过</strong>的事；</li>
+<li>品味不会自动消失：见过好的工作，才可能做得更好。</li>
+</ul>
+<h3 id="agent">与 Agent 共处的日常建议</h3>
+<ol>
+<li><strong>敢想</strong>：把重任务交给 agent，失败再改 harness / 拆任务；</li>
+<li><strong>先规格后实现</strong>：哪怕原型很慢（参见第 25 讲）；</li>
+<li><strong>管道思维</strong>：中间结果可检查、可替换，终点可以是人也可以是模型；</li>
+<li><strong>安全边界</strong>：最小权限、沙箱、可回滚（参见第 28–29 讲）；</li>
+<li><strong>持续跨步</strong>：下载代码、跑起来、改一点、再自动化。</li>
+</ol>
+<p>分数与保研很重要，但不是唯一评价。若某天分数不再束缚你，你仍应知道想创造什么。</p>
+<hr />
+<h2 id="7">7. 结语</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 课程结束语）</em></p>
+<p>操作系统课教的是：<strong>计算机系统里合理的事都有办法做到</strong>；办法往往写在 API 与机制里；把机制组合起来，可以做出监控、快照、容器、沙箱，乃至驱动世界的基础设施。</p>
+<p>AI 改变了实现的成本曲线，但没有取消「看见机制、定义规格、验证正确性」的人的责任。祝你在更大的系统里，既会用魔法，也知道魔法的开关在哪里。</p>
+<p>期末前课程会再安排答疑；具体问题可问助教或老师。</p>
+<hr />
+<h2 id="_8">附录：概念补给</h2>
+<h3 id="_9">应用视角的操作系统</h3>
+<ul>
+<li><strong>是什么</strong>：一组管理资源、支撑应用生态的系统调用 API。</li>
+<li><strong>课上为何出现</strong>：全课总纲，复习的顶层提纲。</li>
+<li><strong>和什么像</strong>：餐厅后厨对外的点单窗口：你只通过菜单/窗口交互。</li>
+</ul>
+<h3 id="_10">硬件视角的操作系统</h3>
+<ul>
+<li><strong>是什么</strong>：内核与 CPU/设备共同演化出的性能与隔离机制。</li>
+<li><strong>课上为何出现</strong>：解释多处理器、GPU 等如何倒逼系统设计。</li>
+<li><strong>和什么像</strong>：店里的厨房设备升级，菜单与流程也跟着变。</li>
+</ul>
+<h3 id="everything-is-a-file">Everything is a file</h3>
+<ul>
+<li><strong>是什么</strong>：UNIX 把进程、设备等对象尽量暴露成文件与文件描述符。</li>
+<li><strong>课上为何出现</strong>：统一访问模型是生态可组合的前提。</li>
+<li><strong>和什么像</strong>：园区里所有服务都通过统一窗口办理。</li>
+</ul>
+<h3 id="_11">系统调用边界</h3>
+<ul>
+<li><strong>是什么</strong>：用户态陷入内核的接口；优化与安全策略的分界。</li>
+<li><strong>课上为何出现</strong>：理解编译器能改什么、不能改什么。</li>
+<li><strong>常见误解</strong>：不是「函数调用慢一点」，而是<strong>信任级别切换</strong>。</li>
+</ul>
+<h3 id="unix-philosophy">UNIX philosophy</h3>
+<ul>
+<li><strong>是什么</strong>：小工具 + 文本流 + 管道协作。</li>
+<li><strong>课上为何出现</strong>：技术上最希望你带走的「方法论」。</li>
+<li><strong>和什么像</strong>：乐高标准件 vs 一体成型手办。</li>
+</ul>
+<h3 id="pipe">管道（pipe）</h3>
+<ul>
+<li><strong>是什么</strong>：把前一进程输出接到后一进程输入的机制。</li>
+<li><strong>课上为何出现</strong>：UNIX 哲学的机制载体；复习 demo 的骨架。</li>
+<li><strong>和什么像</strong>：流水线：上工位半成品直接进下工位。</li>
+</ul>
+<h3 id="first-principles">First principles</h3>
+<ul>
+<li><strong>是什么</strong>：从最少、最可靠的前提出发推理，而不是背口诀。</li>
+<li><strong>课上为何出现</strong>：考试与工程判断的共同方法。</li>
+<li><strong>和什么像</strong>：从「资源有限、服务应用」推出设计，而不是「老师说的」。</li>
+</ul>
+<h3 id="coding-agent">Coding agent</h3>
+<ul>
+<li><strong>是什么</strong>：能读上下文、调工具、多轮改代码的 AI 程序。</li>
+<li><strong>课上为何出现</strong>：当代学习与作业的现实基础设施。</li>
+<li><strong>常见误解</strong>：不是聊天窗；可以给仓库级任务，但要会验收。</li>
+</ul>
+<h3 id="agentic-os">Agentic OS（讨论中的概念）</h3>
+<ul>
+<li><strong>是什么</strong>：为 Agent 运行、工具调用、沙箱与记忆设计的系统层。</li>
+<li><strong>课上为何出现</strong>：课程尾声的未来问题；尚未有唯一标准答案。</li>
+<li><strong>和什么像</strong>：移动互联网之于 Linux：在成熟内核上再堆应用框架。</li>
+</ul>
+<h3 id="benchmark-crime">Benchmark crime / 报告品位</h3>
+<ul>
+<li><strong>是什么</strong>：选择性展示实验、隐藏不利结果的研究不端或风气。</li>
+<li><strong>课上为何出现</strong>：提醒读书与做科研时的判断力。</li>
+<li><strong>和什么像</strong>：只展示最好一次考试成绩的「状元笔记」。</li>
+</ul>
+<h3 id="the-bitter-lesson">The Bitter Lesson（对照讨论）</h3>
+<ul>
+<li><strong>是什么</strong>：可扩展的通用方法长期胜过依赖人类特征的技巧。</li>
+<li><strong>课上为何出现</strong>：对照虚拟化/容器/Agent 里「通用机制」的力量。</li>
+<li><strong>常见误解</strong>：不是「不要领域知识」，而是别只堆不可扩展的特例。</li>
+</ul>
+<h3 id="_12">声明式系统（容器编排对照）</h3>
+<ul>
+<li><strong>是什么</strong>：描述期望状态，由系统自动收敛到实际状态。</li>
+<li><strong>课上为何出现</strong>：云原生管理海量容器的主流模式。</li>
+<li><strong>和什么像</strong>：恒温器：你设 26℃，不必自己反复开关空调。</li>
+</ul>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../29%20-%20%E8%99%9A%E6%8B%9F%E6%9C%BA%E5%92%8C%E5%AE%B9%E5%99%A8%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">虚拟机和容器</span></a><span class="pager-btn next disabled"><span class="pager-label">下一讲 →</span><span class="pager-title">已是最后一讲</span></span></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>并发控制：信号量</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 16 讲</p>
+        <h1>并发控制：信号量</h1>
+        <p class="book-summary">从计算图上「跨线程解锁」的未定义行为出发，把互斥锁推广为带计数的信号量（停车场/游泳馆许可模型与 P/V）；说明 count=1 时信号量即互斥，展示用信号量实现 join 与 DAG，并给出生产者消费者 empty/full 双信号量的对称解法。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1yQogB2Esf/" target="_blank" rel="noopener">BV1yQogB2Esf</a> · 时长 1h25m · 标签：信号量、P/V、Dijkstra、生产者消费者、join、计算图、同步</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1yQogB2Esf/">Bilibili · BV1yQogB2Esf</a>（时长约 86 分钟）
+<strong>课程</strong>：南京大学《操作系统原理》（2026）第 16 讲
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图占位对应视频位置。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 从条件变量到「钥匙与桌子」</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 熟练条件变量万能模板
+- 知道 join、计算图依赖
+- 理解 lock 的 acquire/release 与可见性
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>条件变量模板：持锁、while 条件不满足则 wait、条件可能成立则 broadcast。上讲计算图可用每节点计数实现。</p>
+<p>有同学想到更「物理」的做法：把每条依赖边对应一把锁，main 先把锁都 lock（没收钥匙），前驱完成后再在对应锁上 unlock，后继 acquire 到锁即 happens-before。</p>
+<p>逻辑可行，但 POSIX 要求 <strong>acquire/release 同一线程配对</strong>；跨线程 unlock 属未定义行为（库内 fast-path 优化依赖同线程假设）。</p>
+<p>于是需要一种<strong>允许跨线程传递许可</strong>的原语——信号量。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_08_00.png" alt="钥匙在桌上：跨线程交接" loading="lazy"><p class="video-caption"><span class="cap-text">钥匙在桌上：跨线程交接</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=480" target="_blank" rel="noopener">在 B 站打开 (00:08:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_03_40.png" alt="计算图：边依赖与完成事件" loading="lazy"><p class="video-caption"><span class="cap-text">计算图：边依赖与完成事件</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=220" target="_blank" rel="noopener">在 B 站打开 (00:03:40)</a></span></p></div>
+
+<p>图：可关注节点 X 等待多条入边完成。</p>
+<pre><code class="language-mermaid">flowchart LR
+  A[&quot;前驱节点完成&quot;] --&gt; V[&quot;V: 往桌上放钥匙&quot;]
+  V --&gt; P[&quot;后继节点 P: 拿走钥匙&quot;]
+  P --&gt; B[&quot;后继开始计算&quot;]
+</code></pre>
+<hr />
+<h2 id="2">2. 发明信号量</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 读过本册第 1 章
+- 有停车场/游泳馆排队的生活经验即可
+
+</div>
+
+<p><em>(参考时间: 00:14:00)</em></p>
+<p>把互斥锁的「一把钥匙」推广为「<strong>若干份许可</strong>」：</p>
+<ul>
+<li><strong>P</strong>（acquire / down / wait）：许可数 &gt;0 则取走一份并继续，否则睡眠等待；</li>
+<li><strong>V</strong>（release / up / signal）：放回一份许可，并可能唤醒等待者。</li>
+</ul>
+<p>生活对应：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>许可</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>停车场</td>
+<td>余位（闸门处计数）</td>
+</tr>
+<tr>
+<td>游泳馆</td>
+<td>手环数量</td>
+</tr>
+<tr>
+<td>餐厅</td>
+<td>空桌数</td>
+</tr>
+</tbody>
+</table>
+<p>Dijkstra 提出的 <strong>信号量</strong>（semaphore，带计数的同步原语，用 P/V 操作增减许可）正是这一模型。P 是 try-and-decrease，V 是 increase/post。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_16_00.png" alt="停车场余位 = 信号量计数" loading="lazy"><p class="video-caption"><span class="cap-text">停车场余位 = 信号量计数</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=960" target="_blank" rel="noopener">在 B 站打开 (00:16:00)</a></span></p></div>
+
+<p>图：可关注「只管入口配额，不管场内如何停车」。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_14_30.png" alt="游泳馆手环 / 餐厅取号" loading="lazy"><p class="video-caption"><span class="cap-text">游泳馆手环 / 餐厅取号</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=870" target="_blank" rel="noopener">在 B 站打开 (00:14:30)</a></span></p></div>
+
+<p>图：可关注许可发放与归还。</p>
+<h3 id="21">2.1 计数如何工作</h3>
+<p>初始 count=4 时，前四个 P 依次看到 4→3→2→1 并返回；第五个 P 在 count=0 时阻塞。任一线程 V 后 count 上升，等待者可被唤醒继续；全部归还后 count 回到 4。</p>
+<p>实现上仍可是条件变量 + 互斥 + count（万能模板），但 API 语义是计数许可。</p>
+<h3 id="22">2.2 信号量只管入口</h3>
+<p>P 返回仅保证「至少还有一份许可被你占用」；缓冲区里具体选哪一格，仍要数据结构内部自己加锁协调。违规 V 两次会「凭空多出车位」，破坏互斥。</p>
+<hr />
+<h2 id="3-vs">3. 信号量 vs 条件变量</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 读过本册第 2 章
+- 用过 join 与计算图
+
+</div>
+
+<p><em>(参考时间: 00:22:00)</em></p>
+<p><strong>count=1 的信号量就是互斥锁</strong>——互斥是信号量的特例，信号量是互斥的扩展。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>条件变量</th>
+<th>信号量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>心智模型</td>
+<td>写出逻辑条件 cond</td>
+<td>想清楚谁放钥匙、谁取钥匙</td>
+</tr>
+<tr>
+<td>计数资源</td>
+<td>要自己写 count+cond</td>
+<td>天生支持</td>
+</tr>
+<tr>
+<td>跨线程交接</td>
+<td>靠共享状态+broadcast</td>
+<td>V 与 P 天然跨线程</td>
+</tr>
+</tbody>
+</table>
+<h3 id="31-join">3.1 用信号量实现 join</h3>
+<p>两种等价写法：</p>
+<ol>
+<li><strong>每线程一张桌子</strong>：各自初始化 count=0；线程结束 V；main 对每个线程各 P 一次；</li>
+<li><strong>一张桌子</strong>：全局 count=0；每个线程结束都 V；main 已知线程数则 P 相应次数。</li>
+</ol>
+<pre><code class="language-c">sem_t done; // init 0
+// worker 结束时: sem_post(&amp;done);
+// main: for (i=0;i&lt;n;i++) sem_wait(&amp;done);
+</code></pre>
+<div class="video-card screenshot-card"><img src="images/shot_00_27_00.png" alt="信号量实现 join" loading="lazy"><p class="video-caption"><span class="cap-text">信号量实现 join</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=1620" target="_blank" rel="noopener">在 B 站打开 (00:27:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_23_30.png" alt="count=1 时信号量即互斥锁" loading="lazy"><p class="video-caption"><span class="cap-text">count=1 时信号量即互斥锁</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=1410" target="_blank" rel="noopener">在 B 站打开 (00:23:30)</a></span></p></div>
+
+<p>图：可关注只有一个车位的停车场。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_22_00.png" alt="条件变量实现的信号量：while count&lt;=0 wait" loading="lazy"><p class="video-caption"><span class="cap-text">条件变量实现的信号量：while count&lt;=0 wait</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=1320" target="_blank" rel="noopener">在 B 站打开 (00:22:00)</a></span></p></div>
+
+<p>图：可关注 P/V 与万能模板的对应。</p>
+<h3 id="32">3.2 计算图</h3>
+<ul>
+<li><strong>边上信号量</strong>：每条依赖一个 count=0 的桌子；后继对每个入边 P，前驱对每条出边 V；</li>
+<li><strong>节点上信号量</strong>：节点 count=0；执行前按入度 P 次，结束后对每个后继 V。</li>
+</ul>
+<p>运行顺序与条件变量版一致（0，然后 1/2/3 并行，最后 complete）。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_32_00.png" alt="DAG：节点信号量" loading="lazy"><p class="video-caption"><span class="cap-text">DAG：节点信号量</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=1920" target="_blank" rel="noopener">在 B 站打开 (00:32:00)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_29_00.png" alt="边上信号量：每条依赖一张桌子" loading="lazy"><p class="video-caption"><span class="cap-text">边上信号量：每条依赖一张桌子</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=1740" target="_blank" rel="noopener">在 B 站打开 (00:29:00)</a></span></p></div>
+
+<p>图：可关注前驱 V 出边、后继 P 入边。</p>
+<hr />
+<h2 id="4-empty-full">4. 生产者–消费者：empty 与 full</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 读过本册第 3 章
+- 知道有界缓冲区
+
+</div>
+
+<p><em>(参考时间: 00:34:00)</em></p>
+<p>两个信号量表达极为对称的模型：</p>
+<ul>
+<li><code>empty</code>：缓冲区空槽数量（初始 = capacity）；</li>
+<li><code>full</code>：已填充数量（初始 = 0）。</li>
+</ul>
+<pre><code class="language-text">Producer:                      Consumer:
+  P(empty)                       P(full)
+  /* 生产，写入 buffer */         /* 消费，读出 buffer */
+  V(full)                        V(empty)
+</code></pre>
+<p>加上保护 buffer 本身的互斥锁即可。含义：</p>
+<ul>
+<li><code>empty</code> 桌上的每个小球 = 一个空槽；</li>
+<li><code>full</code> 桌上的每个小球 = 一个可消费数据项；</li>
+<li>生产 = 从 empty 拿走许可，做完事后放到 full；</li>
+<li>消费 = 从 full 拿走许可，处理完后把空槽还给 empty。</li>
+</ul>
+<p>全局不变式：empty + full +（已拿走许可尚未完成交接的中间态）与容量相关；正确配对下缓冲不会越界。</p>
+<p>课程用打印左/右括号演示：生产者打印 <code>(</code> 对应 V(full) 一类交接，消费者打印 <code>)</code>，嵌套深度由容量约束。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_36_30.png" alt="empty/full 双桌模型" loading="lazy"><p class="video-caption"><span class="cap-text">empty/full 双桌模型</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=2190" target="_blank" rel="noopener">在 B 站打开 (00:36:30)</a></span></p></div>
+
+<p>图：可关注两桌小球此消彼长。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_40_00.png" alt="打印左右括号的 P/V 交接" loading="lazy"><p class="video-caption"><span class="cap-text">打印左右括号的 P/V 交接</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=2400" target="_blank" rel="noopener">在 B 站打开 (00:40:00)</a></span></p></div>
+
+<p>图：可关注 producer 从 empty 拿许可、consumer 还 empty。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_50_00.png" alt="信号量 vs 条件变量选用" loading="lazy"><p class="video-caption"><span class="cap-text">信号量 vs 条件变量选用</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yQogB2Esf/?t=3000" target="_blank" rel="noopener">在 B 站打开 (00:50:00)</a></span></p></div>
+
+<p>图：可关注计数资源 vs 逻辑条件两种心智模型。</p>
+<h3 id="41">4.1 何时用谁</h3>
+<ul>
+<li>问题本质是<strong>条件表达式</strong> → 条件变量更直接、可 assert；</li>
+<li>问题本质是<strong>计数资源 / 事件计数 / 任务交接</strong> → 信号量往往更短、更不容易漏条件。</li>
+</ul>
+<p>两者都建立 happens-before，都可实现几乎全部同步问题。</p>
+<hr />
+<h2 id="_1">附录：概念补给</h2>
+<h3 id="semaphore">信号量（semaphore）</h3>
+<ul>
+<li><strong>是什么</strong>：带非负计数的同步原语；P 减、V 加，P 在零时等待。</li>
+<li><strong>课上为何出现</strong>：跨线程传递许可，覆盖计数型同步。</li>
+<li><strong>和什么像</strong>：停车场余位计数器 + 闸门。</li>
+</ul>
+<h3 id="p-v">P / V 操作</h3>
+<ul>
+<li><strong>是什么</strong>：信号量上等待并减一 / 增加并可能唤醒。</li>
+<li><strong>课上为何出现</strong>：Dijkstra 命名的荷兰语词源 API。</li>
+<li><strong>常见误解</strong>：P/V 不是「生产/消费」，而是 down/up。</li>
+</ul>
+<h3 id="_2">互斥锁是信号量特例</h3>
+<ul>
+<li><strong>是什么</strong>：count 初始为 1 的信号量。</li>
+<li><strong>课上为何出现</strong>：统一两套工具的语义。</li>
+<li><strong>和什么像</strong>：只有一个车位的停车场 = 一次只能进一辆车。</li>
+</ul>
+<h3 id="empty-full">empty / full 信号量</h3>
+<ul>
+<li><strong>是什么</strong>：生产者消费者中分别表示空槽数与已填数。</li>
+<li><strong>课上为何出现</strong>：标准双信号量解法。</li>
+<li><strong>和什么像</strong>：空碗数与已盛汤碗数。</li>
+</ul>
+<h3 id="token">许可 / token / 钥匙</h3>
+<ul>
+<li><strong>是什么</strong>：信号量计数的物理直觉对象。</li>
+<li><strong>课上为何出现</strong>：避免一上来就陷入公式。</li>
+<li><strong>和什么像</strong>：演唱会手环：有环才能进场。</li>
+</ul>
+<h3 id="happens-before">happens-before（经信号量）</h3>
+<ul>
+<li><strong>是什么</strong>：V 之前的操作先于对应 P 之后的操作。</li>
+<li><strong>课上为何出现</strong>：信号量实现 join/计算图的正确性根据。</li>
+<li><strong>和什么像</strong>：交接班签字：上一班事项算在下一班开工前完成。</li>
+</ul>
+<h3 id="unlock">未定义行为（跨线程 unlock 互斥锁）</h3>
+<ul>
+<li><strong>是什么</strong>：标准/实现不保证的用法。</li>
+<li><strong>课上为何出现</strong>：说明为何需要信号量而非裸锁交接。</li>
+<li><strong>常见误解</strong>：看起来逻辑对，不代表库实现支持。</li>
+</ul>
+<h3 id="schedulerworker">scheduler–worker / 生产者消费者别名</h3>
+<ul>
+<li><strong>是什么</strong>：同一主从任务分发模型的不同称呼。</li>
+<li><strong>课上为何出现</strong>：API 与现实系统结构对应。</li>
+<li><strong>和什么像</strong>：老师发卷子，学生做题交卷。</li>
+</ul>
+<hr />
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1yQogB2Esf</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../15%20-%20%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6%EF%BC%9A%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F%E5%92%8C%E4%B8%87%E8%83%BD%E5%90%8C%E6%AD%A5%E6%96%B9%E6%B3%95%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">并发控制：条件变量和万能同步方法</span></a><a class="pager-btn next" href="../17%20-%20%E5%B9%B6%E5%8F%91%20Bugs%20%E5%92%8C%E5%BA%94%E5%AF%B9%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">并发 Bugs 和应对</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

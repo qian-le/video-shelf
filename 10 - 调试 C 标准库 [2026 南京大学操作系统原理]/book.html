@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>调试 C 标准库</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 10 讲</p>
+        <h1>调试 C 标准库</h1>
+        <p class="book-summary">从实验 OJ 与上讲「装 libc 翻车」切入，讲清 system call 与 libc 分层、-g 产生的 DWARF 调试信息与符号表，并用 GDB 实战调 CRT 启动（_start→main→exit）、printf 变参、setjmp/longjmp 与寄存器约定、gettimeofday 与 vDSO，最后讨论 malloc/free 的设计问题与 RAII/Rust 所有权。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1yu9cBCEAb/" target="_blank" rel="noopener">BV1yu9cBCEAb</a> · 时长 1h20m · 标签：调试、libc、DWARF、debug info、GDB、vDSO、malloc、ABI</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1yu9cBCEAb/">Bilibili · BV1yu9cBCEAb</a>（时长约 81 分钟）
+<strong>课程</strong>：南京大学《操作系统原理》（2026）第 10 讲
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图占位对应视频位置。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 开场：实验与上讲翻车复盘</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道实验 Online Judge 会自动测提交
+- 了解 system call（系统调用，程序请求操作系统干活的唯一入口）
+- 听说过 C 标准库 / libc
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>实验 Online Judge 已发布。若结果被 reject，不必焦虑：可以用 vibe coding（用自然语言驱动 AI 写代码的方式）让 AI 生成测试用例。Lab 的隐藏测例并非全空——可以主动猜测 OJ 如何测进程等行为，甚至让 AI「扮演老师」推断判题策略。</p>
+<p>上讲「翻车」的原因值得记录：主讲人让 AI 编译并安装 musl libc（一个强调小巧可移植的 C 标准库实现），看到 <code>make install</code> 与「成功」提示后未做严谨验证，实际系统仍走 apt 安装的工具链，调试信息完全不可用。这次改为<strong>每条命令后人工核对</strong>，才保证演示可靠。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_00_30.png" alt="开场：实验 OJ 与上讲翻车复盘" loading="lazy"><p class="video-caption"><span class="cap-text">开场：实验 OJ 与上讲翻车复盘</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=30" target="_blank" rel="noopener">在 B 站打开 (00:00:30)</a></span></p></div>
+
+<p>图：可关注「AI 说成功 ≠ 系统真的装对了」这一工程判断。</p>
+<h3 id="11-libc">1.1 为什么需要 libc</h3>
+<p>操作系统与应用之间只有一层很小的接口：system call。进程、文件、显卡等一切 OS 对象都只能通过系统调用访问。但若直接用系统调用写程序，代码会极其冗长——例如 <code>write</code> 需要文件描述符、缓冲区、长度三个参数，每次都要自己算长度。</p>
+<p><strong>libc</strong>（C 标准库，把系统调用包装成更易用的 C 接口）因此出现：</p>
+<pre><code class="language-text">应用程序
+  ↓
+libc（平台无关的抽象层：printf / fopen / malloc …）
+  ↓  （经 C 的 FFI / 内联汇编）
+system call
+  ↓
+操作系统对象（进程、文件、设备…）
+</code></pre>
+<pre><code class="language-mermaid">flowchart TB
+  App[&quot;应用程序&quot;] --&gt; Libc[&quot;libc 抽象层&quot;]
+  Libc --&gt;|&quot;FFI / 内联汇编&quot;| SC[&quot;system call&quot;]
+  SC --&gt; OS[&quot;OS 对象: 进程/文件/设备&quot;]
+</code></pre>
+<p>libc 与 C、与 UNIX 深度绑定：<code>FILE*</code> 与文件描述符紧密相关。但只要操作系统「还是给人用的」，就应提供打开文件一类能力——因此从 Linux、Windows 到树莓派 Pico 级微控制器，几乎都有语义相近的 libc 接口。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_06_30.png" alt="系统调用与 libc 分层" loading="lazy"><p class="video-caption"><span class="cap-text">系统调用与 libc 分层</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=390" target="_blank" rel="noopener">在 B 站打开 (00:06:30)</a></span></p></div>
+
+<div class="video-card screenshot-card"><img src="images/shot_00_03_50.png" alt="从 _start 接管程序：free standing 编译" loading="lazy"><p class="video-caption"><span class="cap-text">从 _start 接管程序：free standing 编译</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=230" target="_blank" rel="noopener">在 B 站打开 (00:03:50)</a></span></p></div>
+
+<p>图：可关注自定义 <code>_start</code> 后从零接管入口。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_00_10.png" alt="实验 Online Judge 与 vibe coding" loading="lazy"><p class="video-caption"><span class="cap-text">实验 Online Judge 与 vibe coding</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=10" target="_blank" rel="noopener">在 B 站打开 (00:00:10)</a></span></p></div>
+
+<p>图：可关注 OJ 与让 AI 猜测测例的策略。</p>
+<hr />
+<h2 id="2-g">2. 调试信息：<code>-g</code> 到底做了什么</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 会用 `gcc -g` 编译并用 GDB 下断点
+- 大致知道 ELF 是 Linux 可执行/目标文件格式
+- 听说过「优化过的代码不好调」
+
+</div>
+
+<p><em>(参考时间: 00:08:00)</em></p>
+<p>上讲翻车的直接症状是：GDB 提示「没有可用的源代码」。根因是没有<strong>调试信息</strong>（debug info，把二进制地址映射回源码位置与变量含义的元数据）。</p>
+<p>对用户程序，<code>gcc -g</code> 即可；要调进 musl libc，必须用带调试信息的方式编译库本身（如 <code>-Og -ggdb</code>，并确保 CFLAGS 真正生效）。</p>
+<h3 id="21-debug_">2.1 二进制里的 <code>.debug_*</code> 段</h3>
+<p><code>-g</code> 会在 ELF 中塞入额外 section（段，二进制里按用途划分的数据块），例如：</p>
+<ul>
+<li><code>.debug_info</code>：类型、变量、函数等核心信息</li>
+<li><code>.debug_line</code>：地址到源码行号的映射</li>
+<li><code>.debug_frame</code>：栈展开（调用帧）信息</li>
+<li><code>.debug_str</code> / <code>.debug_line_str</code>：调试用字符串表</li>
+<li><code>.debug_ranges</code>：地址范围到编译单元的映射</li>
+</ul>
+<p>这些信息对应的标准是 <strong>DWARF</strong>（调试信息的主流格式；名称取自「矮人」，与 ELF「精灵」形成起名梗）。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_11_00.png" alt="readelf 查看调试相关 section" loading="lazy"><p class="video-caption"><span class="cap-text">readelf 查看调试相关 section</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=660" target="_blank" rel="noopener">在 B 站打开 (00:11:00)</a></span></p></div>
+
+<p>图：可关注 <code>.debug_*</code> 段名与符号表中 <code>crt1.o</code>、<code>__libc_start_main</code> 等字符串。</p>
+<h3 id="22">2.2 符号表也能粗定位</h3>
+<p>即使没有完整 debug info，ELF 仍有<strong>符号表</strong>（符号表，记录函数/变量名与其地址的表）。<code>nm a.out</code> 可看到 <code>main</code> 在 <code>.text</code> 中的地址；PC 走到该地址时即可知道进入了 <code>main</code>。</p>
+<ul>
+<li>符号表：能回答「现在在哪个函数」</li>
+<li>完整 debug info：还能回答「在函数第几行」「变量在哪、值是什么」</li>
+</ul>
+<p><code>addr2line</code> 可把 PC 映射回源码行。优化（内联、重排）会让「一条 C 语句 ↔ 一段汇编」的对应变难；不优化时对应关系更直观。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_17_00.png" alt="符号表与 addr2line 演示" loading="lazy"><p class="video-caption"><span class="cap-text">符号表与 addr2line 演示</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=1020" target="_blank" rel="noopener">在 B 站打开 (00:17:00)</a></span></p></div>
+
+<h3 id="23-dwarf">2.3 DWARF 为何像一门小语言</h3>
+<p>变量可能在寄存器、内存，或已被优化掉；位域还要从 32 位整数里抠出某一位。因此 DWARF 内含一套近似图灵完备的 bytecode（字节码指令集），用于描述「在某 PC 范围内，如何算出变量的值」。</p>
+<p>同一套机制也用于 C++ 异常的栈展开（stack unwinding，抛出异常时沿调用栈回退到上一层处理点）。</p>
+<h3 id="24-debug-info">2.4 其他语言的 debug info</h3>
+<p>JavaScript/TypeScript 会经多层转译（transpiler）到可执行 JS，浏览器沙盒又没有项目目录，因此 debug info 常把<strong>源码一并嵌入</strong>（如 <code>*.js.map</code>）。这与 C 中「debug info 只存映射、源码在磁盘路径」的设计不同，但目标一致：从底层状态重构上层含义。</p>
+<hr />
+<h2 id="3-debug-info">3. 有了 debug info 能做什么</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 读过本册第 2 章，知道 `-g` 与 DWARF
+- 了解 GDB 的 break / step / backtrace
+
+</div>
+
+<p><em>(参考时间: 00:27:00)</em></p>
+<p>调试信息让「汇编意义上的状态」可被重构回 C 源码模型：</p>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>addr2line</td>
+<td>PC → 源码行</td>
+</tr>
+<tr>
+<td>backtrace</td>
+<td>恢复完整函数调用栈</td>
+</tr>
+<tr>
+<td>采样性能分析</td>
+<td>定时暂停并恢复调用栈，得到火焰图（flame graph，横轴时间、纵向堆叠调用栈）</td>
+</tr>
+<tr>
+<td>崩溃快照调试</td>
+<td>对 core/快照恢复状态，甚至改 PC 继续跑</td>
+</tr>
+<tr>
+<td>Sanitizer 报告</td>
+<td>AddressSanitizer 等工具用 debug info 指出 use-after-free 等错误位置</td>
+</tr>
+</tbody>
+</table>
+<p><code>strace</code> 看到的是系统调用层；debug info + 采样则进入<strong>用户态代码结构</strong>。musl 静态程序系统调用极少，glibc 静态链接也会多出 <code>readlinkat</code>、<code>getrandom</code> 等调用。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_32_00.png" alt="火焰图与采样性能分析示意" loading="lazy"><p class="video-caption"><span class="cap-text">火焰图与采样性能分析示意</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=1920" target="_blank" rel="noopener">在 B 站打开 (00:32:00)</a></span></p></div>
+
+<p><strong>Use-after-free 示例</strong>：<code>free(p)</code> 后再使用 <code>p</code>，地址空间里往往仍可读，程序未必崩溃，但是未定义行为（undefined behavior，标准不保证结果的程序状态）与安全隐患。开启 <code>fsanitize=address</code> 后会明确报 <code>heap-use-after-free</code>。</p>
+<hr />
+<h2 id="4-_start-main-exit">4. 实战：从 <code>_start</code> 调到 <code>main</code> 与 <code>exit</code></h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 `main` 是 C 程序入口（更准确说，进程入口是 `_start`）
+- 记得 `argc/argv/envp` 大致含义
+- 会用 GDB `starti` 从第一条指令调试
+
+</div>
+
+<p><em>(参考时间: 00:35:00)</em></p>
+<h3 id="41-crt-argcargvenvp">4.1 CRT 启动：进程栈上的 argc/argv/envp</h3>
+<p>对几乎为空的 <code>dummy.c</code>（<code>return 1</code>）用 musl 编译后 <code>strace</code> 可见：<code>execve</code> 之后只做很少事再 <code>exit</code>。用 GDB 从 <code>_start</code> 单步：</p>
+<ol>
+<li><code>_start</code> 是一段汇编，从进程初始栈指针 <code>SP</code> 取参数；</li>
+<li>从指针可逆向出 <strong>initial process stack</strong>（进程初始栈，内核在 execve 时布置的 argc/argv/envp 与辅助向量）；</li>
+<li><code>argc</code> 在 <code>p[0]</code>，<code>argv</code> 从 <code>p+1</code> 起，<code>envp</code> 在 <code>argv + argc + 1</code> 之后；</li>
+<li>再往后是 <strong>auxv</strong>（辅助向量，内核传给运行时的元数据：VDSO 地址、随机数种子等）。</li>
+</ol>
+<div class="video-card screenshot-card"><img src="images/shot_00_36_30.png" alt="CRT：从 _start 到 main 的初始栈" loading="lazy"><p class="video-caption"><span class="cap-text">CRT：从 _start 到 main 的初始栈</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=2190" target="_blank" rel="noopener">在 B 站打开 (00:36:30)</a></span></p></div>
+
+<p>图：可关注 <code>p[0]=argc</code>、<code>argv</code>、<code>envp</code> 与环境变量内容。</p>
+<h3 id="42-__libc_start_main-main">4.2 <code>__libc_start_main</code> 与 <code>main</code></h3>
+<p><code>init_libc</code> 会处理环境变量与辅助向量，再通过函数指针进入 <code>__libc_start_main</code> 一类逻辑，最终按调用约定（calling convention，函数调用时参数/返回值放哪些寄存器、谁保存什么的约定）把 <code>argc/argv/envp</code> 放入正确寄存器并跳转到 <code>main</code>。</p>
+<p><code>main</code> 返回后走 <code>exit</code> → <code>stdlib</code> 清理 → 系统调用 <code>_exit</code>，进程结束。</p>
+<h3 id="43-musl-printf">4.3 进 musl 调 <code>printf</code></h3>
+<p>在带 debug info 的 musl 上对 <code>printf</code> 下断点，可看到：</p>
+<ul>
+<li><code>printf</code> 很短，取出变参后调用 <code>vfprintf</code>；</li>
+<li><code>stdout</code> 是封装了文件描述符、缓冲区、flag 的结构体（<code>fd=1</code>，缓冲区大小常见 1024）；</li>
+<li>最终经 <code>write</code> 一类系统调用输出。</li>
+</ul>
+<p><code>strace</code> 可验证：一次成功的格式化打印往往只触发很少的 write 类调用。</p>
+<hr />
+<h2 id="5">5. 变参函数与调用约定</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 C 里 `void f(int x, ...)` 可声明变参
+- 了解寄存器传参 vs 栈传参的大致差别
+
+</div>
+
+<p><em>(参考时间: 00:44:00)</em></p>
+<p><code>printf</code> 依赖 C 的<strong>变参数</strong>（varargs，参数个数不定的函数）。在旧式 x86 32 位 cdecl 下，参数几乎都压栈，变参实现较直观；在 x86-64、ARM64、RISC-V 等寄存器多的体系结构上，前几个参数走寄存器，库代码必须先把寄存器存回栈上，才能按数组方式遍历变参。</p>
+<p>ARM64 上可观察到：<code>mov</code> 把参数写入 <code>x0/x1/...</code>；libc 内再把 <code>x1/x2</code> 等 store 到 <code>SP+偏移</code>，在栈上形成可遍历的参数区。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_47_30.png" alt="printf 与变参数在寄存器/栈上的布局" loading="lazy"><p class="video-caption"><span class="cap-text">printf 与变参数在寄存器/栈上的布局</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=2850" target="_blank" rel="noopener">在 B 站打开 (00:47:30)</a></span></p></div>
+
+<hr />
+<h2 id="6-setjmplongjmp-callee-saved">6. setjmp/longjmp 与 callee-saved 寄存器</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 听过 `setjmp` / `longjmp`：前者做「存档点」，后者跳回存档
+- 知道函数调用会用到许多寄存器
+
+</div>
+
+<p><em>(参考时间: 00:48:30)</em></p>
+<p><strong>setjmp/longjmp</strong>（在当前位置保存执行环境，之后可从任意深层调用跳回该环境）通过保存/恢复一组寄存器实现。</p>
+<p>实验方法：先把一批通用寄存器「刷成红色」→ <code>setjmp</code> → 再刷成蓝色 → <code>longjmp</code> → 观察哪些寄存器回到红色。</p>
+<p>在 ARM64 上典型结果是：<code>setjmp</code> 保存、<code>longjmp</code> 恢复约 <code>X19–X28</code>；<code>X0–X18</code> 不会恢复——因为它们属于 <strong>call-clobbered</strong>（被调用方可随意使用的寄存器，调用方不得假设其值在调用后仍保留）。与之相对的是 <strong>callee-saved</strong>（被调用方必须保存/恢复的寄存器）。主讲人更喜欢用 call-clobbered 描述：一旦进入某个函数调用，<code>X0–X18</code> 就「归编译器随便用」。</p>
+<p>这正是 ABI（应用二进制接口，跨编译单元/库时调用与数据布局的约定）的一部分；通过小实验即可逆向观察到部分约定。</p>
+<hr />
+<h2 id="7-gettimeofday-vdso">7. gettimeofday 与 vDSO：不进内核的「系统调用」</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道 `gettimeofday` / `clock_gettime` 常用来取时间
+- 听说过系统调用一般要陷入内核
+
+</div>
+
+<p><em>(参考时间: 00:56:00)</em></p>
+<p>用 <code>gettimeofday</code> 测 <code>usleep(200ms)</code> 间隔，结果合理；但 <code>strace</code> 里<strong>看不到</strong> <code>gettimeofday</code>，只有 <code>clock_nanosleep</code>。时间却打印正确——这并不矛盾。</p>
+<p>原因：现代 libc 对时间一类高频、可近似读取的操作走 <strong>vDSO</strong>（虚拟动态共享对象，内核映射进每个进程地址空间的一小段可执行代码）。进程直接 <code>call</code> 过去，不陷入内核。</p>
+<p>加载/绑定过程（musl 思路）：</p>
+<ol>
+<li>从 auxv 中读 <code>AT_SYSINFO_EHDR</code> 得到 vDSO 的 ELF 头；</li>
+<li>像微型加载器一样解析 vDSO 的 program header 与符号表；</li>
+<li>找到 <code>__kernel_clock_gettime</code> 等符号并跳转执行。</li>
+</ol>
+<p>vDSO 读时钟时常用「读 clock tick → 再读一次 → 相等则认为未跨 tick」的顺序一致性技巧；调试器单步极慢时两次 tick 几乎必变，循环看起来像死循环——正常运行则几乎总是立即成功。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_03_00.png" alt="gettimeofday 经 vDSO 完成" loading="lazy"><p class="video-caption"><span class="cap-text">gettimeofday 经 vDSO 完成</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=3780" target="_blank" rel="noopener">在 B 站打开 (01:03:00)</a></span></p></div>
+
+<p>图：可关注 auxv、vDSO 映射与符号绑定路径。</p>
+<hr />
+<h2 id="8-mallocfree">8. malloc/free：机制、心智负担与安全</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 用过 `malloc` / `free` 或语言里的 new/delete
+- 知道 `mmap`/`brk` 大致是向 OS 要内存的途径
+
+</div>
+
+<p><em>(参考时间: 01:11:00)</em></p>
+<p><code>malloc</code> 可分配很小或很大的内存，而 OS 粒度更粗（页通常是 4KB）：<code>mmap</code> 拿到的是页的整数倍；<code>brk</code> 可调进程堆顶。libc 在用户态维护空闲块池，在系统调用拿到的大块上再切分小块。</p>
+<p><strong>API 设计问题</strong>：<code>malloc/free</code> 与 <code>write</code> 这类「只写字节、无额外配对义务」的接口不同，它要求：</p>
+<ul>
+<li>所有可能路径上都有配对的 <code>free</code>（否则泄漏）；</li>
+<li><code>free</code> 之后指针立即非法（否则 use-after-free）。</li>
+</ul>
+<p>Tony Hoare 自嘲空指针是 billion-dollar mistake；<code>malloc/free</code> 给程序员的心智负担同样巨大。工程上的应对包括：</p>
+<ul>
+<li>free 后置 <code>NULL</code>（防误用，但错误路径可能变崩溃）；</li>
+<li>C++ 的 RAII（资源获取即初始化，构造时获取、析构时释放）；</li>
+<li>Rust 的 ownership/borrow（所有权与借用，编译期阻止悬垂指针）。</li>
+</ul>
+<p>作业视角：大块分配直接问 OS；小块是数据结构题（维护不相交空闲区间）。算法课的平衡树解法与真实 allocator 并不完全相同，可参考 1990 年代 malloc 综述。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_14_00.png" alt="malloc/free 与 OS 粒度" loading="lazy"><p class="video-caption"><span class="cap-text">malloc/free 与 OS 粒度</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1yu9cBCEAb/?t=4440" target="_blank" rel="noopener">在 B 站打开 (01:14:00)</a></span></p></div>
+
+<hr />
+<h2 id="_1">附录：概念补给</h2>
+<h3 id="system-call">system call（系统调用）</h3>
+<ul>
+<li><strong>是什么</strong>：用户程序请求内核服务的受控入口。</li>
+<li><strong>课上为何出现</strong>：libc 之下的唯一真实接口；调试时常对照 strace。</li>
+<li><strong>和什么像</strong>：柜台办事：你不能直接进库房，只能按窗口流程申请。</li>
+</ul>
+<h3 id="libcc">libc（C 标准库）</h3>
+<ul>
+<li><strong>是什么</strong>：把系统调用包装成可移植 C 接口的一层库。</li>
+<li><strong>课上为何出现</strong>：本讲调试对象；平台无关抽象的关键。</li>
+<li><strong>和什么像</strong>：万能插座转换头——底下接口不同，上面电器用法一致。</li>
+</ul>
+<h3 id="debug-info">debug info（调试信息）</h3>
+<ul>
+<li><strong>是什么</strong>：嵌在目标文件里、把地址映射回源码与变量的元数据。</li>
+<li><strong>课上为何出现</strong>：上讲翻车根因；<code>-g</code> 的真实产物。</li>
+<li><strong>和什么像</strong>：地图图例：没有它只有坐标，有它才能认路。</li>
+</ul>
+<h3 id="dwarf">DWARF</h3>
+<ul>
+<li><strong>是什么</strong>：调试信息的事实标准格式，内含描述变量位置的小型指令集。</li>
+<li><strong>课上为何出现</strong>：解释 <code>.debug_*</code> 段与「变量被优化掉」。</li>
+<li><strong>和什么像</strong>：快递面单规范：承运商、分拣机都按同一套字段读。</li>
+</ul>
+<h3 id="elf">ELF</h3>
+<ul>
+<li><strong>是什么</strong>：Linux 上可执行文件与目标文件的常用格式，描述内存布局等。</li>
+<li><strong>课上为何出现</strong>：调试段、符号表、加载都落在 ELF 结构里。</li>
+<li><strong>和什么像</strong>：房屋图纸：写清哪层住人、哪层放货、门朝哪开。</li>
+</ul>
+<h3 id="symbol-table">符号表（symbol table）</h3>
+<ul>
+<li><strong>是什么</strong>：记录符号名与地址对应关系的表。</li>
+<li><strong>课上为何出现</strong>：无完整 debug info 时也能定位函数。</li>
+<li><strong>和什么像</strong>：班级点名册：知道名字，能找到座位号。</li>
+</ul>
+<h3 id="addr2line">addr2line</h3>
+<ul>
+<li><strong>是什么</strong>：把程序计数器（PC）地址映射到源码文件与行号的工具。</li>
+<li><strong>课上为何出现</strong>：验证 debug info 是否生效的直接手段。</li>
+<li><strong>和什么像</strong>：用门牌号反查住户。</li>
+</ul>
+<h3 id="flame-graph">火焰图（flame graph）</h3>
+<ul>
+<li><strong>是什么</strong>：采样调用栈得到的性能可视化，宽处代表耗时占比大。</li>
+<li><strong>课上为何出现</strong>：debug info 在 profiler 中的应用。</li>
+<li><strong>和什么像</strong>：交通热力图：越堵的路段颜色/面积越显眼。</li>
+</ul>
+<h3 id="sanitizer-addresssanitizer">sanitizer（尤其是 AddressSanitizer）</h3>
+<ul>
+<li><strong>是什么</strong>：编译期插桩、运行时检查内存错误的工具集。</li>
+<li><strong>课上为何出现</strong>：use-after-free 等 UB 在 debug info 辅助下可被指出。</li>
+<li><strong>和什么像</strong>：工地安全巡检：不阻止你施工，但会拉警报。</li>
+</ul>
+<h3 id="initial-process-stack">initial process stack（进程初始栈）</h3>
+<ul>
+<li><strong>是什么</strong>：execve 后内核布置的 argc/argv/envp/auxv 所在栈区。</li>
+<li><strong>课上为何出现</strong>：CRT 从 <code>_start</code> 恢复参数的物理来源。</li>
+<li><strong>和什么像</strong>：入职当天工位上已放好的门禁卡、手册与通知单。</li>
+</ul>
+<h3 id="auxv">auxv（辅助向量）</h3>
+<ul>
+<li><strong>是什么</strong>：内核传给运行时的键值元数据（vDSO 地址、随机种子等）。</li>
+<li><strong>课上为何出现</strong>：vDSO 如何被 libc 找到。</li>
+<li><strong>和什么像</strong>：快递箱里附的安装说明，不是货本身。</li>
+</ul>
+<h3 id="calling-convention-abi">calling convention / ABI</h3>
+<ul>
+<li><strong>是什么</strong>：函数调用时参数、返回值、寄存器保存责任的约定。</li>
+<li><strong>课上为何出现</strong>：变参、setjmp 实验的底层解释。</li>
+<li><strong>和什么像</strong>：交通规则：大家都靠右行驶，才不会对撞。</li>
+</ul>
+<h3 id="call-clobbered-callee-saved">call-clobbered / callee-saved</h3>
+<ul>
+<li><strong>是什么</strong>：前者调用后不保证保留；后者被调用方必须保存恢复。</li>
+<li><strong>课上为何出现</strong>：解释 longjmp 只恢复部分寄存器。</li>
+<li><strong>常见误解</strong>：不是「所有寄存器都会被 setjmp 保存」。</li>
+</ul>
+<h3 id="vdso">vDSO</h3>
+<ul>
+<li><strong>是什么</strong>：内核映射进用户地址空间的一小段代码，用于不陷入内核的快速系统功能。</li>
+<li><strong>课上为何出现</strong>：解释为何 strace 看不到 gettimeofday。</li>
+<li><strong>和什么像</strong>：小区内设的自助服务机，不必去总行排队。</li>
+</ul>
+<h3 id="setjmplongjmp">setjmp/longjmp</h3>
+<ul>
+<li><strong>是什么</strong>：保存/恢复执行环境以实现非局部跳转的 C 机制。</li>
+<li><strong>课上为何出现</strong>：用寄存器刷色实验逆向观察 ABI。</li>
+<li><strong>和什么像</strong>：游戏存档/读档：读档后中间过程消失。</li>
+</ul>
+<h3 id="use-after-free">use-after-free</h3>
+<ul>
+<li><strong>是什么</strong>：释放堆内存后仍使用该指针。</li>
+<li><strong>课上为何出现</strong>：malloc/free 语义与 sanitizer 演示。</li>
+<li><strong>常见误解</strong>：地址还能读 ≠ 程序正确；这是 UB。</li>
+</ul>
+<h3 id="raii">RAII</h3>
+<ul>
+<li><strong>是什么</strong>：资源在对象构造时获取、析构时释放的 C++ 惯用法。</li>
+<li><strong>课上为何出现</strong>：降低 malloc/free 与锁的配对负担。</li>
+<li><strong>和什么像</strong>：借钥匙开门，出门自动还钥匙（离开作用域即归还）。</li>
+</ul>
+<hr />
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1yu9cBCEAb</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../09%20-%20C%20%E6%A0%87%E5%87%86%E5%BA%93%E5%8E%9F%E7%90%86%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">C 标准库原理</span></a><a class="pager-btn next" href="../11%20-%20%E9%93%BE%E6%8E%A5%E5%92%8C%E5%8A%A0%E8%BD%BD%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">链接和加载</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

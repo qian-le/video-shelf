@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>协程、Goroutine、异步编程</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>2026操作系统原理</strong> · NJU 操作系统原理 · 第 19 讲</p>
+        <h1>协程、Goroutine、异步编程</h1>
+        <p class="book-summary">从 malloc 性能与线程真实开销出发，说明计算图为何需要轻量调度；讲协程/generator 用户态执行流与非阻塞 I/O、epoll；再讲 Goroutine 的 M:N 调度与 channel；最后沿 JavaScript 事件循环、AJAX、回调地狱到 Promise/async-await，对比描述计算图的两条路线。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1dVRdBpEze/" target="_blank" rel="noopener">BV1dVRdBpEze</a> · 时长 1h22m · 标签：协程、Goroutine、channel、异步编程、Promise、async/await、epoll、非阻塞I/O、JavaScript、计算图</div><div class="meta-actions"><a href="transcript.corrected.txt">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1dVRdBpEze/">Bilibili · BV1dVRdBpEze</a>（时长约 83 分钟）
+<strong>课程</strong>：南京大学《操作系统原理》（2026）第 19 讲
+<strong>整理说明</strong>：本书由视频字幕经 AI 重构而成；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 动机：线程不是免费的，计算图才是目标</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 线程、互斥锁、data race、happens-before
+- 计算图（节点=计算，边=依赖）
+- malloc 实验里「一把大锁保平安」的经验
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>前几课建立的并发工具，本讲用来解释真实系统：数据中心服务、浏览器前端里的并发编程是怎么做出来的。</p>
+<h3 id="11-malloc-workload">1.1 malloc 优化的启示：看真实 workload</h3>
+<p>作业里若只关心正确性，大锁往往能过 easy case，却过不了 hard case。性能调优必须先问：<strong>到底需要什么样的性能</strong>。</p>
+<p>算法课习惯盯 worst case；真实系统关心的是<strong>现实分布下的表现</strong>，同时别把 worst case 做烂（否则攻击者可构造哈希冲突，把 Apache 之类打慢——复杂度攻击）。</p>
+<p>对 <code>malloc</code>/<code>free</code> 的观察：</p>
+<ul>
+<li><strong>大对象</strong>（数 MB～上百 MB）：多半对应 hash 表扩容、大缓冲/文件映射，之后会反复读写；分配后只碰几个字节往往是 design bug。</li>
+<li><strong>小对象</strong>：创建/回收最频繁，生命周期短（临时字符串等）。</li>
+<li><strong>中等对象</strong>：往往比小对象活得更久。</li>
+</ul>
+<p>推论：过实验几乎只要管好<strong>小对象分配回收的可扩展性</strong>。思路与 sloppy counter 同构——每线程（或每 CPU）持有自己的 <strong>slab</strong>（按大小切好的内存板）与空闲链表：</p>
+<ul>
+<li>小对象：按 16B/32B/… 桶化，分配/释放多为 O(1) 本地链表操作；</li>
+<li>慢路径：本地耗尽时再向系统要一大块；</li>
+<li>推荐阅读 malloc survey（可在 AI 辅助下读）；1964 年已有 segregated free list 等思想。</li>
+</ul>
+<blockquote>
+<p>premature optimization is the root of all evil——优化前先绑定真实 workload。</p>
+</blockquote>
+<h3 id="12">1.2 线程的真实开销</h3>
+<p>每个线程都有你看不见的代价：</p>
+<table>
+<thead>
+<tr>
+<th>开销来源</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>栈内存</td>
+<td>Linux 默认栈可达 8MB，但按需分页，实际只用栈顶</td>
+</tr>
+<tr>
+<td>内核数据结构</td>
+<td><code>/proc/&lt;pid&gt;</code>、线程控制块、PID 等</td>
+</tr>
+<tr>
+<td>上下文切换</td>
+<td>中断/系统调用进内核，保存/恢复寄存器</td>
+</tr>
+</tbody>
+</table>
+<p>课堂演示思路：进程前后读系统资源状态，创建 N 个空线程，差值除以 N。实验测得每个最小线程大约带来 <strong>~16.9KB</strong> 量级的系统资源增长（视环境而定）。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_17_30.png" alt="测量一个 Linux 线程占多少系统资源" loading="lazy"><p class="video-caption"><span class="cap-text">测量一个 Linux 线程占多少系统资源</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1dVRdBpEze/?t=1050" target="_blank" rel="noopener">在 B 站打开 (00:17:30)</a></span></p></div>
+
+<h3 id="13">1.3 两条演化路线</h3>
+<p>我们真正想要的是：<strong>计算图想怎么写就怎么写，节点调度几乎无额外开销</strong>。当 spawn/join 远贵于函数调用时，业界有两条路：</p>
+<ol>
+<li><strong>轻量线程</strong>：保持多线程编程模型，把 spawn/yield/join 做得接近函数调用——协程、Goroutine。</li>
+<li><strong>改执行模型</strong>：在语言里直接描述计算图——Promise / future / async-await。</li>
+</ol>
+<hr />
+<h2 id="2">2. 协程：用户态的「线程」</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 系统线程由 OS 创建、调度
+- 函数调用与栈帧（Simple C 模型有助理解）
+- 了解 generator / yield 不是必须，但会更好跟
+
+</div>
+
+<p><em>(参考时间: 00:20:11)</em></p>
+<p><strong>协程</strong>（coroutine，用户态可控切换的执行流）可以在不创建 OS 线程的前提下，同时维护多条程序执行流。</p>
+<h3 id="21-python-generator">2.1 Python generator：同一进程内的百万「线程」</h3>
+<pre><code class="language-python">def t_worker(name):
+    i = 0
+    while True:
+        yield (name, i)
+        i += 1
+
+threads = [t_worker(f&quot;t{i}&quot;) for i in range(1_000_000)]
+while True:
+    t = random.choice(threads)
+    print(next(t))
+</code></pre>
+<ul>
+<li>创建一百万条执行流后才开始运行；</li>
+<li>每次 <code>yield</code> 把当前函数状态暂存并返回调用者；</li>
+<li>再次 <code>next</code> 从上次状态继续；</li>
+<li><strong>进程内始终只有一个 OS 线程</strong>，切换是程序主动的。</li>
+</ul>
+<p>Simple C 视角：多线程像多份栈；generator 则是应用层维护的多份栈/状态，<code>yield</code> 在栈之间切换。C/C++ 曾用 <code>setjmp</code>/<code>longjmp</code> + 手工改栈顶指针实现类似机制（现在更多是语言级协程关键字）。</p>
+<p>「能做闭包的语言」理论上都能实现这种状态保存：捕获作用域变量 + 记下 PC，执行流即可封存。</p>
+<h3 id="22">2.2 用户态协程的两个麻烦</h3>
+<ol>
+<li><strong>阻塞 I/O 会卡住所有协程</strong>：<code>read</code> 进内核后若无数据，本 OS 线程睡眠，其他协程也跑不了。</li>
+<li><strong>不能用互斥锁做协程间同步</strong>：单 OS 线程下，<code>lock</code> 后 <code>yield</code>，下一个协程再 <code>lock</code> 会进内核等待 → <strong>AA 型死锁</strong>。</li>
+</ol>
+<p>解决方案依赖 UNIX 演化出的机制：</p>
+<ul>
+<li><strong>非阻塞 I/O</strong>（O_NONBLOCK）：<code>read</code> 无数据立刻返回 <code>EAGAIN</code>，执行流可 <code>yield</code> 后再试；</li>
+<li><strong>I/O 多路复用</strong>（如 epoll）：一次监听大量 <strong>文件描述符</strong>（进程内对象，不受「每线程一把锁」限制），谁就绪就调度谁；</li>
+<li><code>eventfd</code> / <code>timerfd</code> 等也可作为协程同步原语。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_00_42_30.png" alt="epoll：同时等待大量文件描述符就绪" loading="lazy"><p class="video-caption"><span class="cap-text">epoll：同时等待大量文件描述符就绪</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1dVRdBpEze/?t=2550" target="_blank" rel="noopener">在 B 站打开 (00:42:30)</a></span></p></div>
+
+<p>若编译器/运行时把 <code>sleep</code>、阻塞 <code>read</code> 自动改写成「标记不可运行 + 非阻塞重试 + yield」，程序员仍写同步风格代码——这便是 <strong>Goroutine</strong>。</p>
+<hr />
+<h2 id="3-goroutine-channel">3. Goroutine：轻量线程 + Channel</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- OS 线程可真并行
+- 管道：自带同步的消息通道
+- 知道「共享内存通信」与锁的痛点即可
+
+</div>
+
+<p><em>(参考时间: 00:44:00)</em></p>
+<h3 id="31-mn">3.1 M:N 调度直觉</h3>
+<p>Goroutine 的实现草图：</p>
+<ul>
+<li>进程内创建若干真正的 <strong>OS worker 线程</strong>；</li>
+<li>每个线程循环从全局可运行队列取 Goroutine 执行；</li>
+<li>编译器/标准库把阻塞调用改写为异步；</li>
+<li><code>epoll</code> 等监听 I/O，就绪后把对应 Goroutine 放回队列。</li>
+</ul>
+<p>效果：</p>
+<ul>
+<li>用起来像线程（<code>go f()</code> 轻量 spawn）；</li>
+<li><strong>共享同一进程地址空间</strong>，可真并行；</li>
+<li>同步与 I/O 在用户态调度器 + 内核就绪通知之间完成；</li>
+<li>在应用进程里几乎「长出一个小操作系统」。</li>
+</ul>
+<p>前提：使用标准库/受控运行时。自己写汇编级阻塞调用，仍会占住 worker。</p>
+<h3 id="32-unix">3.2 继承 UNIX 哲学：用通信共享内存</h3>
+<p><em>Effective Go</em> 的著名主张：</p>
+<blockquote>
+<p>Do not communicate by sharing memory; instead, share memory by communicating.</p>
+</blockquote>
+<p>互斥锁/信号量解决同步，数据交换却仍走共享缓冲——同步与通信割裂。UNIX 的管道本身就是<strong>计算图</strong>：</p>
+<pre><code class="language-bash">cat a.txt; cat b.cpp | wc
+</code></pre>
+<p>节点产出一行数据，下游才能继续；自带生产者–消费者同步。</p>
+<p>Go 把管道抽象为 <strong>channel</strong>（在 Goroutine 间传递消息并同步的通道）：</p>
+<ul>
+<li>可读可写、可多路；</li>
+<li>同步与数据传递合二为一；</li>
+<li>灵感来源与 UNIX 设计者（Ken Thompson、Rob Pike 等）一脉相承。</li>
+</ul>
+<h3 id="33-go-mandelbrot">3.3 课上演示：Go 版 Mandelbrot</h3>
+<pre><code class="language-go">for i := 0; i &lt; n; i++ {
+    go worker(low[i], high[i], results)
+}
+go monitor(results, ticks)
+</code></pre>
+<ul>
+<li>图像切竖条，每条一个 Goroutine；</li>
+<li>结果与进度经 channel 回传；</li>
+<li>创建计算节点几乎不心疼开销。</li>
+</ul>
+<p>AI 生成代码也可能在同步上出错——又一个「必须自己看懂计算图」的例子。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_52_30.png" alt="Go Goroutine 并行渲染 Mandelbrot" loading="lazy"><p class="video-caption"><span class="cap-text">Go Goroutine 并行渲染 Mandelbrot</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1dVRdBpEze/?t=3150" target="_blank" rel="noopener">在 B 站打开 (00:52:30)</a></span></p></div>
+
+<hr />
+<h2 id="4-promise">4. 前端世界、Promise 与异步编程</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- HTTP 大致是「请求文本 → 返回网页」
+- 函数可以当参数传递（或愿意接受「函数是一等公民」）
+- 计算图与 happens-before
+
+</div>
+
+<p><em>(参考时间: 00:54:18)</em></p>
+<h3 id="41-javascript">4.1 另一条世界线：JavaScript</h3>
+<p>1995 年，Brendan Eich 在 Netscape 约十天设计出嵌入网页的脚本语言，融合 C/Java/Scheme/Self。他本人偏爱函数式，于是 <strong>function is first-class citizen</strong> 进入 JS——这是日后异步生态的关键伏笔。</p>
+<p>网页生态简史：</p>
+<ul>
+<li>早期 HTTP 极简：发路径字符串，服务器回 HTML；</li>
+<li>雅虎时代页面静态，切图 + <code>table</code> 布局；</li>
+<li>1999 年 <strong>XMLHttpRequest</strong>：JS 可随时发起请求 → <strong>AJAX</strong>（Asynchronous JavaScript and XML）；</li>
+<li>DOM + 查询选择器（jQuery / <code>document.querySelector</code>）可改样式、改文本、增删节点；</li>
+<li>后端 XML（今多为 JSON）拉回后刷新界面，无需整页重载；</li>
+<li>Google 把 Office 搬上浏览器，Chrome OS 等；后来 Edge 借 Chromium 内核。</li>
+</ul>
+<p>控制台粘贴一段脚本，即可把「土味页面」改成圆角、动画、现代控件——HTML/CSS/JS 的便利性压过 Qt 等传统 GUI。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_00_00.png" alt="从 table 切图到 DOM 动态刷新的网页进化" loading="lazy"><p class="video-caption"><span class="cap-text">从 table 切图到 DOM 动态刷新的网页进化</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1dVRdBpEze/?t=3600" target="_blank" rel="noopener">在 B 站打开 (01:00:00)</a></span></p></div>
+
+<h3 id="42-javascript">4.2 JavaScript 的并发选择：单线程事件循环</h3>
+<p>JS 面向零门槛脚本，不能要求人人懂 data race。它的选择：</p>
+<ul>
+<li><strong>事件驱动</strong>：加载、点击、请求返回都会生成事件；</li>
+<li><strong>单线程 + run to completion</strong>：一个事件处理函数必须跑完，中间不被切换，禁止与别的事件并行；</li>
+<li><strong>没有阻塞 I/O</strong>：不存在同步 <code>read</code>；发起请求立刻返回，完成后再入事件队列。</li>
+</ul>
+<p>因此：事件处理在逻辑上是原子的，用户代码几乎不会踩 data race / TOCTOU；代价是——<strong>你在事件里写死循环，整页卡死</strong>。</p>
+<h3 id="43">4.3 回调地狱</h3>
+<p>有依赖的任务序列（登录 → 拉好友列表 → 拉动态）在纯 callback 模型下，计算图被迫拆成多层函数嵌套：</p>
+<pre><code class="language-javascript">login(user, function (ok) {
+  if (ok) {
+    fetchFriends(function (friends) {
+      fetchFeed(friends, function (feed) {
+        // 又嵌套一层……
+      });
+    });
+  }
+});
+</code></pre>
+<p>顺序逻辑被拆碎，缩进爆炸，调试极难——<strong>callback hell</strong>。</p>
+<h3 id="44-promise-asyncawait">4.4 Promise 与 async/await</h3>
+<p><strong>Promise</strong>（表示「未来会完成的值/任务」的对象）把计算图写进代码：</p>
+<pre><code class="language-javascript">const p = fetch(url); // 立即返回，状态 pending
+// 随后 fulfilled / rejected
+p.then(onSuccess).catch(onFail);
+
+Promise.all([a, b]).then(c); // 类似 join
+</code></pre>
+<ul>
+<li><code>fetch</code> 立即返回 Promise；请求已在后台工作；</li>
+<li><code>then</code>/<code>catch</code> 描绘先后与失败分支；</li>
+<li><code>Promise.all</code> 等价于「多个前置完成后再继续」。</li>
+</ul>
+<p>即便如此，人类仍想要<strong>顺序、选择、循环</strong>的写法。于是：</p>
+<ul>
+<li><code>async function</code>：运行时包装为返回 Promise 的函数；</li>
+<li><code>await expr</code>：等待 Promise/值；编译器/引擎把后续代码编译成链式 <code>then</code>。</li>
+</ul>
+<pre><code class="language-javascript">async function work() {
+  const a = await f();
+  const b = await g();
+  const r = await Promise.all([fetchData(), p]);
+  return a + b;
+}
+</code></pre>
+<p>你在源码里保留顺序计算图；引擎生成难看的回调链，但调试与可读性归你所有。<code>await</code> 非 Promise 的值时直接得到该值（如 <code>await 1</code> → <code>1</code>）。</p>
+<p>课程网站示例：网页里 <code>await</code> 调用 online judge 后端校验 token，即异步 API 描述计算图的日常用法。</p>
+<h3 id="45">4.5 生态回看</h3>
+<p>JS 从「十天设计、语义坑多」的语言，凭借一等公民函数，长出 Angular/React/Next、Electron（VS Code）、Ink（终端 UI）、乃至浏览器内执行汇编/C（Wasm）与 TensorFlow.js / Three.js。</p>
+<p>学前端异步时，不妨重走并发史：线程 → data race → 互斥 → 同步原语 → <strong>在语言里舒适地描述计算图</strong>。Go 与 JS 分别代表「轻量线程」与「语言级异步」两条路线。</p>
+<hr />
+<h2 id="5">5. 小结：同一问题的三种答案</h2>
+<pre><code class="language-mermaid">flowchart TB
+  subgraph want [想要的]
+    G[自由描述计算图&lt;br/&gt;调度几乎无感]
+  end
+  subgraph path1 [路线一：轻量线程]
+    C[协程 / generator]
+    N[非阻塞 I/O + epoll]
+  end
+  subgraph path2 [路线二：运行时线程]
+    G2[Goroutine M:N]
+    CH[Channel 同步与通信]
+  end
+  subgraph path3 [路线三：语言异步]
+    JS[JS 单线程事件循环]
+    P[Promise / async-await]
+  end
+  G --&gt; C --&gt; N
+  G --&gt; G2 --&gt; CH
+  G --&gt; JS --&gt; P
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>编程心智</th>
+<th>并行性</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OS 线程</td>
+<td>多线程 + 锁</td>
+<td>真并行</td>
+<td>通用，但创建贵</td>
+</tr>
+<tr>
+<td>协程</td>
+<td>同步风格，主动 yield</td>
+<td>通常单线程（除非 M:N）</td>
+<td>高并发 I/O、用户态调度</td>
+</tr>
+<tr>
+<td>Goroutine</td>
+<td>像线程，channel 通信</td>
+<td>进程内真并行</td>
+<td>Go 服务端</td>
+</tr>
+<tr>
+<td>Promise/async</td>
+<td>计算图 / 顺序异步代码</td>
+<td>逻辑并发，单线程执行</td>
+<td>浏览器与 Node</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_1">附录：概念补给</h2>
+<h3 id="coroutine">协程（coroutine）</h3>
+<ul>
+<li><strong>是什么</strong>：用户态执行流，可主动挂起/恢复，切换不依赖 OS。</li>
+<li><strong>课上为何出现</strong>：让 spawn/join 逼近函数调用，支撑百万级任务。</li>
+<li><strong>和什么像</strong>：同场话剧演员轮流上台，导演（程序）喊换人，不关剧场大门。</li>
+</ul>
+<h3 id="generator-yield">generator / yield</h3>
+<ul>
+<li><strong>是什么</strong>：语言级「暂停函数并交还控制」的机制。</li>
+<li><strong>课上为何出现</strong>：用 Python 演示用户态多执行流。</li>
+<li><strong>和什么像</strong>：书签夹在书里，下次从书签继续读。</li>
+</ul>
+<h3 id="ioo_nonblock">非阻塞 I/O（O_NONBLOCK）</h3>
+<ul>
+<li><strong>是什么</strong>：I/O 未就绪立刻返回错误码（如 EAGAIN），不睡眠。</li>
+<li><strong>课上为何出现</strong>：协程遇到 read 才不会卡住整个进程。</li>
+<li><strong>和什么像</strong>：外卖柜空了就走人，过会儿再来看，而不是站在店门口死等。</li>
+</ul>
+<h3 id="epoll-io">epoll / I/O 多路复用</h3>
+<ul>
+<li><strong>是什么</strong>：一次等待多个文件描述符就绪的内核机制。</li>
+<li><strong>课上为何出现</strong>：协程运行时的就绪通知底座。</li>
+<li><strong>和什么像</strong>：前台监控多个取餐屏，谁好谁先取。</li>
+</ul>
+<h3 id="eventfd-timerfd">eventfd / timerfd</h3>
+<ul>
+<li><strong>是什么</strong>：用文件描述符表达事件与定时的内核对象。</li>
+<li><strong>课上为何出现</strong>：协程间同步不必用互斥锁，可走 FD 语义。</li>
+<li><strong>和什么像</strong>：用小旗子代替口令——谁举旗谁继续。</li>
+</ul>
+<h3 id="goroutine">Goroutine</h3>
+<ul>
+<li><strong>是什么</strong>：Go 的轻量执行单元，由 Go 运行时映射到少量 OS 线程。</li>
+<li><strong>课上为何出现</strong>：同步写法 + 高并行 + 共享内存的服务端模型。</li>
+<li><strong>和什么像</strong>：大量轻工人共享几条传送带，由调度员安排上带。</li>
+</ul>
+<h3 id="channel">channel</h3>
+<ul>
+<li><strong>是什么</strong>：Go 中传递消息并同步的管道抽象。</li>
+<li><strong>课上为何出现</strong>：「用通信共享内存」的 UNIX 管道在语言中的重生。</li>
+<li><strong>和什么像</strong>：部门间传阅签，签在谁手里谁签字，不共用一张纸乱写。</li>
+</ul>
+<h3 id="xmlhttprequest-ajax">XMLHTTPRequest / AJAX</h3>
+<ul>
+<li><strong>是什么</strong>：浏览器中发起异步 HTTP 请求的经典 API / 技术组合。</li>
+<li><strong>课上为何出现</strong>：网页从静态页变为可后台刷新的应用。</li>
+<li><strong>和什么像</strong>：前台办事时可以先取号，一边干别的，叫号再回来。</li>
+</ul>
+<h3 id="callback-hell">回调地狱（callback hell）</h3>
+<ul>
+<li><strong>是什么</strong>：多级异步依赖被写成层层嵌套回调，难以维护。</li>
+<li><strong>课上为何出现</strong>：纯事件回调模型描述顺序计算图的痛点。</li>
+<li><strong>和什么像</strong>：办事要一层层求人签字，字签不完，字迹也认不出。</li>
+</ul>
+<h3 id="promise">Promise</h3>
+<ul>
+<li><strong>是什么</strong>：代表未来结果的对象，可 then/catch 组合任务图。</li>
+<li><strong>课上为何出现</strong>：把计算图写进代码，替代深层回调。</li>
+<li><strong>和什么像</strong>：取餐号——现在拿不到饭，但号上写明了「好了怎么通知你」。</li>
+</ul>
+<h3 id="future">future</h3>
+<ul>
+<li><strong>是什么</strong>：与 Promise 配对的「未来值」占位符（术语上常与 Promise 一起出现）。</li>
+<li><strong>课上为何出现</strong>：说明 fetch 立即返回、值稍后可取。</li>
+<li><strong>和什么像</strong>：借条 vs 承诺：一边是「将来给」，一边是「答应给」。</li>
+</ul>
+<h3 id="async-await">async / await</h3>
+<ul>
+<li><strong>是什么</strong>：把异步任务写成顺序语法，由运行时展开成 Promise 链。</li>
+<li><strong>课上为何出现</strong>：人类直觉的顺序结构与计算图执行的统一。</li>
+<li><strong>和什么像</strong>：快递单写「先取件再派送」，实际由分拣中心自动排队。</li>
+</ul>
+<h3 id="run-to-completion">run to completion</h3>
+<ul>
+<li><strong>是什么</strong>：JS 事件处理函数必须执行完才处理下一个事件。</li>
+<li><strong>课上为何出现</strong>：单线程模型避免 data race，但会整页卡死。</li>
+<li><strong>和什么像</strong>：窗口一次只办一位，柜员中途不换人，后面队伍只能等。</li>
+</ul>
+<h3 id="slab">slab 分配器（本讲语境）</h3>
+<ul>
+<li><strong>是什么</strong>：按对象大小预切内存板，小对象在本地空闲链表上快速分配。</li>
+<li><strong>课上为何出现</strong>：malloc 实验——小对象路径决定可扩展性。</li>
+<li><strong>和什么像</strong>：按尺码分好的包装盒，取对应尺码即可，不必每次裁纸。</li>
+</ul>
+<h3 id="segregated-free-list">segregated free list</h3>
+<ul>
+<li><strong>是什么</strong>：按尺寸分级维护空闲块链表的分配策略。</li>
+<li><strong>课上为何出现</strong>：说明 malloc 经典思想早已存在，难点在并发与 workload。</li>
+<li><strong>和什么像</strong>：钥匙按房间号挂在不同钩子上，归还也挂回原钩。</li>
+</ul>
+<hr />
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1dVRdBpEze</em></p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../18%20-%20%E5%B9%B6%E8%A1%8C%E7%AE%97%E6%B3%95%E5%92%8C%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">并行算法和数据结构</span></a><a class="pager-btn next" href="../20%20-%20CPU%E3%80%81SIMD%20%E5%92%8C%20GPU%20%5B2026%20%E5%8D%97%E4%BA%AC%E5%A4%A7%E5%AD%A6%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%8E%9F%E7%90%86%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">CPU、SIMD 和 GPU</span></a></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

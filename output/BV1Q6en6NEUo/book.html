@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  color-scheme: light;
+  --paper: #f4efe6;
+  --card: #fffdf8;
+  --ink: #1c1917;
+  --muted: #78716c;
+  --accent: #0f766e;
+  --warm: #b45309;
+  --line: #e7e0d4;
+  --code-bg: #efe8db;
+  --radius: 12px;
+  --shadow: 0 8px 24px rgba(28, 25, 23, 0.06);
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: "Noto Serif SC", "Songti SC", Georgia, serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.85;
+  font-size: 16.5px;
+  -webkit-font-smoothing: antialiased;
+}
+.book-content { max-width: 760px; margin: 0 auto; padding: 48px 24px 120px; }
+h1 {
+  font-size: 2.05em; font-weight: 700; margin: 8px 0 18px;
+  letter-spacing: .02em; color: var(--ink); line-height: 1.35;
+}
+h1::after {
+  content: ""; display: block; width: 48px; height: 3px;
+  margin-top: 12px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--warm));
+}
+h2 {
+  font-size: 1.4em; font-weight: 650; margin: 48px 0 14px;
+  padding-bottom: 8px; border-bottom: 2px solid var(--line); color: var(--ink);
+}
+h3 { font-size: 1.12em; margin: 28px 0 10px; color: var(--accent); }
+p { margin: 0 0 14px; }
+strong { color: #0c0a09; font-weight: 650; }
+em { color: var(--muted); font-style: italic; }
+a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color .15s; }
+a:hover { border-bottom-color: var(--accent); }
+blockquote {
+  margin: 20px 0; padding: 16px 20px; background: var(--card);
+  border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0;
+  color: #44403c;
+}
+.book-content > blockquote:first-of-type {
+  border-left-color: var(--warm);
+  box-shadow: var(--shadow);
+  margin-bottom: 28px;
+}
+blockquote p { margin: 0; }
+ul, ol { margin: 12px 0 18px 24px; }
+li { margin: 5px 0; }
+hr { border: none; height: 1px; background: var(--line); margin: 40px 0; }
+table {
+  width: 100%; border-collapse: separate; border-spacing: 0;
+  margin: 20px 0; border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--line); background: var(--card); box-shadow: var(--shadow);
+}
+thead { background: #ebe4d6; }
+th {
+  padding: 11px 14px; text-align: left; color: var(--accent);
+  font-family: system-ui, sans-serif; font-size: .88em; letter-spacing: .04em;
+}
+td { padding: 11px 14px; border-top: 1px solid var(--line); }
+tbody tr { background: var(--card); transition: background .15s; }
+tbody tr:hover { background: #f7f1e6; }
+code {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  background: var(--code-bg); padding: 2px 7px; border-radius: 5px;
+  font-size: .88em; color: #9a3412;
+}
+pre {
+  margin: 18px 0; padding: 18px 20px; background: var(--code-bg);
+  border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto;
+}
+pre code { background: none; padding: 0; color: var(--ink); font-size: .9em; }
+.video-card {
+  margin: 28px 0; border-radius: var(--radius); overflow: hidden;
+  background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.video-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(28,25,23,.1); }
+.video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111; }
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-card img { width: 100%; display: block; cursor: zoom-in; }
+.video-card img:hover { opacity: .92; }
+.video-caption {
+  padding: 12px 16px; font-family: system-ui, sans-serif; font-size: .88em;
+  color: var(--muted); text-align: center; line-height: 1.6; margin: 0;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: 20px; text-align: center; }
+.mermaid { display: flex; justify-content: center; margin: 28px 0; overflow-x: auto; }
+.lightbox {
+  position: fixed; inset: 0; z-index: 999; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(28, 25, 23, 0.9); backdrop-filter: blur(4px);
+  cursor: zoom-out; padding: 24px;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: 8px; box-shadow: 0 12px 60px rgba(0,0,0,.45); }
+.lightbox-caption {
+  position: absolute; bottom: 16px; left: 0; right: 0; text-align: center;
+  color: #d6d3d1; font-family: system-ui, sans-serif; font-size: .85em;
+}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+@media (max-width: 640px) {
+  .book-content { padding: 28px 16px 80px; }
+  h1 { font-size: 1.55em; }
+  h2 { font-size: 1.25em; }
+}
+</style>
+</head>
+<body>
+<article class="book-content">
+<h1 id="git-agent">软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</h1>
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1Q6en6NEUo/">Bilibili · BV1Q6en6NEUo</a>（时长约 98 分钟）
+<strong>课程</strong>：南京大学《生成式软件工程》（2026）第 04 讲 · Raw 版
+<strong>整理说明</strong>：由书架流水线根据视频字幕重构；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图可点击放大并跳转 B 站。</p>
+</blockquote>
+<hr />
+<h2 id="_1">目录</h2>
+<ol>
+<li><a href="#1-lab1">Lab1：会成长的个人助手</a></li>
+<li><a href="#2-intent">项目、Intent 与可追踪性</a></li>
+<li><a href="#3-git">Git 深潜：Merge、Rebase 与 Change</a></li>
+<li><a href="#4-jj">Jujutsu：把 Change 变成一等公民</a></li>
+<li><a href="#5-agent">为 Agent 重新设计版本管理</a></li>
+<li><a href="#6">从第一性原理看并发控制</a></li>
+<li><a href="#7">团队管理才是真正的难点</a></li>
+<li><a href="#8-vibe-coding">现场翻车：Vibe Coding 从零做 Lab1</a></li>
+<li><a href="#9-mvp">MVP 与可演进架构</a></li>
+<li><a href="#10">结语：版本管理要记住的三件事</a></li>
+</ol>
+<hr />
+<h2 id="1-lab1">1. Lab1：会成长的个人助手</h2>
+<p><em>(参考时间: 00:00)</em></p>
+<p>课程回顾了上周的软件项目管理内容，并发布了第一个选做实验（Lab1）——<strong>会成长的个人助手</strong>。</p>
+<p>作业本身「不限实现方式」：想怎么做就怎么做，最好用 Vibe Coding 完成。课程会在课上留出时间，现场演示直接让 Agent 做一个，并指出其中的坑。</p>
+<h3 id="_2">为什么要做这个实验</h3>
+<p>几乎所有任务都在 AI 的能力范围之内。但如果直接把实验要求丢给 AI，它一开始就会做出许多「看起来合理」的决定，而这些决定会让项目维护越来越困难，最终陷入软件工程里的<strong>焦油坑</strong>。</p>
+<p>实验的真正目的，是让每位同学体验：</p>
+<ul>
+<li>当 AI Slop 开始不断消耗 Token 时，你会下定决心删掉项目从头重做，或回退到很早期的版本；</li>
+<li>下一个 Lab 会与本 Lab 强关联且有一定冲突——如果不认真做 Lab1，就没有完整的软件工程体验。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_00_00_30.png" alt="Lab1：会成长的个人助手需求" loading="lazy"><p class="video-caption">📷 Lab1：会成长的个人助手需求<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=30" target="_blank" rel="noopener">在源站打开 (00:00:30)</a></p></div>
+
+<h3 id="_3">参考需求形态</h3>
+<p>个人助手可以承载多种「个人数据库」：</p>
+<ul>
+<li>专业课资料（计算机网络、概率论等）；</li>
+<li>研究组论文与文献；</li>
+<li>个人信息（填表场景：姓名、学号、身份证号、简历等）。</li>
+</ul>
+<p>在此基础上，还可以：</p>
+<ul>
+<li>与学校邮箱关联，实现 always-on 的后台 Agent Loop；</li>
+<li>用一两百元的嵌入式小设备在宿舍持续运行；</li>
+<li>手机端联动（网页 / iOS / Android）。</li>
+</ul>
+<p>主讲人现场展示了自己用 Agent 处理填表的效率提升——过去需要研究生三年做的自动填表系统，如今几乎是一句话的事。</p>
+<hr />
+<h2 id="2-intent">2. 项目、Intent 与可追踪性</h2>
+<p><em>(参考时间: 00:05:17)</em></p>
+<h3 id="21">2.1 项目是什么</h3>
+<p>项目是各种文件的集合：intent、设计文档、README、spec、code implementation。主讲人不喜欢 AI 生成的超长 README；对他而言，README 只应写清楚：</p>
+<ul>
+<li>设计的<strong>初衷</strong>；</li>
+<li>想做一个什么样的产品；</li>
+<li>产品能达到什么效果（可附截图）；</li>
+<li>最重要的设计取舍。</li>
+</ul>
+<p>类比：你有一个能挣一个亿的点子，要说服别人加入创业团队，只需要一份较短的 README——intent。剩下架构、实现、扩展性，由有相应能力的人补完。</p>
+<p>层次可以概括为：</p>
+<pre><code class="language-text">Intent（我想做什么）
+  → Spec（选型、结构、接口）
+    → Code Implementation（实现）
+</code></pre>
+<h3 id="22">2.2 文件系统是历史包袱</h3>
+<p>用文件系统管理项目，更多是历史原因：1950–60 年代操作系统只提供文件存储，关系型数据库尚未发明。程序员别无他法。</p>
+<p>文件系统作为树状结构，<strong>丢失了大量不适合用树表达的关联</strong>。例如：</p>
+<ul>
+<li>文档写「本项目用链表管理」；</li>
+<li>代码后来改成树；</li>
+<li>测试用例依赖旧行为。</li>
+</ul>
+<p>文档、代码、测试之间形成关联，却没有被强行绑定。这正是<strong>技术债（technical debt）</strong>：随演进，不一致只会越来越多。</p>
+<p>软件工程里对应的研究方向叫 <strong>Traceability（可追踪性）</strong>——在系统演进中维持测试、文档、代码之间的关联。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_09_50.png" alt="项目中的 Traceability 问题" loading="lazy"><p class="video-caption">📷 项目中的 Traceability 问题<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=590" target="_blank" rel="noopener">在源站打开 (00:09:50)</a></p></div>
+
+<h3 id="23">2.3 未来可能的仓库形态</h3>
+<p>如果未来几乎不再手写代码，软件可能不再是「一堆文件」，而是：</p>
+<ul>
+<li>文档、实现、测试切成对象（object / entity）；</li>
+<li>对象之间用关系连接（实现了、测试了、引用了）；</li>
+<li>形成带环的图（graph），存进 <code>repo.db</code>。</li>
+</ul>
+<p>人类无法用现有 Unix 工具维护这种仓库，但可以<strong>用魔法打败魔法</strong>：用强化学习反馈训练 AI 理解该图；每次小步修改（fix bug、改文档、加功能）时，AI 根据 chat 摘出相关的 view（视图），完成修改后再写回下一版本。</p>
+<pre><code class="language-mermaid">graph LR
+    A[&quot;用户 chat：改这一小步&quot;] --&gt; B[&quot;AI 从 repo.db 摘出相关 view&quot;]
+    B --&gt; C[&quot;可视化看板 / 相关 artifacts&quot;]
+    C --&gt; D[&quot;小步修改 V0 → V1&quot;]
+    D --&gt; E[&quot;写回一致的 repo.db&quot;]
+</code></pre>
+<p>这里借用了数据库「视图」的概念：数据不变，用不同查询以另一种形式展示。</p>
+<hr />
+<h2 id="3-git-mergerebase-change">3. Git 深潜：Merge、Rebase 与 Change</h2>
+<p><em>(参考时间: 00:22:53)</em></p>
+<h3 id="31-merge">3.1 Merge 的问题</h3>
+<p>Git 管理的是<strong>目录快照</strong>。开发者 A、B 可在两条线上独立提交，合并时用两路 merge：</p>
+<ul>
+<li>产生有两个 parent 的 commit；</li>
+<li>若 merge 由 A 完成，B 写的部分在冲突解决后 <strong>ownership 可能归到 A</strong>。</li>
+</ul>
+<h3 id="32-rebase">3.2 Rebase 的机制与风险</h3>
+<p>Rebase 试图把一侧的修改「搬到」另一侧之后，得到<strong>线性历史</strong>：</p>
+<ol>
+<li>把 B 的 feature 尝试接到 A 的历史后面；</li>
+<li>成功则继续搬 test；</li>
+<li>任一步冲突都需 resolve，且会<strong>创建新的 commit id</strong>（base 变了）。</li>
+</ol>
+<pre><code class="language-mermaid">graph TD
+    A0[&quot;A: 文档&quot;] --&gt; A1[&quot;A: 测试&quot;]
+    B0[&quot;B: feature&quot;] --&gt; B1[&quot;B: 测试&quot;]
+    A1 --&gt; R1[&quot;rebase: 搬 feature&quot;]
+    R1 --&gt; R2[&quot;rebase: 搬测试&quot;]
+    R2 --&gt; L[&quot;线性历史&quot;]
+</code></pre>
+<p>麻烦在于：</p>
+<ul>
+<li>进入 rebase 冲突模式时，人很容易懵；</li>
+<li>每次 rebase 都生成新 id，历史被改写；</li>
+<li>我们真正关心的是 <strong>change（修改）</strong>，Git 却用 commit 代替 change，没有专门的 change 对象。</li>
+</ul>
+<h3 id="33-stash">3.3 Stash 与人的单线程假设</h3>
+<p>经典场景：改到一半（编译不过、测试不过），导师突然打电话要修更高优先级 bug。Git 的解法是 <code>git stash</code>——把工作区压栈。</p>
+<p>再被打断一次，stash 栈就变深。在「古法编程」时代这尚可接受，因为：</p>
+<ul>
+<li>人是 <strong>single-threaded</strong>：只有一双手、一张嘴、一对眼睛；</li>
+<li>读与写不能同时发生（类似 shared memory 的 load/store）；</li>
+<li>人类提交以小时计，团队沟通以天/会为单位，冲突概率低。</li>
+</ul>
+<hr />
+<h2 id="4-jujutsu-change">4. Jujutsu：把 Change 变成一等公民</h2>
+<p><em>(参考时间: 00:28:40)</em></p>
+<p>如果把 <strong>change 提升为 first-class citizen</strong>，就接近下一代版本控制工具——<strong>Jujutsu（jj）</strong>。</p>
+<h3 id="_4">核心特点</h3>
+<ul>
+<li>与 Git 底层兼容，可当 Git 用；</li>
+<li>增加 change 概念：rebase 时搬的是 change，冲突可以「带下来」再 resolve；</li>
+<li><strong>没有 staging area</strong>：你改一个字节，就像隐式做了一次 commit（并抹掉上一次未完成的提交）；</li>
+<li>工作区永远处于「当前 change 已提交」的状态，不需要手动 <code>git add</code>。</li>
+</ul>
+<pre><code class="language-text">Git:  working tree → index → commit
+jj:   working copy ≡ 当前 change（自动提交）
+</code></pre>
+<h3 id="_5">学习建议</h3>
+<ul>
+<li>上一代人形成 SVN 肌肉记忆，本代人形成 Git 肌肉记忆；</li>
+<li>AI native 一代应<strong>先用更正确的设计建立肌肉记忆</strong>，再回头理解 Git 为何如此；</li>
+<li>可以把「从 change 理解版本管理」这样的 prompt 交给 Agent 辅助学习。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_00_31_00.png" alt="Jujutsu：Change 作为一等公民" loading="lazy"><p class="video-caption">📷 Jujutsu：Change 作为一等公民<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=1860" target="_blank" rel="noopener">在源站打开 (00:31:00)</a></p></div>
+
+<hr />
+<h2 id="5-agent">5. 为 Agent 重新设计版本管理</h2>
+<p><em>(参考时间: 00:35:54)</em></p>
+<p>这门课是<strong>生成式软件工程</strong>，真正要问的是：在 Agent 时代如何再次重新设计版本管理。</p>
+<h3 id="51-agent">5.1 为人设计的模型跟不上 Agent</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>人类</th>
+<th>Agent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>并发</td>
+<td>单线程个体</td>
+<td>可 10× / 100× 并行</td>
+</tr>
+<tr>
+<td>提交粒度</td>
+<td>10 分钟～小时</td>
+<td>秒级原子提交</td>
+</tr>
+<tr>
+<td>沟通</td>
+<td>会、口头、文档</td>
+<td>prompt / 结构化消息</td>
+</tr>
+<tr>
+<td>冲突处理</td>
+<td>痛苦、易懵</td>
+<td>可自动 resolve</td>
+</tr>
+</tbody>
+</table>
+<p>即便使用 Git worktree 等 workaround，本质仍是「为人设计的模型」。</p>
+<h3 id="52-agent">5.2 多 Agent 协作的两种拓扑</h3>
+<p><strong>方式一：一人一机（严格类比人类）</strong></p>
+<ul>
+<li>每个 Agent 独立容器 / 虚拟机；</li>
+<li>克隆同一 remote；</li>
+<li>主 Agent 负责协调与 inject prompt。</li>
+</ul>
+<p><strong>方式二：Git worktree（更轻量）</strong></p>
+<ul>
+<li>同一仓库多个工作树；</li>
+<li><code>.git</code> 在 worktree 里可只是一个文本文件，指向共享的 git dir；</li>
+<li>提交本地互相可见，无需反复 push；</li>
+<li>冲突仍需 merge / rebase。</li>
+</ul>
+<p>现场演示中，主讲人开了多个 tmux session 作为 coding agent，让它们并行工作；并让 Agent 把会话改到 worktree 上。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_47_00.png" alt="多 Agent 并行：tmux + worktree" loading="lazy"><p class="video-caption">📷 多 Agent 并行：tmux + worktree<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=2820" target="_blank" rel="noopener">在源站打开 (00:47:00)</a></p></div>
+
+<h3 id="53-blame">5.3 不再需要 blame</h3>
+<p>Git 为人设计的特性还包括 <code>git blame</code>：出问题时回溯是谁的 commit。</p>
+<p>Agent 时代：</p>
+<ul>
+<li>Agent 不能被「开除」或「坐牢」；</li>
+<li>同一模型的克隆体做同一件事，大概率收敛到相同结果；</li>
+<li>历史价值从「谁写错了」变成「怎么把它修好」；</li>
+<li>项目可以<strong>大步向前</strong>，快照仍保留（方向走错时可回退），但几乎不必「看过去」。</li>
+</ul>
+<hr />
+<h2 id="6">6. 从第一性原理看并发控制</h2>
+<p><em>(参考时间: 00:55:36)</em></p>
+<h3 id="61-git">6.1 Git ≈ 乐观并发控制</h3>
+<p>数据库里，事务（transaction）可先读、再算、再写；写时可能冲突或死锁，需 rollback。Git 的协作模型很像<strong>乐观并发控制（optimistic）</strong>：</p>
+<ul>
+<li>假设事先开过会，各做各的大概率不冲突；</li>
+<li>merge / rebase 时再处理冲突。</li>
+</ul>
+<p>教务系统选课是典型低冲突场景：每人读写自己的数据。</p>
+<h3 id="62-agent">6.2 Agent 应更偏向悲观并发控制</h3>
+<p>操作系统课的并发是<strong>锁</strong>：访问可能冲突的资源前先 lock，release 后别人才能 lock。</p>
+<p>Agent 动作极快时，乐观模型会更频繁触发冲突。更好的设计可能是：</p>
+<ol>
+<li>主 Agent 规划；</li>
+<li>对项目 scope（如文件级）<strong>先上锁</strong>；</li>
+<li>完成后 commit 并释放锁；</li>
+<li>其他 Agent 若所需资源被锁，则等待。</li>
+</ol>
+<p>即便悲观，只要 Agent 数量足够多、不冲突的 scope 足够多，整体吞吐仍可很高——与操作系统里「细粒度锁下多线程仍可高效」同理。</p>
+<pre><code class="language-mermaid">graph TD
+    P[&quot;主 Agent 规划任务&quot;] --&gt; L1[&quot;锁: 模块 A&quot;]
+    P --&gt; L2[&quot;锁: 模块 B&quot;]
+    L1 --&gt; W1[&quot;Agent1 工作&quot;]
+    L2 --&gt; W2[&quot;Agent2 工作&quot;]
+    W1 --&gt; C1[&quot;commit + 解锁&quot;]
+    W2 --&gt; C2[&quot;commit + 解锁&quot;]
+</code></pre>
+<hr />
+<h2 id="7">7. 团队管理才是真正的难点</h2>
+<p><em>(参考时间: 01:03:52)</em></p>
+<p>版本控制本质是工具。真正困难的是<strong>进度与团队管理</strong>。</p>
+<ul>
+<li>若 AI 能一句话直出微信级产品，软件工程就「死了」；斩杀线暂未到这一层；</li>
+<li>人月神话指出：人与人沟通关系是<strong>平方级</strong>上升；</li>
+<li>最难招的不是码农，而是能把国民级应用拆成多个 team、并让十个 team 拼起来仍是一个产品的 leader。</li>
+</ul>
+<p>你现在就可以把自己当成主 Agent：如何分解任务给多个 Agent？何时提交？何时合并？——把版本控制概念带进自己的开发流程。</p>
+<h3 id="_6">汉诺塔的隐喻</h3>
+<p>课上穿插了一个带方向限制的汉诺塔变体（只能单向移动），用来说明：看起来简单的约束会显著改变最优策略。更重要的是产品思维——如何把这个「小学生考级题」做成可售卖的产品：可编辑 playground + 付费 AI 助教。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_11_40.png" alt="单向汉诺塔可视化 Playground" loading="lazy"><p class="video-caption">📷 单向汉诺塔可视化 Playground<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=4300" target="_blank" rel="noopener">在源站打开 (01:11:40)</a></p></div>
+
+<p>设计讨论中出现了一个反例：GPT 给出的「一个 API + 关系数据库 + 对象存储」是正常软件工程课答案，但主讲人不喜欢——因为本质需求是<strong>版本管理</strong>，用 Git 管理学生提交直到格式收敛，再迁移到数据库，往往更合理（Overleaf 导出为 git repo 同理）。</p>
+<hr />
+<h2 id="8-vibe-coding-lab1">8. 现场翻车：Vibe Coding 从零做 Lab1</h2>
+<p><em>(参考时间: 01:18:17)</em></p>
+<p>项目早期<strong>不应直接上 multi-agent</strong>。应先找能力最强的模型，多轮对话把 intent 对齐。</p>
+<h3 id="81">8.1 直接丢需求会发生什么</h3>
+<p>现场把 Lab1 需求直接丢给 Agent，观察其行为：</p>
+<ul>
+<li>一线模型会进 plan mode，确认事实后生成 workflow；</li>
+<li>但提示词里每一个词 self-attention 都会看到；模型已被训练成「prompt 的舔狗」，会<strong>过度遵循</strong>讨论稿式需求；</li>
+<li>结果：满足了字面指令，却不是你想要的东西。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_01_20_10.png" alt="直接把 Lab 需求丢给 Agent" loading="lazy"><p class="video-caption">📷 直接把 Lab 需求丢给 Agent<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=4810" target="_blank" rel="noopener">在源站打开 (01:20:10)</a></p></div>
+
+<h3 id="82-intent-gap">8.2 Intent 与实现的巨大 Gap</h3>
+<p>真正重要的言外之意是：</p>
+<blockquote>
+<p>实现一个<strong>持续为你工作的个人助手</strong>。</p>
+</blockquote>
+<p>对同学而言，第一个 feature 往往应是：<strong>高效学习与复习</strong>——自动收集外部信息、层次化归档、给出好界面。</p>
+<p>而 Agent 一上来就在做 database、SMail、一一号对接……从 README 看每一步都「对」，最终却得到一个你不想要的系统，甚至像一个教务系统。</p>
+<p>它甚至没有 <code>git init</code>——你不跟它讲，它就当一次性脚本。</p>
+<h3 id="83">8.3 正确的起步方式</h3>
+<ol>
+<li><strong>先创建空仓库</strong>；</li>
+<li>想清楚下一步只迈<strong>一小步</strong>；</li>
+<li>不要一上来就上数据库：文件系统膨胀时再让 Agent 提炼 schema；</li>
+<li>人对文件目录的心智负担远低于 database schema。</li>
+</ol>
+<p>主讲人自己的邮件 Agent 至今没有数据库：邮箱 → 共享云盘上的 email id 目录（含草稿、分类、是否垃圾邮件）→ 下一级流水线处理。</p>
+<hr />
+<h2 id="9-mvp">9. MVP 与可演进架构</h2>
+<p><em>(参考时间: 01:32:40)</em></p>
+<p>更符合主流 best practice 的是从零构建时使用 <strong>MVP（Minimum Viable Product）</strong>。</p>
+<blockquote>
+<p>The biggest risk in product development is building something nobody wants.</p>
+</blockquote>
+<p>MVP 逼迫你想清楚：<strong>什么需求是绝对要的</strong>。</p>
+<h3 id="_7">好架构的标准</h3>
+<p>不是「当前实现了需求」，而是：</p>
+<blockquote>
+<p>需求发生根本性变化时，架构能否以最少变化应对？</p>
+</blockquote>
+<p>这是软件工程与操作系统/数据库课最不一样的地方：<strong>对未来需求变化的应对</strong>。</p>
+<p>两种开发方式对比：</p>
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>过程</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>大步快跑</td>
+<td>上来大而全，拖着技术债加功能</td>
+<td>维护泥潭</td>
+</tr>
+<tr>
+<td>MVP 演进</td>
+<td>最小精巧架构，遇瓶颈再迁移</td>
+<td>需克制过度设计</td>
+</tr>
+</tbody>
+</table>
+<p>需求变更示例：希望邮件和资料都与云盘同步——检验现有架构是否需要摧毁性修改。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_36_10.png" alt="需求变更：引入云盘同步" loading="lazy"><p class="video-caption">📷 需求变更：引入云盘同步<br><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=5770" target="_blank" rel="noopener">在源站打开 (01:36:10)</a></p></div>
+
+<p>早期 prompt 对项目走向影响最大：直接丢 README 说「做个 MVP」，与「先讨论再写第一行代码」，结果天差地别。</p>
+<hr />
+<h2 id="10">10. 结语：版本管理要记住的三件事</h2>
+<p><em>(参考时间: 01:29:46)</em></p>
+<p>无论古法编程还是 Agent 时代，版本管理本质做三件事：</p>
+<ol>
+<li><strong>记住现在</strong>——必须有 repository 把文件/工件管起来；</li>
+<li><strong>记住历史</strong>——删掉的东西还能捞回来，能看到如何演进到当前点、哪条路失败了；</li>
+<li><strong>记住教训</strong>——lessons 持续警示下一步该怎么迈。</li>
+</ol>
+<p>从 SVN 的局限，到 Git 的局限，再到 Agent 时代的破局点：管理快照、版本、change，以及<strong>飞快的 change</strong>。</p>
+<p>经典课程（操作系统、数据库、软件工程）里的概念会在生成式软件工程中反复出现：视图、事务、乐观/悲观锁、快照、可追踪性。学它们仍然有用——它们是你带着 AI 做 AI 做不到之事时的判断力来源。</p>
+<p>下一讲将进入<strong>软件架构与构造</strong>。</p>
+<hr />
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1Q6en6NEUo</em></p>
+</article>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+  document.querySelectorAll("pre code, .highlight code").forEach(function (node) {
+    var text = node.textContent.trim();
+    if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+      var div = document.createElement("div");
+      div.className = "mermaid";
+      div.textContent = text;
+      var wrap = node.closest(".highlight") || node.parentNode;
+      wrap.replaceWith(div);
+    }
+  });
+  mermaid.run();
+
+  var lb = document.createElement("div");
+  lb.className = "lightbox";
+  lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+  document.body.appendChild(lb);
+  var img = lb.querySelector("img");
+  var cap = lb.querySelector(".lightbox-caption");
+  function open(src, alt) {
+    img.src = src; img.alt = alt || ""; cap.textContent = alt || "";
+    lb.classList.add("open"); document.body.style.overflow = "hidden";
+  }
+  function close() {
+    lb.classList.remove("open"); img.src = ""; document.body.style.overflow = "";
+  }
+  document.querySelectorAll(".screenshot-card img").forEach(function (el) {
+    el.addEventListener("click", function () { open(el.src, el.alt); });
+  });
+  lb.addEventListener("click", close);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+});
+</script>
+</body>
+</html>

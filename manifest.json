@@ -85,5 +85,28 @@
     "updated": "2026-09-19T13:43:46+08:00",
     "corrected": true,
     "corrected_html": true
+  },
+  "BV1Nyeq6qEt8": {
+    "folder": "软件工程的来龙去脉 [05-Raw／26生成式软件工程／NJU]",
+    "title": "软件工程的来龙去脉 [05-Raw/26生成式软件工程/NJU]",
+    "display_title": "软件工程的来龙去脉",
+    "course": "26生成式软件工程",
+    "series": "NJU 生成式软件工程",
+    "author": "绿导师原谅你了（蒋炎岩）",
+    "lecture_number": 5,
+    "summary": "从课前 AI 新闻切入，梳理软件危机与软件工程的诞生（goto 之争、NATO 会议、阿波罗容错、被误读的瀑布模型），讨论流程/契约/形式化与 UML 的兴衰，并指出 never-goes-away 的工程原则与 AI 时代的学习成本问题。",
+    "tags": [
+      "软件工程",
+      "软件危机",
+      "瀑布模型",
+      "Dijkstra",
+      "契约",
+      "UML",
+      "NATO"
+    ],
+    "duration": 5999,
+    "updated": "2026-09-21T16:54:06+08:00",
+    "corrected": true,
+    "corrected_html": true
   }
 }

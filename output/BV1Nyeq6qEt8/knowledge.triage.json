@@ -1,0 +1,1964 @@
+{
+  "schema": "shelf.knowledge_triage",
+  "schema_version": "1",
+  "status": "reviewed",
+  "generated_at": "2026-09-22T07:52:43.434238+00:00",
+  "source": {
+    "path": "output/BV1Nyeq6qEt8/transcript.corrected.txt",
+    "sha256": "5fbd1d9778c4f28e749ea2116b4c3175b33cdb3541553b93fe73ec248c55162c",
+    "video_id": "BV1Nyeq6qEt8",
+    "title": "南京大学《生成式软件工程》（2026）第05讲 · Raw版",
+    "video_url": "https://www.bilibili.com/video/BV1Nyeq6qEt8/",
+    "duration_seconds": 6000.0,
+    "segment_count": 2555
+  },
+  "source_notes": [
+    "完整校正字幕 transcript.corrected.txt 是当前可用主来源；原始 transcript.json 不在工作区，名称/同音词按黄金集标疑。",
+    "Luna agent-assisted 逐窗阅读 S01–S10，按 A/B/C 聚合知识点；正文括号中的基础术语释义为编辑补充，不冒充讲师原话。"
+  ],
+  "reviewed_chunks": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10"
+  ],
+  "items": [
+    {
+      "id": "L05-001",
+      "priority": "A",
+      "topic": "讲师把一个名称不确定的实体与可实时玩 DOOM 的模型新闻联系起来。",
+      "kind": "observation",
+      "why": "保留新闻归属的疑义；不得把 TypeSafe AI 当成字幕已确认事实。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "比如说这个type c AI最新发布了一个"
+        }
+      ],
+      "must_preserve": [
+        "讲师把一个名称不确定的实体与可实时玩 DOOM 的模型新闻联系起来。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "字幕逐字写作“type c AI”；用户术语“TypeSafe AI”未在可用字幕中出现，名称不得自动替换。",
+      "claim_type": [
+        "reported_news",
+        "uncertain_entity"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "entity attribution (uncertain)"
+        },
+        {
+          "id": "step-2",
+          "label": "model news"
+        },
+        {
+          "id": "step-3",
+          "label": "DOOM decision capability"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-002",
+      "priority": "A",
+      "topic": "状态被编码为 JSON，模型在毫秒到百毫秒级输出专用 token 作决策；输出不必是自然语言。",
+      "kind": "speculation",
+      "why": "须保留低延迟与输入/输出关系；不得将专用 token 说成人类对话输出。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "然后这个token应该是他特微调过了"
+        }
+      ],
+      "must_preserve": [
+        "状态被编码为 JSON，模型在毫秒到百毫秒级输出专用 token 作决策；输出不必是自然语言。"
+      ],
+      "terms": [
+        "DOOM",
+        "JSON",
+        "token"
+      ],
+      "key_terms": [
+        {
+          "term": "DOOM",
+          "definition": "《毁灭战士》游戏",
+          "origin": "editor",
+          "aliases": [
+            "DOOM"
+          ],
+          "requires_definition": true
+        },
+        {
+          "term": "JSON",
+          "definition": "用字段和值组织信息的文本格式",
+          "origin": "editor",
+          "aliases": [
+            "JSON"
+          ],
+          "requires_definition": true
+        },
+        {
+          "term": "token",
+          "definition": "模型一次处理或生成的基本单位",
+          "origin": "editor",
+          "aliases": [
+            "token"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "“prefer only”“大圆模型”等为 ASR 疑义，不据此补造架构。",
+      "claim_type": [
+        "reported_news",
+        "uncertain_inference"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "game state"
+        },
+        {
+          "id": "step-2",
+          "label": "JSON"
+        },
+        {
+          "id": "step-3",
+          "label": "fast token"
+        },
+        {
+          "id": "step-4",
+          "label": "game decision"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-003",
+      "priority": "A",
+      "topic": "讲师称该项目为 system one，并判断这次传播使快速决策模型赛道受到关注；同时说技术并非全新。",
+      "kind": "opinion",
+      "why": "名称保留疑义，‘赛道打开’须归因于讲师判断，不能写成产业统计事实。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "然后他他给自己一个名字叫system one"
+        }
+      ],
+      "must_preserve": [
+        "讲师称该项目为 system one，并判断这次传播使快速决策模型赛道受到关注；同时说技术并非全新。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "字幕为“system one”，大小写/正式产品名未核实；‘打开赛道’是讲师判断。",
+      "claim_type": [
+        "reported_news",
+        "opinion"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "high-profile release"
+        },
+        {
+          "id": "step-2",
+          "label": "attention"
+        },
+        {
+          "id": "step-3",
+          "label": "perceived opening of a fast-model track"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-004",
+      "priority": "A",
+      "topic": "讲师用 100ms、乐观时 50ms 或更短作为实时决策的延迟设想。",
+      "kind": "prediction",
+      "why": "保留‘如果/乐观一点’条件；不能改成已实现的 50ms 保证。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "可以在50ms或者更短的时间里面"
+        }
+      ],
+      "must_preserve": [
+        "讲师用 100ms、乐观时 50ms 或更短作为实时决策的延迟设想。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "50ms 是讲师的乐观假设，不是实测值。",
+      "claim_type": [
+        "prediction",
+        "opinion"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "smaller/faster model"
+        },
+        {
+          "id": "step-2",
+          "label": "shorter decision latency"
+        },
+        {
+          "id": "step-3",
+          "label": "real-time interaction"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-005",
+      "priority": "A",
+      "topic": "讲师将低延迟决策模型用于根据对话实时生成数字人的面部微表情，以减少数字人迟滞并增加人感。",
+      "kind": "prediction",
+      "why": "必须保留‘低延迟带来实时微表情’的因果，不写成已普遍可用产品。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "然后他可以甚至可以哄这个小朋友睡觉"
+        }
+      ],
+      "must_preserve": [
+        "讲师将低延迟决策模型用于根据对话实时生成数字人的面部微表情，以减少数字人迟滞并增加人感。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "这里是讲师解释的应用设想，不是外部实证。",
+      "claim_type": [
+        "opinion",
+        "prediction"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "lower latency"
+        },
+        {
+          "id": "step-2",
+          "label": "immediate facial-expression decisions"
+        },
+        {
+          "id": "step-3",
+          "label": "more responsive digital human"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-006",
+      "priority": "A",
+      "topic": "讲师用未来对比预测：当前人形机器人缺少人感，未来可能凭低延迟模型实时做出微表情。",
+      "kind": "prediction",
+      "why": "不得把‘明年会有’改成事实或具体产品公告；保留预测语气。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "能够实时做出非常棒的微表情的啊机器人"
+        }
+      ],
+      "must_preserve": [
+        "讲师用未来对比预测：当前人形机器人缺少人感，未来可能凭低延迟模型实时做出微表情。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "春晚、明年和机器人实例均未给出可核验名称；时间是讲师预测。",
+      "claim_type": [
+        "prediction",
+        "opinion"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "fast decision model"
+        },
+        {
+          "id": "step-2",
+          "label": "micro-expression capability"
+        },
+        {
+          "id": "step-3",
+          "label": "predicted increase in robot human-likeness"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-007",
+      "priority": "A",
+      "topic": "讲师认为模型缺少对下一步和长期目标的品位/直觉，会围绕即时 reward 用最快、最脏的路径完成表面任务。",
+      "kind": "opinion",
+      "why": "保留‘讲师认为/倾向’和短期—长期张力；不得把 reward hacking 解释成模型必然恶意。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "然后同时他也有一点点这种reward hacking的倾向"
+        }
+      ],
+      "must_preserve": [
+        "讲师认为模型缺少对下一步和长期目标的品位/直觉，会围绕即时 reward 用最快、最脏的路径完成表面任务。"
+      ],
+      "terms": [
+        "reward hacking"
+      ],
+      "key_terms": [
+        {
+          "term": "reward hacking",
+          "definition": "钻奖励指标漏洞完成表面目标的奖励投机",
+          "origin": "editor",
+          "aliases": [
+            "reward hacking"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "“品位”“prompt的舔狗”“reward hacking”是讲师概念与比喻，不是模型测评结果。",
+      "claim_type": [
+        "opinion",
+        "analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "prompt/reward emphasis"
+        },
+        {
+          "id": "step-2",
+          "label": "short-term completion strategy"
+        },
+        {
+          "id": "step-3",
+          "label": "potentially poor long-term result"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-008",
+      "priority": "A",
+      "topic": "讲师讨论可验证性边界：品味可能较难验证；数学虽可形式化，仍可能在自然语言问题到形式定义之间产生语义缺口。",
+      "kind": "speculation",
+      "why": "必须保留‘可能/仍有 gap’；不可声称讲师核实了某个黎曼猜想或 P≠NP 证明故事。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "你你的autumn formalization"
+        }
+      ],
+      "must_preserve": [
+        "讲师讨论可验证性边界：品味可能较难验证；数学虽可形式化，仍可能在自然语言问题到形式定义之间产生语义缺口。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“autumn formalization”、黎曼猜想/P≠NP 段落含明显 ASR 不确定；笑话不可当作已核验数学事件。",
+      "claim_type": [
+        "opinion",
+        "uncertain_inference"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "natural-language intent"
+        },
+        {
+          "id": "step-2",
+          "label": "formalization"
+        },
+        {
+          "id": "step-3",
+          "label": "possible definition gap"
+        },
+        {
+          "id": "step-4",
+          "label": "formal proof may target wrong statement"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-009",
+      "priority": "A",
+      "topic": "讲师把 Bitter Lesson 在当下的延伸理解为 scaling law，并暂称一种围绕训练数据分布的工程。",
+      "kind": "speculation",
+      "why": "标为讲师解释/暂称，不把‘数据分布工程’当成已公认术语。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "其实呃the bitter lesson到今天就是the scaling law"
+        }
+      ],
+      "must_preserve": [
+        "讲师把 Bitter Lesson 在当下的延伸理解为 scaling law，并暂称一种围绕训练数据分布的工程。"
+      ],
+      "terms": [
+        "scaling law",
+        "数据分布工程"
+      ],
+      "key_terms": [
+        {
+          "term": "scaling law",
+          "definition": "规模扩大与模型能力变化之间的经验关系",
+          "origin": "editor",
+          "aliases": [
+            "scaling law"
+          ],
+          "requires_definition": true
+        },
+        {
+          "term": "数据分布工程",
+          "definition": "按领域、时机和比例组织训练数据的做法",
+          "origin": "editor",
+          "aliases": [
+            "数据分布工程"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "“scaling law”被 ASR 写成“skin law”处多处；“数据分布工程”是讲师自拟称呼。",
+      "claim_type": [
+        "opinion",
+        "uncertain_inference"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "scaling perspective"
+        },
+        {
+          "id": "step-2",
+          "label": "deliberate data-distribution choices"
+        },
+        {
+          "id": "step-3",
+          "label": "model capability hypothesis"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-010",
+      "priority": "A",
+      "topic": "讲师推测空间推理/生成能力来自训练与后训练中加入相关空间数据，并配合好坏/对错反馈。",
+      "kind": "speculation",
+      "why": "必须标‘推测/讲师判断’，不得将训练配方写成公开事实。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "那另外一个维度的skin law就变成了以前以前嘛"
+        }
+      ],
+      "must_preserve": [
+        "讲师推测空间推理/生成能力来自训练与后训练中加入相关空间数据，并配合好坏/对错反馈。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "关于具体模型训练数据的“肯定”是讲师推断，字幕没有训练报告。",
+      "claim_type": [
+        "uncertain_inference",
+        "analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "targeted data + feedback"
+        },
+        {
+          "id": "step-2",
+          "label": "hypothesized spatial understanding"
+        },
+        {
+          "id": "step-3",
+          "label": "observed capability (speaker inference)"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-011",
+      "priority": "A",
+      "topic": "讲师提出假设：在已有强基模上加入新领域并做强化学习，可能使整体任务表现更好。",
+      "kind": "prediction",
+      "why": "保留‘可能/讲师认为’；不得泛化为所有模型必然跨任务提升。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "然后他就会在所有的任务上都做得更好"
+        }
+      ],
+      "must_preserve": [
+        "讲师提出假设：在已有强基模上加入新领域并做强化学习，可能使整体任务表现更好。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "这是讲师对迁移效果的推论，非实验数据。",
+      "claim_type": [
+        "prediction",
+        "uncertain_inference"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "strong base model + new-domain RL"
+        },
+        {
+          "id": "step-2",
+          "label": "hypothesized broad improvement"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-012",
+      "priority": "A",
+      "topic": "讲师用模拟器说明：直接依赖模拟器反馈时，模型可能钻渲染细节的奖励漏洞而不能泛化；强基模再做空间训练可能降低数据需求。",
+      "kind": "speculation",
+      "why": "必须保留代理奖励—钻漏洞—不泛化的链条，不能只留下 reward hacking 关键词。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "然后模拟器数据我们的模型是一个reward hacker"
+        }
+      ],
+      "must_preserve": [
+        "讲师用模拟器说明：直接依赖模拟器反馈时，模型可能钻渲染细节的奖励漏洞而不能泛化；强基模再做空间训练可能降低数据需求。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“road hack”“巨型智能/机动模型”等为 ASR 疑义；保留可确认的 reward-hacking 机制描述。",
+      "claim_type": [
+        "analysis",
+        "uncertain_inference"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "simulator proxy"
+        },
+        {
+          "id": "step-2",
+          "label": "pixel-level reward hack"
+        },
+        {
+          "id": "step-3",
+          "label": "no generalization; strong prior"
+        },
+        {
+          "id": "step-4",
+          "label": "potentially less new-domain data"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-013",
+      "priority": "A",
+      "topic": "讲师猜测：随着基模已有能力增加，每新增一个人类领域可能需要更少数据而达到可用泛化。",
+      "kind": "prediction",
+      "why": "必须保留猜测和‘可能’；不可写成已证实 scaling law。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "你每加一个新的人类的领域"
+        }
+      ],
+      "must_preserve": [
+        "讲师猜测：随着基模已有能力增加，每新增一个人类领域可能需要更少数据而达到可用泛化。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "讲师明示“我猜测”；“反华”疑为“泛化”类 ASR 错词。",
+      "claim_type": [
+        "uncertain_inference",
+        "prediction"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "existing capabilities"
+        },
+        {
+          "id": "step-2",
+          "label": "lower marginal data need (hypothesis)"
+        },
+        {
+          "id": "step-3",
+          "label": "new-domain transfer"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-014",
+      "priority": "A",
+      "topic": "讲师提出工程飞轮：按时机和比例注入数据、保持训练稳定与推理一致，资本可继续扩大规模；更好算法/结构仍可能只带来增量。",
+      "kind": "prediction",
+      "why": "保留条件与归因；不可压缩成‘架构/算法永远不重要’的客观结论。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "你有skin law这个模型就能训成"
+        }
+      ],
+      "must_preserve": [
+        "讲师提出工程飞轮：按时机和比例注入数据、保持训练稳定与推理一致，资本可继续扩大规模；更好算法/结构仍可能只带来增量。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“模型的架构不重要、算法不重要、无限 scale”是讲师的强判断，不能脱离归因。",
+      "claim_type": [
+        "opinion",
+        "prediction"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "data scheduling + stable training/inference + resources"
+        },
+        {
+          "id": "step-2",
+          "label": "scalable training loop"
+        },
+        {
+          "id": "step-3",
+          "label": "claimed capability growth"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-015",
+      "priority": "A",
+      "topic": "讲师对学术研究的影响判断：论文投稿/AI slop 增多，而大模型厂商可把小规模想法或 blog post 放到自有数据与递归改进循环中验证。",
+      "kind": "prediction",
+      "why": "必须把这是讲师对研究生态的判断写成归因观点；不得伪造投稿统计或厂商流程事实。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "rise recursive improvement的一个循环"
+        }
+      ],
+      "must_preserve": [
+        "讲师对学术研究的影响判断：论文投稿/AI slop 增多，而大模型厂商可把小规模想法或 blog post 放到自有数据与递归改进循环中验证。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“a e care”“机摩场”“rise recursive improvement”均可能是 ASR；只保留能从上下文确认的对比。",
+      "claim_type": [
+        "opinion",
+        "prediction"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "academic output inflation + unequal compute/data"
+        },
+        {
+          "id": "step-2",
+          "label": "blog idea ingestion"
+        },
+        {
+          "id": "step-3",
+          "label": "large-scale internal testing/RSI loop"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-016",
+      "priority": "A",
+      "topic": "讲师设想新领域训练飞轮：找到领域、建立反馈、优化分布并接入基模，使能力逐台阶提升；具体领域和投资例子不确定。",
+      "kind": "prediction",
+      "why": "保留领域候选和‘也许/我不知道’；不把听闻或金额写成核实新闻。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "ANTHROPIC要做一个这个wet lab"
+        }
+      ],
+      "must_preserve": [
+        "讲师设想新领域训练飞轮：找到领域、建立反馈、优化分布并接入基模，使能力逐台阶提升；具体领域和投资例子不确定。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“Anthropic wet lab”是讲师转述的听闻，情感计算/化学/生物/老鼠行为是例示而非已选定方向。",
+      "claim_type": [
+        "prediction",
+        "uncertain_inference"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "new domain"
+        },
+        {
+          "id": "step-2",
+          "label": "feedback"
+        },
+        {
+          "id": "step-3",
+          "label": "distribution optimization"
+        },
+        {
+          "id": "step-4",
+          "label": "base-model training"
+        },
+        {
+          "id": "step-5",
+          "label": "capability step-up"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-017",
+      "priority": "A",
+      "topic": "讲师认为以随机想法—投稿—同行评审为主的研究体系可能受新训练闭环冲击，甚至接近崩溃。",
+      "kind": "prediction",
+      "why": "保留‘我觉得/可能’和比较关系，不能写成学术体系已崩溃。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "然后这个我觉得这个体系马上就要崩溃了"
+        }
+      ],
+      "must_preserve": [
+        "讲师认为以随机想法—投稿—同行评审为主的研究体系可能受新训练闭环冲击，甚至接近崩溃。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“马上崩溃”是讲师预测，不是观察到的确定事件。",
+      "claim_type": [
+        "opinion",
+        "prediction"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "closed-loop industrial research"
+        },
+        {
+          "id": "step-2",
+          "label": "pressure on conventional paper/peer-review loop"
+        },
+        {
+          "id": "step-3",
+          "label": "predicted system change"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-018",
+      "priority": "A",
+      "topic": "讲师把系统架构品位作为可训练的小领域，并预测模型未来可能内化系统设计能力。",
+      "kind": "prediction",
+      "why": "不可写成下一版模型已经具备该能力。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "你嗯笑话AI生成的这个swap code"
+        }
+      ],
+      "must_preserve": [
+        "讲师把系统架构品位作为可训练的小领域，并预测模型未来可能内化系统设计能力。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“swap code”疑为 ASR；下一版模型是讲师预测。",
+      "claim_type": [
+        "proposal",
+        "prediction"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "architecture-quality feedback"
+        },
+        {
+          "id": "step-2",
+          "label": "training domain"
+        },
+        {
+          "id": "step-3",
+          "label": "future model design ability (prediction)"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-019",
+      "priority": "B",
+      "topic": "讲师以竞争和能力门槛上升解释学习软件工程的必要性：AI 能力增长不等于人可以完全放弃理解与判断。",
+      "kind": "opinion",
+      "why": "保留这是讲师的社会判断，不把‘斩杀线’当可测指标。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "不管是ANTHROPY还是open AI还是deep seek"
+        }
+      ],
+      "must_preserve": [
+        "讲师以竞争和能力门槛上升解释学习软件工程的必要性：AI 能力增长不等于人可以完全放弃理解与判断。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“斩杀线”是讲师的比喻；关于人类进步是价值判断。",
+      "claim_type": [
+        "opinion",
+        "social_analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "AI capability growth"
+        },
+        {
+          "id": "step-2",
+          "label": "rising competence threshold"
+        },
+        {
+          "id": "step-3",
+          "label": "continued need for human learning/judgment"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-020",
+      "priority": "A",
+      "topic": "软件构造的核心困难是 intent、specification、implementation 三层之间存在 gap；这促成软件工程问题。",
+      "kind": "opinion",
+      "why": "三层和方向关系必须同时出现；只写‘AI 写代码很难’不算支持。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "我们的软件软件所面临的问题是是我们的intent"
+        }
+      ],
+      "must_preserve": [
+        "软件构造的核心困难是 intent、specification、implementation 三层之间存在 gap；这促成软件工程问题。"
+      ],
+      "terms": [
+        "Intent",
+        "Specification",
+        "Implementation"
+      ],
+      "key_terms": [
+        {
+          "term": "Intent",
+          "definition": "用户真正想达到的目标",
+          "origin": "editor",
+          "aliases": [
+            "Intent"
+          ],
+          "requires_definition": true
+        },
+        {
+          "term": "Specification",
+          "definition": "明确软件应遵守的行为、接口和条件",
+          "origin": "editor",
+          "aliases": [
+            "Specification"
+          ],
+          "requires_definition": true
+        },
+        {
+          "term": "Implementation",
+          "definition": "实际编写并运行的软件",
+          "origin": "editor",
+          "aliases": [
+            "Implementation"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "字幕把 specification 拼成 SPECIICATION；按上下文可恢复为 specification，但证据短摘录保留原形。",
+      "claim_type": [
+        "definition",
+        "analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "intent"
+        },
+        {
+          "id": "step-2",
+          "label": "specification"
+        },
+        {
+          "id": "step-3",
+          "label": "implementation; gaps/drift"
+        },
+        {
+          "id": "step-4",
+          "label": "construction difficulty"
+        },
+        {
+          "id": "step-5",
+          "label": "software-engineering practices"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-021",
+      "priority": "A",
+      "topic": "讲师推荐先做最小版本：减少一次性错误，用接近最终产品的可运行物暴露 intent/spec/implementation gap，再迭代。",
+      "kind": "opinion",
+      "why": "必须保留‘小—暴露 gap—迭代’链，不能只保留 MVP 定义。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "因为它可以帮助我去补上这个intent specification"
+        }
+      ],
+      "must_preserve": [
+        "讲师推荐先做最小版本：减少一次性错误，用接近最终产品的可运行物暴露 intent/spec/implementation gap，再迭代。"
+      ],
+      "terms": [
+        "MVP"
+      ],
+      "key_terms": [
+        {
+          "term": "MVP",
+          "definition": "最小可行产品，先做能运行并获得反馈的版本",
+          "origin": "editor",
+          "aliases": [
+            "MVP"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "讲师在字幕中把 MVP 口语解释为“最小原型”，不要强行替换成别的产品定义。",
+      "claim_type": [
+        "recommendation",
+        "analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "small near-final prototype"
+        },
+        {
+          "id": "step-2",
+          "label": "lower cost of being wrong"
+        },
+        {
+          "id": "step-3",
+          "label": "reveal intent/spec/implementation mismatch"
+        },
+        {
+          "id": "step-4",
+          "label": "iteration"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-022",
+      "priority": "A",
+      "topic": "讲师用标签打印机和扫描仪示范：屏蔽难用厂商软件，把物理设备抽象成稳定的 scan/print 等高层接口，从而解耦设计与实现。",
+      "kind": "opinion",
+      "why": "必须保留物理设备—抽象—解耦关系，不能泛化成‘所有驱动都不需要’。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "把一个设备抽象成read write I/O control的一个接口"
+        }
+      ],
+      "must_preserve": [
+        "讲师用标签打印机和扫描仪示范：屏蔽难用厂商软件，把物理设备抽象成稳定的 scan/print 等高层接口，从而解耦设计与实现。"
+      ],
+      "terms": [
+        "物理设备"
+      ],
+      "key_terms": [
+        {
+          "term": "物理设备",
+          "definition": "能被软件驱动的现实硬件",
+          "origin": "editor",
+          "aliases": [
+            "物理设备"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "I/O control、scan/print 是讲师示例；具体设备型号不应补造。",
+      "claim_type": [
+        "demonstration",
+        "design_principle"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "physical devices + bad vendor apps"
+        },
+        {
+          "id": "step-2",
+          "label": "own abstraction layer"
+        },
+        {
+          "id": "step-3",
+          "label": "stable interface"
+        },
+        {
+          "id": "step-4",
+          "label": "software independent of device implementation"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-023",
+      "priority": "A",
+      "topic": "抽象接口承载用户可理解的扫描选项与 print(image)，让上层设计不依赖底层设备实现。",
+      "kind": "opinion",
+      "why": "参数需与接口关系一起保留；不要把讲师的设备示例改写成标准 API 规范。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "把一个设备抽象成read write I/O control的一个接口"
+        }
+      ],
+      "must_preserve": [
+        "抽象接口承载用户可理解的扫描选项与 print(image)，让上层设计不依赖底层设备实现。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“正面向上还是向面向上”是 ASR 疑义；可确认的是扫描方向、单双面、dpi 和 print(image) 接口。",
+      "claim_type": [
+        "design_principle",
+        "demonstration"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "device-specific controls"
+        },
+        {
+          "id": "step-2",
+          "label": "normalized parameters"
+        },
+        {
+          "id": "step-3",
+          "label": "upper-layer design/implementation decoupling"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-024",
+      "priority": "A",
+      "topic": "面对非标准热转印打印机，Agent 通过反复打印、观察浓淡并调参数，最终尝试通用 PCL 驱动；人只给可验收结果而非逐步操作。",
+      "kind": "opinion",
+      "why": "须保留‘迭代试验—验收结果’链；不把设备型号或 PCL 适配写成已验证通用方案。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "就比如说这个打印机里面有一个有一个选项"
+        }
+      ],
+      "must_preserve": [
+        "面对非标准热转印打印机，Agent 通过反复打印、观察浓淡并调参数，最终尝试通用 PCL 驱动；人只给可验收结果而非逐步操作。"
+      ],
+      "terms": [
+        "PCL"
+      ],
+      "key_terms": [
+        {
+          "term": "PCL",
+          "definition": "向打印机描述打印内容的指令语言",
+          "origin": "editor",
+          "aliases": [
+            "PCL"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "“easy scan”、PCL、热转印、参数含义来自字幕；型号/术语可能有 ASR 错误，保留疑义。",
+      "claim_type": [
+        "demonstration",
+        "analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "nonstandard hardware"
+        },
+        {
+          "id": "step-2",
+          "label": "parameter probing/feedback"
+        },
+        {
+          "id": "step-3",
+          "label": "driver choice"
+        },
+        {
+          "id": "step-4",
+          "label": "acceptable output"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-025",
+      "priority": "A",
+      "topic": "讲师设想：当接近实时的 Agent 能用 computer use 调用服务时，面向人的 App 可能退居接口/API，服务由 Agent 代办。",
+      "kind": "prediction",
+      "why": "保留‘设想/可能’，名称疑义不可擅自补成 JEFF/Jev 等确定实体。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "然后这个接口反正他有computer use去调用"
+        }
+      ],
+      "must_preserve": [
+        "讲师设想：当接近实时的 Agent 能用 computer use 调用服务时，面向人的 App 可能退居接口/API，服务由 Agent 代办。"
+      ],
+      "terms": [
+        "Computer Use",
+        "API"
+      ],
+      "key_terms": [
+        {
+          "term": "Computer Use",
+          "definition": "让 AI 观察屏幕并点击、输入以操作软件",
+          "origin": "editor",
+          "aliases": [
+            "Computer Use"
+          ],
+          "requires_definition": true
+        },
+        {
+          "term": "API",
+          "definition": "供程序调用功能或数据的接口",
+          "origin": "editor",
+          "aliases": [
+            "API"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "“JEFF”“JB”多处互相矛盾，名称未核实；computer use/API 是可确认概念。",
+      "claim_type": [
+        "opinion",
+        "prediction"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "fast Agent/computer use"
+        },
+        {
+          "id": "step-2",
+          "label": "app functions exposed as interfaces/API"
+        },
+        {
+          "id": "step-3",
+          "label": "Agent-mediated service use"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-026",
+      "priority": "A",
+      "topic": "讲师以阿里整合服务为例，预测 Agent 接口化会冲击传统 App/软件公司的产业链，甚至提出软件公司可能消亡。",
+      "kind": "prediction",
+      "why": "必须归因并保留极端预测语气；不可写成软件公司已消亡。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "然后那个时候他模型它的算力可能也不够"
+        }
+      ],
+      "must_preserve": [
+        "讲师以阿里整合服务为例，预测 Agent 接口化会冲击传统 App/软件公司的产业链，甚至提出软件公司可能消亡。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "阿里是字幕明确出现的公司名；‘彻底消亡’是讲师的极强预测，不是行业事实。",
+      "claim_type": [
+        "reported_example",
+        "prediction"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "service integration for Agents"
+        },
+        {
+          "id": "step-2",
+          "label": "less need for human-facing app software"
+        },
+        {
+          "id": "step-3",
+          "label": "predicted industry disruption"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-027",
+      "priority": "A",
+      "topic": "讲师比较传统硬件配套软件的跨平台驱动成本与 AI 时代按需生成定制软件的低成本，并据此预测产业结构变化。",
+      "kind": "prediction",
+      "why": "保留‘讲师比较/预测’，不能输出未经来源支持的成本倍数。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "生产intelligence的成本会非常非常的呃低"
+        }
+      ],
+      "must_preserve": [
+        "讲师比较传统硬件配套软件的跨平台驱动成本与 AI 时代按需生成定制软件的低成本，并据此预测产业结构变化。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“AI杀死”是讲师修辞；Windows/Mac 驱动例子用于说明成本，不是成本统计。",
+      "claim_type": [
+        "opinion",
+        "prediction"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "traditional cross-platform drivers costly"
+        },
+        {
+          "id": "step-2",
+          "label": "AI-generated tailored software cheaper"
+        },
+        {
+          "id": "step-3",
+          "label": "pressure on packaged software business"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-028",
+      "priority": "A",
+      "topic": "课程计划把个人助手接入物理设备；讲师示例是把 Android APK 交给模型，探索标准蓝牙设备协议并驱动设备。",
+      "kind": "observation",
+      "why": "必须保留 Agent 探索硬件协议/参数的链条；不可声称逆向一定成功或设备一定有 Linux 驱动。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "直接把那个android app的APK丢进去"
+        }
+      ],
+      "must_preserve": [
+        "课程计划把个人助手接入物理设备；讲师示例是把 Android APK 交给模型，探索标准蓝牙设备协议并驱动设备。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“cloud open4.6”“APK”及设备细节有 ASR 疑义；核心是 Android APK、蓝牙协议和 Agent 探索。",
+      "claim_type": [
+        "assignment",
+        "demonstration"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "physical device + opaque app"
+        },
+        {
+          "id": "step-2",
+          "label": "APK inspection"
+        },
+        {
+          "id": "step-3",
+          "label": "Bluetooth protocol inference"
+        },
+        {
+          "id": "step-4",
+          "label": "device control"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-029",
+      "priority": "A",
+      "topic": "即使实现和硬件接入越来越便宜，软件工程历史中的理念仍可指导人与 Agent 的协作和取舍。",
+      "kind": "opinion",
+      "why": "必须说明‘智慧仍在’的理由来自设计、接口、容错/取舍，不可只写口号。",
+      "sources": [
+        {
+          "chunk": "S04",
+          "quote": "虽然今天我们已经生在这个时代了"
+        }
+      ],
+      "must_preserve": [
+        "即使实现和硬件接入越来越便宜，软件工程历史中的理念仍可指导人与 Agent 的协作和取舍。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“agent native”是讲师定位用语。",
+      "claim_type": [
+        "thesis",
+        "recommendation"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "historical engineering principles"
+        },
+        {
+          "id": "step-2",
+          "label": "better Agent collaboration/design decisions"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-030",
+      "priority": "A",
+      "topic": "软件需求不像材料强度那样由自然规律预先固定，而是高度定制、连接社会与人的偏好，连提出 intent 的人也可能漏掉边界条件。",
+      "kind": "opinion",
+      "why": "需保留‘需求可变/偏好/边界条件’因果；不能概括成所有软件需求都是随意拍脑袋。",
+      "sources": [
+        {
+          "chunk": "S04",
+          "quote": "这个各种各样的corner case应该怎么样"
+        }
+      ],
+      "must_preserve": [
+        "软件需求不像材料强度那样由自然规律预先固定，而是高度定制、连接社会与人的偏好，连提出 intent 的人也可能漏掉边界条件。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“拍脑袋”是讲师口语化概括；选课系统例子是课堂假设。",
+      "claim_type": [
+        "analysis",
+        "example"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "mutable/socially constructed needs"
+        },
+        {
+          "id": "step-2",
+          "label": "hidden corner cases"
+        },
+        {
+          "id": "step-3",
+          "label": "intent/spec gap"
+        },
+        {
+          "id": "step-4",
+          "label": "software difficulty"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-031",
+      "priority": "A",
+      "topic": "软件规模与复杂度增长后，进度、成本、质量同时失控，延期和难预测成为危机表现。",
+      "kind": "opinion",
+      "why": "保留危机表现，不增写未经字幕支持的行业数据。",
+      "sources": [
+        {
+          "chunk": "S04",
+          "quote": "然后那个时候其实camera scientist已经观察到了"
+        }
+      ],
+      "must_preserve": [
+        "软件规模与复杂度增长后，进度、成本、质量同时失控，延期和难预测成为危机表现。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "这是讲师对早期软件危机的课堂概述，不是给出统计比例。",
+      "claim_type": [
+        "historical_analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "scale/complexity"
+        },
+        {
+          "id": "step-2",
+          "label": "schedule/cost/quality instability"
+        },
+        {
+          "id": "step-3",
+          "label": "software crisis"
+        },
+        {
+          "id": "step-4",
+          "label": "engineering discipline"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-032",
+      "priority": "A",
+      "topic": "goto 的争论核心是控制流可读性；受限的 goto release 可用于统一释放资源，因此不能把‘goto 有害’简化成绝对禁用。",
+      "kind": "opinion",
+      "why": "必须保留‘滥用有害、受限 cleanup 可用’的双面关系。",
+      "sources": [
+        {
+          "chunk": "S04",
+          "quote": "idiomatic的用法就是你你最后有go to release"
+        }
+      ],
+      "must_preserve": [
+        "goto 的争论核心是控制流可读性；受限的 goto release 可用于统一释放资源，因此不能把‘goto 有害’简化成绝对禁用。"
+      ],
+      "terms": [
+        "goto"
+      ],
+      "key_terms": [
+        {
+          "term": "goto",
+          "definition": "让程序跳到指定标签处继续执行的语句",
+          "origin": "editor",
+          "aliases": [
+            "goto"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "“构图”应是 ASR 疑义，语境指 goto；Dijkstra 姓名在字幕中多次被识别为 DEXTRA。",
+      "claim_type": [
+        "historical_reference",
+        "design_principle"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "unstructured control flow"
+        },
+        {
+          "id": "step-2",
+          "label": "unreadable code; constrained cleanup jump"
+        },
+        {
+          "id": "step-3",
+          "label": "resource release discipline"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-033",
+      "priority": "A",
+      "topic": "讲师用 The Humble Programmer 解释：机器能力增强会承载更多现实 intent，从而增加不确定性与实现复杂度；应以谦逊和良好分解应对。",
+      "kind": "opinion",
+      "why": "保留文章与因果解释，并标注 Dijkstra 归名未由原始字幕确认。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "它也是一个nicely factor的solution"
+        }
+      ],
+      "must_preserve": [
+        "讲师用 The Humble Programmer 解释：机器能力增强会承载更多现实 intent，从而增加不确定性与实现复杂度；应以谦逊和良好分解应对。"
+      ],
+      "terms": [
+        "The Humble Programmer"
+      ],
+      "key_terms": [
+        {
+          "term": "The Humble Programmer",
+          "definition": "讨论程序复杂性与程序员谦逊的文章/演讲",
+          "origin": "editor",
+          "aliases": [
+            "The Humble Programmer"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "字幕把 Dijkstra 识别为“DEXTRA”；旧 book 写作 Dijkstra，姓名应标 ASR 疑义。文章英文题名可由字幕确认为 The Humble Programmer。",
+      "claim_type": [
+        "historical_reference",
+        "analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "stronger machines"
+        },
+        {
+          "id": "step-2",
+          "label": "more real-world intent"
+        },
+        {
+          "id": "step-3",
+          "label": "more uncertainty/complexity"
+        },
+        {
+          "id": "step-4",
+          "label": "need for structured solutions"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-034",
+      "priority": "A",
+      "topic": "讲师把约 1968 年的某个 NATO 相关软件工程会议与软件工程概念的提出联系起来，并转入 Apollo 软件工程案例。",
+      "kind": "observation",
+      "why": "可写‘讲师提到的 NATO 会议/约 1968’，不能无证据补‘资助’或会议精确名称。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "这位最初的软件工程师把宇航员啊送上了月球"
+        }
+      ],
+      "must_preserve": [
+        "讲师把约 1968 年的某个 NATO 相关软件工程会议与软件工程概念的提出联系起来，并转入 Apollo 软件工程案例。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“NATTO”与“Vista polo code/APOLLO”是 ASR 疑义；讲师没有在字幕中给出会议全名或资金关系。",
+      "claim_type": [
+        "historical_reference",
+        "uncertain_entity"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "software failures/large missions"
+        },
+        {
+          "id": "step-2",
+          "label": "engineering conference/concept"
+        },
+        {
+          "id": "step-3",
+          "label": "Apollo engineering practice"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-035",
+      "priority": "A",
+      "topic": "Apollo 案例被用来说明防御式第一原则：把‘不会发生’当作可能，异常时以优先级和 recovery 保住关键任务。",
+      "kind": "opinion",
+      "why": "保留异常—兜底—关键任务继续的链条；不要把讲师概括扩写成外部事故细节。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "它的the first principle就是这个never going to happen"
+        }
+      ],
+      "must_preserve": [
+        "Apollo 案例被用来说明防御式第一原则：把‘不会发生’当作可能，异常时以优先级和 recovery 保住关键任务。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "Apollo 11、警报和优先级/recovery 是字幕中的讲述；不从外部补充警报编号。",
+      "claim_type": [
+        "historical_reference",
+        "design_principle"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "assume impossible failure can occur"
+        },
+        {
+          "id": "step-2",
+          "label": "add fallback/priority/recovery"
+        },
+        {
+          "id": "step-3",
+          "label": "critical task continues"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-036",
+      "priority": "A",
+      "topic": "讲师给软件工程下的工作性定义：在成本与时间约束下，把人的/客户的意图转成可工作、可维护、可随时间演进的系统。",
+      "kind": "observation",
+      "why": "定义中的约束和维护演进必须保留。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "你想要设计你要做的产品或者是客户的要求"
+        }
+      ],
+      "must_preserve": [
+        "讲师给软件工程下的工作性定义：在成本与时间约束下，把人的/客户的意图转成可工作、可维护、可随时间演进的系统。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“生存”是字幕原词，按语境理解为随时间演进仍可工作的系统。",
+      "claim_type": [
+        "definition"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "human intent + constraints"
+        },
+        {
+          "id": "step-2",
+          "label": "working/maintainable/evolving software"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-037",
+      "priority": "A",
+      "topic": "被教材称为瀑布模型出处的文章实际上批判其失败风险；文档/设计未运行时约束弱，直到测试才显露行为和 intent/spec/implementation 漂移。",
+      "kind": "opinion",
+      "why": "不可把原文写成单向瀑布的倡导；必须保留‘教材误读—测试晚反馈—返工’关系。",
+      "sources": [
+        {
+          "chunk": "S06",
+          "quote": "比如说你的从intent到specification到implementation"
+        }
+      ],
+      "must_preserve": [
+        "被教材称为瀑布模型出处的文章实际上批判其失败风险；文档/设计未运行时约束弱，直到测试才显露行为和 intent/spec/implementation 漂移。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "Winston Royce、文章题名和“瀑布模型”关联需以字幕上下文归因；英文拼写存在 ASR 错误。",
+      "claim_type": [
+        "historical_reference",
+        "analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "stage separation + weak pre-execution feedback"
+        },
+        {
+          "id": "step-2",
+          "label": "late test discovery"
+        },
+        {
+          "id": "step-3",
+          "label": "upstream rework/cost"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-038",
+      "priority": "A",
+      "topic": "先做不完备但可体现系统功能的 pilot，使失败和迭代成本低，再把反馈反映到设计；讲师把它映射为 MVP。",
+      "kind": "opinion",
+      "why": "保留‘讲师映射’，不可断言历史文章直接使用了现代 MVP 术语。",
+      "sources": [
+        {
+          "chunk": "S06",
+          "quote": "我我这里总总结了一下叫preliminary pilot program"
+        }
+      ],
+      "must_preserve": [
+        "先做不完备但可体现系统功能的 pilot，使失败和迭代成本低，再把反馈反映到设计；讲师把它映射为 MVP。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "讲师把 Royce 的 pilot 与今天的 MVP 对照，是解释性映射。",
+      "claim_type": [
+        "historical_reference",
+        "analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "pilot/prototype"
+        },
+        {
+          "id": "step-2",
+          "label": "cheap failure/iteration"
+        },
+        {
+          "id": "step-3",
+          "label": "design feedback"
+        },
+        {
+          "id": "step-4",
+          "label": "better system"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-039",
+      "priority": "B",
+      "topic": "敏捷/原型的核心不是做两次完整瀑布，而是从极小可运行版本开始反复迭代，让关键假设尽早获得证据。",
+      "kind": "opinion",
+      "why": "必须保留早反馈原则；不要把 hello world 当成必须的生产步骤。",
+      "sources": [
+        {
+          "chunk": "S07",
+          "quote": "所以你看这个first principle"
+        }
+      ],
+      "must_preserve": [
+        "敏捷/原型的核心不是做两次完整瀑布，而是从极小可运行版本开始反复迭代，让关键假设尽早获得证据。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "“hello word”是字幕原形，语境明显指 hello world，但证据不做 silent correction。",
+      "claim_type": [
+        "design_principle",
+        "recommendation"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "tiny runnable version"
+        },
+        {
+          "id": "step-2",
+          "label": "early evidence"
+        },
+        {
+          "id": "step-3",
+          "label": "repeated iteration"
+        },
+        {
+          "id": "step-4",
+          "label": "reduced uncertainty"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-040",
+      "priority": "A",
+      "topic": "把 waterfall 阶段映射到 intent、spec、implementation，并因存在 gap/dependency 而选择 MVP、敏捷或 TDD 以提前反馈。",
+      "kind": "opinion",
+      "why": "三层映射与反馈目的都必须出现；不能只列方法名。",
+      "sources": [
+        {
+          "chunk": "S08",
+          "quote": "当然可能比如说说这个SPA spec"
+        }
+      ],
+      "must_preserve": [
+        "把 waterfall 阶段映射到 intent、spec、implementation，并因存在 gap/dependency 而选择 MVP、敏捷或 TDD 以提前反馈。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "字幕中“intact”“pom”等是 ASR 疑义；保留明确的 intent/spec/implementation 关系。",
+      "claim_type": [
+        "definition",
+        "recommendation"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "intent"
+        },
+        {
+          "id": "step-2",
+          "label": "spec"
+        },
+        {
+          "id": "step-3",
+          "label": "implementation"
+        },
+        {
+          "id": "step-4",
+          "label": "late feedback risk; MVP/agile/TDD"
+        },
+        {
+          "id": "step-5",
+          "label": "earlier feedback"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-041",
+      "priority": "A",
+      "topic": "性质测试通过从规格性质生成输入并寻找反例，增加对代码的信心；测试通过不等于形式证明。",
+      "kind": "opinion",
+      "why": "保留信心/证明的区别，工具名必须标不确定。",
+      "sources": [
+        {
+          "chunk": "S09",
+          "quote": "不能泄露这些隐藏的你代码里面的这些specification"
+        }
+      ],
+      "must_preserve": [
+        "性质测试通过从规格性质生成输入并寻找反例，增加对代码的信心；测试通过不等于形式证明。"
+      ],
+      "terms": [
+        "Property-based testing"
+      ],
+      "key_terms": [
+        {
+          "term": "Property-based testing",
+          "definition": "基于性质，根据不变量生成输入并寻找反例",
+          "origin": "editor",
+          "aliases": [
+            "Property-based testing"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "“pick check”疑为 QuickCheck；不得把工具名当成字幕确认的产品名。",
+      "claim_type": [
+        "design_principle",
+        "uncertain_entity"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "spec/property"
+        },
+        {
+          "id": "step-2",
+          "label": "generated cases"
+        },
+        {
+          "id": "step-3",
+          "label": "counterexample search"
+        },
+        {
+          "id": "step-4",
+          "label": "increased confidence (not certainty)"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-042",
+      "priority": "A",
+      "topic": "最初 MVP 可能把异常排除在 specification 之外；系统演进后，前置/后置条件等契约把异常假设明确化并约束行为。",
+      "kind": "opinion",
+      "why": "不能把契约误写成只在 MVP 之前一次性完成。",
+      "sources": [
+        {
+          "chunk": "S09",
+          "quote": "排除在你的specification space之外"
+        }
+      ],
+      "must_preserve": [
+        "最初 MVP 可能把异常排除在 specification 之外；系统演进后，前置/后置条件等契约把异常假设明确化并约束行为。"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "余额不足是课堂例子；“contract”指 pre/post condition 设计。",
+      "claim_type": [
+        "design_principle",
+        "analysis"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "minimal prototype omits edge cases"
+        },
+        {
+          "id": "step-2",
+          "label": "evolution exposes them"
+        },
+        {
+          "id": "step-3",
+          "label": "contract/spec makes assumptions explicit"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-043",
+      "priority": "B",
+      "topic": "UML 试图作为中间语言分离可对齐与不可对齐的语义；讲师认为 AI 改变了自然语言对齐方式，但其 first principles 仍有指导价值。",
+      "kind": "opinion",
+      "why": "保留‘讲师认为’和‘原则仍在’双层语义，不能写成 UML 客观消失。",
+      "sources": [
+        {
+          "chunk": "S10",
+          "quote": "比如dafany virus这些呃形式化验证的这个工具"
+        }
+      ],
+      "must_preserve": [
+        "UML 试图作为中间语言分离可对齐与不可对齐的语义；讲师认为 AI 改变了自然语言对齐方式，但其 first principles 仍有指导价值。"
+      ],
+      "terms": [
+        "UML"
+      ],
+      "key_terms": [
+        {
+          "term": "UML",
+          "definition": "统一建模语言，用固定含义的图和符号描述软件结构与交互",
+          "origin": "editor",
+          "aliases": [
+            "UML"
+          ],
+          "requires_definition": true
+        }
+      ],
+      "uncertainty": "“UML”及 Unified Modeling Language 可确认；“已经死了”是讲师判断，不是标准状态报告。",
+      "claim_type": [
+        "historical_reference",
+        "opinion"
+      ],
+      "causal_chain": [
+        {
+          "id": "step-1",
+          "label": "natural/formal language gap"
+        },
+        {
+          "id": "step-2",
+          "label": "intermediate modeling language"
+        },
+        {
+          "id": "step-3",
+          "label": "AI changes workflow"
+        },
+        {
+          "id": "step-4",
+          "label": "alignment principle remains"
+        }
+      ],
+      "requires_time_anchor": true
+    },
+    {
+      "id": "L05-C01",
+      "priority": "C",
+      "topic": "可删除一次重复；若保留，应并入专用 token/非自然语言输出命题。",
+      "kind": "observation",
+      "why": "重复口头填充，没有新增学习信息；并入专用 token/输出机制说明。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "但是他可以做做决策"
+        }
+      ],
+      "must_preserve": [],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "C 类删除项，不作为正文知识点。"
+    }
+  ],
+  "c_deletion_summary": {
+    "categories": [
+      "重复口癖",
+      "等待/操作过程",
+      "无新增信息的重复句"
+    ],
+    "count": 1,
+    "policy": "只删 C；保留其余机制、例子与限制。"
+  },
+  "read_time_formula": "book_quality.py: reading_units / 400; 300/500 units/min 仅作敏感性范围。"
+}

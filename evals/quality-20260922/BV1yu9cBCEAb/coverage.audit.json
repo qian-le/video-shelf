@@ -1,0 +1,876 @@
+{
+  "version": 1,
+  "reviewer": "Luna agent-assisted（本次执行者）",
+  "semantic_review": {
+    "performed": true,
+    "mode": "agent_assisted",
+    "method": "逐窗阅读 quality/source.md 的 S01–S09，并回看完整 transcript.corrected.txt；逐项对照 book.md 的机制、因果、例证、限制、观点归属和术语首现释义。"
+  },
+  "items": [
+    {
+      "id": "K01",
+      "status": "covered",
+      "evidence": [
+        "系统仍使用 apt 安装的工具链，目标库的调试信息根本没有生效",
+        "自动化操作的成功提示是待验证的证据，不是结论"
+      ],
+      "checks": [
+        {
+          "requirement": "上次失败的根因是目标 libc 没有真正安装或被实际工具链使用",
+          "evidence": "系统仍使用 apt 安装的工具链，目标库的调试信息根本没有生效"
+        },
+        {
+          "requirement": "修复方式是逐条核对命令结果并重新调试确认",
+          "evidence": "本次修复采用逐条命令核对、重新调试和确认工具链来源的做法。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "musl",
+          "status": "defined",
+          "first_use": "musl（强调小巧、可移植的 C 标准库实现）",
+          "evidence": "musl（强调小巧、可移植的 C 标准库实现）"
+        },
+        {
+          "term": "GDB",
+          "status": "defined",
+          "first_use": "GDB（可单步、查看寄存器和源码的调试器）",
+          "evidence": "GDB（可单步、查看寄存器和源码的调试器）"
+        }
+      ],
+      "note": "保留失败根因和修复方法，删除了安装脚本的逐行走场。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "系统仍使用 apt 安装的工具链，目标库的调试信息根本没有生效"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K02",
+      "status": "covered",
+      "evidence": [
+        "让 AI 帮忙猜测测例、生成测试用例，甚至扮演出题者推断判题方式"
+      ],
+      "checks": [
+        {
+          "requirement": "被 reject 时可生成测试并思考隐藏测例如何检查进程行为",
+          "evidence": "遇到 reject 时，让 AI 帮忙猜测测例、生成测试用例，甚至扮演出题者推断判题方式。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "Online Judge",
+          "status": "defined",
+          "first_use": "Online Judge（自动运行提交并按测例判定结果的评测系统）",
+          "evidence": "Online Judge（自动运行提交并按测例判定结果的评测系统）"
+        }
+      ],
+      "note": "将作业背景压缩为一段，保留其对验证思路的作用。"
+    },
+    {
+      "id": "K03",
+      "status": "covered",
+      "evidence": [
+        "system call（用户程序受控请求内核服务的入口）是访问进程、文件和设备等操作系统对象的底层界面",
+        "libc（C 程序常用的标准功能库，其中一部分封装系统调用）在上层提供 `printf`、`fopen`、`malloc` 等抽象"
+      ],
+      "checks": [
+        {
+          "requirement": "访问操作系统对象需要经过 system call，而直接准备参数会使程序冗长",
+          "evidence": "直接调用它通常要显式准备文件描述符、缓冲区和长度，代码既冗长又容易重复出错。"
+        },
+        {
+          "requirement": "libc 封装 system call，提供 printf、文件和内存等上层接口并保留跨系统的相似语义",
+          "evidence": "libc（C 程序常用的标准功能库，其中一部分封装系统调用）在上层提供 `printf`、`fopen`、`malloc` 等抽象。"
+        },
+        {
+          "requirement": "FILE 与文件描述符的联系说明了 libc 抽象仍受 UNIX 设计影响",
+          "evidence": "file descriptor（内核用整数代表已打开文件等对象的句柄）仍是许多接口的底座；例如 `FILE*` 会把它与缓冲区、标志等状态封装起来。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "system call",
+          "status": "defined",
+          "first_use": "system call（用户程序受控请求内核服务的入口）",
+          "evidence": "system call（用户程序受控请求内核服务的入口）"
+        },
+        {
+          "term": "libc",
+          "status": "defined",
+          "first_use": "libc（C 程序常用的标准功能库，其中一部分封装系统调用）",
+          "evidence": "libc（C 程序常用的标准功能库，其中一部分封装系统调用）"
+        },
+        {
+          "term": "file descriptor",
+          "status": "defined",
+          "first_use": "file descriptor（内核用整数代表已打开文件等对象的句柄）",
+          "evidence": "file descriptor（内核用整数代表已打开文件等对象的句柄）"
+        }
+      ],
+      "note": "保留底层入口、上层抽象和其边界，且把 libc 的释义写成标准功能库而非只写成 syscall 包装。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "system call（用户程序受控请求内核服务的入口）是访问进程、文件和设备等操作系统对象的底层界面"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K04",
+      "status": "covered",
+      "evidence": [
+        "_start（进程执行的底层入口，负责把初始状态交给 C 运行时）可以由程序员直接控制",
+        "课堂的最小程序还配合额外的链接和启动设置，才得到从自定义入口开始的二进制",
+        "C 还可以通过 FFI（让一种语言调用另一种语言或运行时代码的互操作接口；本讲例子是 C 调用汇编）调用符合约定的汇编函数"
+      ],
+      "checks": [
+        {
+          "requirement": "free-standing 环境允许标准库不存在且启动不必从 main 开始；课堂最小程序另配链接和启动设置以从自定义入口运行",
+          "evidence": "严格说，free-standing（标准库可以不存在、程序启动不一定从 main 开始的 C 运行环境）描述的是运行环境，不是“自动不链接库”的单一选项。课堂的最小程序还配合额外的链接和启动设置，才得到从自定义入口开始的二进制"
+        },
+        {
+          "requirement": "调用 main 前要按 calling convention 放置 argc、argv、envp 和返回值",
+          "evidence": "把 argc、argv、envp 等指针放进约定的寄存器后跳转到 `main`，返回后再进入 `exit`。"
+        },
+        {
+          "requirement": "C 可通过 FFI 调用符合约定的汇编代码或内联汇编执行系统调用",
+          "evidence": "C 还可以通过 FFI（让一种语言调用另一种语言或运行时代码的互操作接口；本讲例子是 C 调用汇编）调用符合约定的汇编函数，或直接写 inline assembly（嵌在 C 函数中的汇编片段）。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "_start",
+          "status": "defined",
+          "first_use": "_start（进程执行的底层入口，负责把初始状态交给 C 运行时）",
+          "evidence": "_start（进程执行的底层入口，负责把初始状态交给 C 运行时）"
+        },
+        {
+          "term": "free-standing",
+          "status": "defined",
+          "first_use": "free-standing（标准库可以不存在、程序启动不一定从 main 开始的 C 运行环境）",
+          "evidence": "free-standing（标准库可以不存在、程序启动不一定从 main 开始的 C 运行环境）"
+        },
+        {
+          "term": "argc",
+          "status": "defined",
+          "first_use": "argc（命令行参数的个数）",
+          "evidence": "argc（命令行参数的个数）"
+        },
+        {
+          "term": "argv",
+          "status": "defined",
+          "first_use": "argv（参数字符串数组）",
+          "evidence": "argv（参数字符串数组）"
+        },
+        {
+          "term": "envp",
+          "status": "defined",
+          "first_use": "envp（环境变量字符串数组）",
+          "evidence": "envp（环境变量字符串数组）"
+        },
+        {
+          "term": "calling convention",
+          "status": "defined",
+          "first_use": "calling convention（规定参数、返回值和寄存器保存责任的函数调用约定）",
+          "evidence": "calling convention（规定参数、返回值和寄存器保存责任的函数调用约定）"
+        },
+        {
+          "term": "FFI",
+          "status": "defined",
+          "first_use": "FFI（让一种语言调用另一种语言或运行时代码的互操作接口；本讲例子是 C 调用汇编）",
+          "evidence": "FFI（让一种语言调用另一种语言或运行时代码的互操作接口；本讲例子是 C 调用汇编）"
+        }
+      ],
+      "note": "修正 freestanding 的环境定义，明确课堂最小二进制还依赖额外链接/启动设置；FFI 释义也改为一般互操作接口。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "_start（进程执行的底层入口，负责把初始状态交给 C 运行时）可以由程序员直接控制"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K05",
+      "status": "covered",
+      "evidence": [
+        "debug info（把机器状态映射回源代码位置、类型和变量含义的元数据）解决了 GDB “没有可用源代码”的问题",
+        "`gcc -g` 会在 ELF（Linux 常用的可执行文件和目标文件格式）中加入额外的调试 section（按用途划分的二进制数据区域）",
+        "若要调试 musl，则必须用带调试信息的方式重新编译库本身"
+      ],
+      "checks": [
+        {
+          "requirement": "-g 把调试映射和类型等元数据写入 ELF 的调试 section",
+          "evidence": "`gcc -g` 会在 ELF（Linux 常用的可执行文件和目标文件格式）中加入额外的调试 section（按用途划分的二进制数据区域）"
+        },
+        {
+          "requirement": "要调试 musl 必须让库的构建真正使用 -Og/-ggdb 等调试选项并检查 CFLAGS 是否生效",
+          "evidence": "若要调试 musl，则必须用带调试信息的方式重新编译库本身，例如讲师演示的 `-Og -ggdb`，并确认 CFLAGS（传给 C 编译步骤的选项集合）真的传到了库的构建过程。"
+        },
+        {
+          "requirement": "调试信息缺失时 GDB 可能只能看到地址或符号而不能显示源代码",
+          "evidence": "debug info（把机器状态映射回源代码位置、类型和变量含义的元数据）解决了 GDB “没有可用源代码”的问题。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "debug info",
+          "status": "defined",
+          "first_use": "debug info（把机器状态映射回源代码位置、类型和变量含义的元数据）",
+          "evidence": "debug info（把机器状态映射回源代码位置、类型和变量含义的元数据）"
+        },
+        {
+          "term": "ELF",
+          "status": "defined",
+          "first_use": "ELF（Linux 常用的可执行文件和目标文件格式）",
+          "evidence": "ELF（Linux 常用的可执行文件和目标文件格式）"
+        },
+        {
+          "term": "section",
+          "status": "defined",
+          "first_use": "section（按用途划分的二进制数据区域）",
+          "evidence": "section（按用途划分的二进制数据区域）"
+        }
+      ],
+      "note": "保留 -g 的实际产物、库构建条件和“用户程序有信息不等于 libc 有信息”的边界。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "debug info（把机器状态映射回源代码位置、类型和变量含义的元数据）解决了 GDB “没有可用源代码”的问题"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K06",
+      "status": "covered",
+      "evidence": [
+        "符号表（记录函数或变量名称及其地址的表）也能提供粗粒度定位",
+        "addr2line（把程序地址映射为源文件和行号的工具）再利用行号信息把 PC 还原到源代码"
+      ],
+      "checks": [
+        {
+          "requirement": "符号表加 PC 可知道当前函数但不能恢复函数内部行号和变量",
+          "evidence": "这足以支持一个很简陋的调试器，但不能告诉我们函数内部的源代码行或变量值。"
+        },
+        {
+          "requirement": "addr2line 可将地址映射到源代码行",
+          "evidence": "addr2line（把程序地址映射为源文件和行号的工具）再利用行号信息把 PC 还原到源代码。"
+        },
+        {
+          "requirement": "未优化时对应更直观，内联、重排等优化会破坏简单的一一对应",
+          "evidence": "启用指令重排或内联后，语句与指令的对应会变得复杂，调试优化代码需要接受“位置不再一一对应”的限制。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "符号表",
+          "status": "defined",
+          "first_use": "符号表（记录函数或变量名称及其地址的表）",
+          "evidence": "符号表（记录函数或变量名称及其地址的表）"
+        },
+        {
+          "term": "PC",
+          "status": "defined",
+          "first_use": "PC（当前将要执行的机器指令地址）",
+          "evidence": "PC（当前将要执行的机器指令地址）"
+        },
+        {
+          "term": "addr2line",
+          "status": "defined",
+          "first_use": "addr2line（把程序地址映射为源文件和行号的工具）",
+          "evidence": "addr2line（把程序地址映射为源文件和行号的工具）"
+        }
+      ],
+      "note": "保留函数级与行级定位的差异，并把优化限制写成条件而非绝对结论。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "符号表（记录函数或变量名称及其地址的表）也能提供粗粒度定位"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K07",
+      "status": "covered",
+      "evidence": [
+        "DWARF 还描述变量在每个 PC 范围内的存放位置和取值方法",
+        "同类的展开信息也服务于 C++ 异常的 stack unwinding（沿调用栈回退到异常处理点的过程）"
+      ],
+      "checks": [
+        {
+          "requirement": "变量位置随 PC 变化，可能在寄存器、内存或已被优化掉",
+          "evidence": "变量可能在寄存器、内存，或已经被优化掉。"
+        },
+        {
+          "requirement": "DWARF 表达式可通过取寄存器、运算和位域操作重构变量值",
+          "evidence": "能够从寄存器取地址、做运算，再从位域中取出某一位。"
+        },
+        {
+          "requirement": "同类展开信息也用于 C++ 异常沿调用栈回退",
+          "evidence": "同类的展开信息也服务于 C++ 异常的 stack unwinding（沿调用栈回退到异常处理点的过程）。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "DWARF",
+          "status": "defined",
+          "first_use": "DWARF（描述调试信息及其读取方式的通用格式）",
+          "evidence": "DWARF（描述调试信息及其读取方式的通用格式）"
+        },
+        {
+          "term": "stack unwinding",
+          "status": "defined",
+          "first_use": "stack unwinding（沿调用栈回退到异常处理点的过程）",
+          "evidence": "stack unwinding（沿调用栈回退到异常处理点的过程）"
+        }
+      ],
+      "note": "把 DWARF 保留为变量恢复机制，删除了命名梗和手册浏览过程。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "DWARF 还描述变量在每个 PC 范围内的存放位置和取值方法"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K08",
+      "status": "covered",
+      "evidence": [
+        "source map（记录转译后代码如何对应原始源码的映射文件）往往连同源码片段一起提供",
+        "构建过程会执行脚本，来源不明的依赖可能窃取凭据"
+      ],
+      "checks": [
+        {
+          "requirement": "TypeScript 等源码经过多层转译后仍需要映射回原始源码",
+          "evidence": "JavaScript/TypeScript 则可能经历多层 transpiler（把一种源码转换成另一种可执行源码的转译器），最后在浏览器沙盒中运行。"
+        },
+        {
+          "requirement": "浏览器沙盒没有项目目录，source map 可能连同源码片段保存映射",
+          "evidence": "浏览器没有项目目录，因此 source map（记录转译后代码如何对应原始源码的映射文件）往往连同源码片段一起提供，让错误位置、变量和调用栈能回到作者看到的版本。"
+        },
+        {
+          "requirement": "构建不明项目会执行脚本，应在隔离环境中处理且不能盲信 AI 扫描结论",
+          "evidence": "下载或构建此类项目应放在干净的 sandbox（限制程序访问宿主资源的隔离环境）中，并把 AI 的扫描结果当作需要复核的线索。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "transpiler",
+          "status": "defined",
+          "first_use": "transpiler（把一种源码转换成另一种可执行源码的转译器）",
+          "evidence": "transpiler（把一种源码转换成另一种可执行源码的转译器）"
+        },
+        {
+          "term": "source map",
+          "status": "defined",
+          "first_use": "source map（记录转译后代码如何对应原始源码的映射文件）",
+          "evidence": "source map（记录转译后代码如何对应原始源码的映射文件）"
+        },
+        {
+          "term": "sandbox",
+          "status": "defined",
+          "first_use": "sandbox（限制程序访问宿主资源的隔离环境）",
+          "evidence": "sandbox（限制程序访问宿主资源的隔离环境）"
+        }
+      ],
+      "note": "保留跨语言调试的共同目标和依赖脚本的安全边界，未扩写课堂未核验的事件名称。"
+    },
+    {
+      "id": "K09",
+      "status": "covered",
+      "evidence": [
+        "机器层的状态由寄存器、内存和 PC 组成；调试信息把它重新解释成 C 程序的变量、函数和调用关系",
+        "把样本聚合为 flame graph（以横向样本宽度、纵向调用栈深度展示函数在采样中的占比）",
+        "例如，`free(p)` 后继续使用 `p` 属于 use-after-free（释放堆内存后仍通过旧指针访问的错误）"
+      ],
+      "checks": [
+        {
+          "requirement": "debug info 可把寄存器和内存状态恢复成函数、变量和完整调用栈",
+          "evidence": "调试信息把它重新解释成 C 程序的变量、函数和调用关系。"
+        },
+        {
+          "requirement": "固定间隔采样调用栈能估计性能热点并形成火焰图；标准 flame graph 的横向宽度表示聚合样本占比而非时间顺序，讲师现场的时间轴说法需与 flame chart 区分",
+          "evidence": "把样本聚合为 flame graph（以横向样本宽度、纵向调用栈深度展示函数在采样中的占比），就能估计哪些调用路径占用 CPU 较多、可能构成瓶颈；横向排列本身不是时间顺序。"
+        },
+        {
+          "requirement": "use-after-free 可能暂时不崩溃却属于未定义行为，sanitizer 可借助调试信息定位",
+          "evidence": "地址空间中那块内存暂时仍可能可读，所以程序表面上不崩溃；但这已经是 undefined behavior（C 标准不保证结果的程序状态），并可能形成安全漏洞。开启 AddressSanitizer 后，报告会明确指出 `heap-use-after-free`，并给出更多源代码上下文。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "backtrace",
+          "status": "defined",
+          "first_use": "backtrace（从当前状态恢复完整函数调用链的调试操作）",
+          "evidence": "backtrace（从当前状态恢复完整函数调用链的调试操作）"
+        },
+        {
+          "term": "flame graph",
+          "status": "defined",
+          "first_use": "flame graph（以横向样本宽度、纵向调用栈深度展示函数在采样中的占比）",
+          "evidence": "flame graph（以横向样本宽度、纵向调用栈深度展示函数在采样中的占比）"
+        },
+        {
+          "term": "sanitizer",
+          "status": "defined",
+          "first_use": "sanitizer（在编译和运行时检查内存等错误的工具集）",
+          "evidence": "sanitizer（在编译和运行时检查内存等错误的工具集）"
+        },
+        {
+          "term": "use-after-free",
+          "status": "defined",
+          "first_use": "use-after-free（释放堆内存后仍通过旧指针访问的错误）",
+          "evidence": "use-after-free（释放堆内存后仍通过旧指针访问的错误）"
+        },
+        {
+          "term": "undefined behavior",
+          "status": "defined",
+          "first_use": "undefined behavior（C 标准不保证结果的程序状态）",
+          "evidence": "undefined behavior（C 标准不保证结果的程序状态）"
+        }
+      ],
+      "note": "逐项回看了调用栈、采样图和 UAF 段落；按一手 flame graph 定义修正横轴含义，并标出讲师现场说法与标准图义的边界。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "机器层的状态由寄存器、内存和 PC 组成；调试信息把它重新解释成 C 程序的变量、函数和调用关系"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K10",
+      "status": "covered",
+      "evidence": [
+        "CRT（负责把进程初始状态接到 C 运行时的启动代码）随后读取 initial process stack",
+        "auxv（内核传给运行时的键值元数据，如快速时间代码的地址和随机数种子）位于环境变量之后",
+        "随后，libc 的初始化逻辑处理环境和辅助向量，通过函数指针进入 `__libc_start_main` 一类的阶段"
+      ],
+      "checks": [
+        {
+          "requirement": "_start 从栈指针取 argc、argv、envp，并在环境变量之后继续找到 auxv",
+          "evidence": "`_start` 从 `p[0]` 取 `argc`，从 `p+1` 找到 `argv`，再越过 `argc + 1` 个指针找到 `envp`；环境字符串结束后继续遍历辅助向量。"
+        },
+        {
+          "requirement": "auxv 携带 vDSO 地址、随机种子等运行时元数据",
+          "evidence": "auxv（内核传给运行时的键值元数据，如快速时间代码的地址和随机数种子）位于环境变量之后。"
+        },
+        {
+          "requirement": "初始化阶段处理这些数据后才通过 __libc_start_main 一类逻辑进入 main",
+          "evidence": "随后，libc 的初始化逻辑处理环境和辅助向量，通过函数指针进入 `__libc_start_main` 一类的阶段，再按调用约定把参数放到正确寄存器并跳到 `main`。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "initial process stack",
+          "status": "defined",
+          "first_use": "initial process stack（`execve` 创建进程时由内核布置、依次放入参数、环境和辅助信息的初始栈区）",
+          "evidence": "initial process stack（`execve` 创建进程时由内核布置、依次放入参数、环境和辅助信息的初始栈区）"
+        },
+        {
+          "term": "auxv",
+          "status": "defined",
+          "first_use": "auxv（内核传给运行时的键值元数据，如快速时间代码的地址和随机数种子）",
+          "evidence": "auxv（内核传给运行时的键值元数据，如快速时间代码的地址和随机数种子）"
+        },
+        {
+          "term": "CRT",
+          "status": "defined",
+          "first_use": "CRT（负责把进程初始状态接到 C 运行时的启动代码）",
+          "evidence": "CRT（负责把进程初始状态接到 C 运行时的启动代码）"
+        }
+      ],
+      "note": "从完整字幕回看了初始栈、环境变量、auxv 和 CRT 初始化链；没有把 main 误写成第一条进程指令。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "CRT（负责把进程初始状态接到 C 运行时的启动代码）随后读取 initial process stack"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K11",
+      "status": "covered",
+      "evidence": [
+        "`main` 返回后进入 `exit`，清理工作完成后由 `_exit` 相关系统调用结束进程。",
+        "在带调试信息的 musl 上对 `printf` 下断点，可看到它先取出变参数，再进入 `vfprintf` 一类的格式化逻辑",
+        "strace（记录进程发出的系统调用及其参数的跟踪工具）观察到的写调用很少"
+      ],
+      "checks": [
+        {
+          "requirement": "main 返回后经过 exit 清理并最终由底层系统调用结束进程",
+          "evidence": "`main` 返回后进入 `exit`，清理工作完成后由 `_exit` 相关系统调用结束进程。"
+        },
+        {
+          "requirement": "printf 先处理格式和变参数，再通过 stdout 的 FILE 状态进入 write 类系统调用",
+          "evidence": "在带调试信息的 musl 上对 `printf` 下断点，可看到它先取出变参数，再进入 `vfprintf` 一类的格式化逻辑；`stdout` 的 `FILE` 对象保存文件描述符、缓冲区和标志"
+        },
+        {
+          "requirement": "strace 只看到少量写调用，说明 libc 将缓冲和格式化细节封装起来",
+          "evidence": "解析格式字符串后，最终通过 `write` 类系统调用输出。对简单格式化打印，strace（记录进程发出的系统调用及其参数的跟踪工具）观察到的写调用很少，这正体现了 libc 对底层细节的封装。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "strace",
+          "status": "defined",
+          "first_use": "strace（记录进程发出的系统调用及其参数的跟踪工具）",
+          "evidence": "strace（记录进程发出的系统调用及其参数的跟踪工具）"
+        }
+      ],
+      "note": "保留 CRT→main→exit 与 printf→vfprintf→write 两条可调试路径，删除了界面操作。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "`main` 返回后进入 `exit`，清理工作完成后由 `_exit` 相关系统调用结束进程。"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K12",
+      "status": "covered",
+      "evidence": [
+        "varargs（参数个数可变的 C 函数参数机制）在旧式 x86 32 位 cdecl 约定下看起来像“从栈上的数组依次取参数”",
+        "讲师在 ARM64 实验中观察到，调用者把参数放入 `x0`、`x1` 等寄存器"
+      ],
+      "checks": [
+        {
+          "requirement": "x86 32 位 cdecl 可把参数看成栈上连续区域的旧式技巧不适用于寄存器传参架构",
+          "evidence": "但这个技巧不能直接搬到 x86-64、ARM64 或 RISC-V：这些体系结构会把前几个参数放进寄存器。"
+        },
+        {
+          "requirement": "ARM64 调用者先把参数放入 x0、x1 等寄存器，libc 再将它们保存到栈上的可遍历区域",
+          "evidence": "libc 的变参序言再把寄存器内容保存到栈上的约定区域，形成可遍历的参数区。"
+        },
+        {
+          "requirement": "变参访问的实际布局由 ABI 和编译器共同决定",
+          "evidence": "真正的布局由调用约定和编译器共同决定。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "varargs",
+          "status": "defined",
+          "first_use": "varargs（参数个数可变的 C 函数参数机制）",
+          "evidence": "varargs（参数个数可变的 C 函数参数机制）"
+        }
+      ],
+      "note": "保留跨架构差异及寄存器落栈这一机制，不把 32 位经验当成通用实现。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "varargs（参数个数可变的 C 函数参数机制）在旧式 x86 32 位 cdecl 约定下看起来像“从栈上的数组依次取参数”"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K13",
+      "status": "covered",
+      "evidence": [
+        "setjmp/longjmp（先保存执行环境、后从任意深层调用跳回保存点的 C 机制）像“存档/读档”",
+        "可见 X19–X28 恢复到保存时的值，而 X0–X18 保留跳转前后的新值",
+        "X0–X18 是 call-clobbered（被调用后不保证原值、调用者应自行保存的寄存器）"
+      ],
+      "checks": [
+        {
+          "requirement": "setjmp 保存执行环境，longjmp 从深层调用跳回并使中间路径不再继续",
+          "evidence": "`longjmp` 恢复该环境，中间经过的调用路径不再继续。"
+        },
+        {
+          "requirement": "ARM64 实验观察到 X19–X28 恢复而 X0–X18 不保证恢复",
+          "evidence": "可见 X19–X28 恢复到保存时的值，而 X0–X18 保留跳转前后的新值。"
+        },
+        {
+          "requirement": "call-clobbered 与 callee-saved 的区别解释了为何只保存后一组寄存器",
+          "evidence": "X19–X28 属于 callee-saved（被调用函数若要使用、必须先保存并在返回前恢复的寄存器），所以 `setjmp/longjmp` 需要保存这部分；"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "setjmp/longjmp",
+          "status": "defined",
+          "first_use": "setjmp/longjmp（先保存执行环境、后从任意深层调用跳回保存点的 C 机制）",
+          "evidence": "setjmp/longjmp（先保存执行环境、后从任意深层调用跳回保存点的 C 机制）"
+        },
+        {
+          "term": "ABI",
+          "status": "defined",
+          "first_use": "ABI（约束跨编译单元、库和函数调用时数据布局与寄存器责任的二进制接口规则）",
+          "evidence": "ABI（约束跨编译单元、库和函数调用时数据布局与寄存器责任的二进制接口规则）"
+        },
+        {
+          "term": "call-clobbered",
+          "status": "defined",
+          "first_use": "call-clobbered（被调用后不保证原值、调用者应自行保存的寄存器）",
+          "evidence": "call-clobbered（被调用后不保证原值、调用者应自行保存的寄存器）"
+        },
+        {
+          "term": "callee-saved",
+          "status": "defined",
+          "first_use": "callee-saved（被调用函数若要使用、必须先保存并在返回前恢复的寄存器）",
+          "evidence": "callee-saved（被调用函数若要使用、必须先保存并在返回前恢复的寄存器）"
+        }
+      ],
+      "note": "逐项对照寄存器刷色实验和调用约定解释，保留架构范围限制。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "setjmp/longjmp（先保存执行环境、后从任意深层调用跳回保存点的 C 机制）像“存档/读档”"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K14",
+      "status": "covered",
+      "evidence": [
+        "gettimeofday（读取墙上时钟时间的 libc 接口）两次调用之间配合 `usleep(200ms)`",
+        "原因是 vDSO（由内核映射到每个进程地址空间、让 libc 在用户态直接读取时间的一小段代码）提供了快速路径"
+      ],
+      "checks": [
+        {
+          "requirement": "gettimeofday 测得时间正常但 strace 只看到 clock_nanosleep",
+          "evidence": "直觉上它似乎应该进入内核，但 `strace` 只能看到 `clock_nanosleep`，看不到 `gettimeofday`。"
+        },
+        {
+          "requirement": "vDSO 是内核映射到进程地址空间的代码，libc 从 auxv 找到其 ELF 头并解析符号",
+          "evidence": "libc 先从 `auxv` 找到 `AT_SYSINFO_EHDR` 给出的 vDSO ELF 头，再像一个微型加载器那样解析 program header 和符号表"
+        },
+        {
+          "requirement": "定位到时钟函数后直接在用户态执行，因此没有常规系统调用陷入",
+          "evidence": "定位 `__kernel_clock_gettime` 等函数，最后直接跳转执行；这条路径没有系统调用陷入。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "gettimeofday",
+          "status": "defined",
+          "first_use": "gettimeofday（读取墙上时钟时间的 libc 接口）",
+          "evidence": "gettimeofday（读取墙上时钟时间的 libc 接口）"
+        },
+        {
+          "term": "vDSO",
+          "status": "defined",
+          "first_use": "vDSO（由内核映射到每个进程地址空间、让 libc 在用户态直接读取时间的一小段代码）",
+          "evidence": "vDSO（由内核映射到每个进程地址空间、让 libc 在用户态直接读取时间的一小段代码）"
+        }
+      ],
+      "note": "保留“strace 看不见但时间正确”的矛盾、解析链和无陷入结果。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "gettimeofday（读取墙上时钟时间的 libc 接口）两次调用之间配合 `usleep(200ms)`"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K15",
+      "status": "covered",
+      "evidence": [
+        "vDSO 的时间读取需要避免读到更新一半的值",
+        "两次相同才认为期间没有跨过更新点，否则重试",
+        "单步调试却在每条指令之间插入巨大延迟"
+      ],
+      "checks": [
+        {
+          "requirement": "先读一次 clock tick 再读一次，只有相同才接受时间数据，否则重试",
+          "evidence": "演示中的指令先读一次 clock tick（内核时钟中断推进的序号），保存它，再读一次；两次相同才认为期间没有跨过更新点，否则重试。"
+        },
+        {
+          "requirement": "单步的巨大延迟让两次读取更容易跨 tick，于是循环看起来不退出",
+          "evidence": "单步调试却在每条指令之间插入巨大延迟，第二次读取经常发现 tick 已改变，于是循环看起来像“卡住”。"
+        },
+        {
+          "requirement": "正常执行路径很短，通常不会遇到同样的时序窗口",
+          "evidence": "正常运行时，`gettimeofday` 路径很短，几乎不会碰上 tick 更新"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "clock tick",
+          "status": "defined",
+          "first_use": "clock tick（内核时钟中断推进的序号）",
+          "evidence": "clock tick（内核时钟中断推进的序号）"
+        }
+      ],
+      "note": "按字幕完整回看了正常运行、单步和两次读数的因果，而不是把循环现象归因于 vDSO 失效。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "vDSO 的时间读取需要避免读到更新一半的值"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K16",
+      "status": "covered",
+      "evidence": [
+        "malloc/free（申请堆内存并在使用后归还的成对接口）看起来能处理一个字节到很大的分配",
+        "mmap（按映射和页粒度向内核申请地址空间的接口）通常以页的整数倍工作；brk（调整进程堆顶的内核接口）则移动堆边界",
+        "libc 往往先用 `mmap` 或 `brk` 向系统取得较大的区域，再在用户态维护空闲块池"
+      ],
+      "checks": [
+        {
+          "requirement": "操作系统分配接口粒度较粗，mmap 通常按页的整数倍、brk 调整堆顶",
+          "evidence": "操作系统取得内存的接口粒度更粗。mmap（按映射和页粒度向内核申请地址空间的接口）通常以页的整数倍工作；brk（调整进程堆顶的内核接口）则移动堆边界。"
+        },
+        {
+          "requirement": "libc 先获得较大区域并维护空闲池，再从池中切出小块给 malloc",
+          "evidence": "因此 libc 往往先用 `mmap` 或 `brk` 向系统取得较大的区域，再在用户态维护空闲块池；一次小的 `malloc(4)` 只是从池中切出一块并返回指针"
+        },
+        {
+          "requirement": "malloc(0) 等特殊返回语义不应成为程序逻辑的依赖",
+          "evidence": "对 `malloc(0)` 的特殊返回语义，讲师建议不要把它当作程序逻辑的依赖。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "malloc/free",
+          "status": "defined",
+          "first_use": "malloc/free（申请堆内存并在使用后归还的成对接口）",
+          "evidence": "malloc/free（申请堆内存并在使用后归还的成对接口）"
+        },
+        {
+          "term": "mmap",
+          "status": "defined",
+          "first_use": "mmap（按映射和页粒度向内核申请地址空间的接口）",
+          "evidence": "mmap（按映射和页粒度向内核申请地址空间的接口）"
+        },
+        {
+          "term": "brk",
+          "status": "defined",
+          "first_use": "brk（调整进程堆顶的内核接口）",
+          "evidence": "brk（调整进程堆顶的内核接口）"
+        },
+        {
+          "term": "memory allocator",
+          "status": "defined",
+          "first_use": "memory allocator（在用户态维护分配区间、向程序提供堆内存的分配器）",
+          "evidence": "memory allocator（在用户态维护分配区间、向程序提供堆内存的分配器）"
+        }
+      ],
+      "note": "保留页粒度、用户态池和小大分配的分工，谨慎处理 malloc(0) 的字幕边界。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "malloc/free（申请堆内存并在使用后归还的成对接口）看起来能处理一个字节到很大的分配"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      }
+    },
+    {
+      "id": "K17",
+      "status": "covered",
+      "evidence": [
+        "讲师认为 malloc/free 是设计上负担很重的 API",
+        "C++ 的 RAII（对象构造时取得资源、离开作用域时自动释放的资源管理方式）把配对动作绑定到对象生命周期",
+        "Rust 的 ownership/borrowing（以所有权和借用规则约束资源访问的编程模型）则把更多悬垂指针问题交给编译期检查"
+      ],
+      "checks": [
+        {
+          "requirement": "每条可能路径都要配对 free，否则泄漏",
+          "evidence": "每条可能的控制流都要为一次 `malloc` 找到配对的 `free`，否则就会泄漏"
+        },
+        {
+          "requirement": "free 后旧指针立即失效，继续访问会造成内存安全问题",
+          "evidence": "一旦 `free(p)`，旧指针就不能再访问，继续使用便是前面提到的 use-after-free。"
+        },
+        {
+          "requirement": "C++ RAII 用构造/析构绑定资源生命周期，Rust ownership/borrowing 把更多约束交给编译期",
+          "evidence": "C++ 的 RAII（对象构造时取得资源、离开作用域时自动释放的资源管理方式）把配对动作绑定到对象生命周期，例如锁在构造时获取、析构时释放；Rust 的 ownership/borrowing（以所有权和借用规则约束资源访问的编程模型）则把更多悬垂指针问题交给编译期检查。"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "RAII",
+          "status": "defined",
+          "first_use": "RAII（对象构造时取得资源、离开作用域时自动释放的资源管理方式）",
+          "evidence": "RAII（对象构造时取得资源、离开作用域时自动释放的资源管理方式）"
+        },
+        {
+          "term": "ownership/borrowing",
+          "status": "defined",
+          "first_use": "ownership/borrowing（以所有权和借用规则约束资源访问的编程模型）",
+          "evidence": "ownership/borrowing（以所有权和借用规则约束资源访问的编程模型）"
+        }
+      ],
+      "note": "讲师的 API 评价保留归属；语言替代路线按其机制写，不声称消除所有错误。",
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "讲师认为 malloc/free 是设计上负担很重的 API"
+        ],
+        "note": "逐窗阅读字幕与正文，逐项检查原因、推理、例证和限制；不是关键词命中。"
+      },
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "讲师认为 malloc/free 是设计上负担很重的 API。",
+        "note": "正文明确归因于讲师判断，并与演示事实分开。"
+      }
+    },
+    {
+      "id": "K18",
+      "status": "covered",
+      "evidence": [
+        "若分配很大的区域，作业实现可以容忍少量边界浪费，直接向操作系统申请",
+        "若分配很小，则要维护许多互不相交的空闲区间，每次从中找出足够大的一块切下",
+        "算法课上用平衡二叉搜索树解决这个问题是有帮助的练习，但讲师明确说它不等同于现代 memory allocator"
+      ],
+      "checks": [
+        {
+          "requirement": "大块分配可直接向操作系统申请，小块分配要从空闲区间中切分",
+          "evidence": "若分配很大的区域，作业实现可以容忍少量边界浪费，直接向操作系统申请；若分配很小，则要维护许多互不相交的空闲区间，每次从中找出足够大的一块切下。"
+        },
+        {
+          "requirement": "算法课的平衡二叉搜索树是练习解法，不等同于现实 allocator 的全部实现",
+          "evidence": "算法课上用平衡二叉搜索树解决这个问题是有帮助的练习，但讲师明确说它不等同于现代 memory allocator（在用户态维护分配区间、向程序提供堆内存的分配器）的真实实现。"
+        },
+        {
+          "requirement": "1995 年 malloc/free 综述只是继续阅读入口，课堂没有展开其结论",
+          "evidence": "最后提到的 1995 年 malloc/free 综述被作为继续阅读的入口：课堂没有展开其实现，也没有把“一个平衡树解法”写成现实分配器的定论。"
+        }
+      ],
+      "term_checks": [],
+      "note": "压缩作业提示与下课阅读建议，保留“练习解法不等于现实实现”的边界。"
+    }
+  ],
+  "source_sweep": {
+    "chunks": [
+      "S01",
+      "S02",
+      "S03",
+      "S04",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S09"
+    ],
+    "note": "已回看每个完整窗口及跨边界知识链；未因前段已覆盖而跳过末段，S09 的 allocator 结论也单独核对。"
+  },
+  "fidelity": {
+    "status": "pass",
+    "note": "正文只规范化字幕中能由上下文确认的术语；讲师判断、现场观察和编辑校正均有边界说明，未把外部 flame graph 定义写成视频演示事实。"
+  },
+  "redundancy": {
+    "status": "pass",
+    "note": "C 类口癖、重复操作和闲聊删除；B 类背景合并；正文末尾路线引用前文而不再重复术语百科。"
+  },
+  "accessibility": {
+    "status": "pass",
+    "note": "逐项检查 key_terms 的首次紧邻括号释义；首次出现的 GDB、musl、CRT、argc/argv/envp、FFI、free-standing 与 flame graph 均给出短中文作用说明，后续不重复释义。"
+  },
+  "budget_note": "统一指标为约 15.5% 视频时长，处于 15%–30% 软目标下沿；未为凑篇幅扩写，保留了启动、ABI、vDSO 与生命周期的机制因果。"
+}

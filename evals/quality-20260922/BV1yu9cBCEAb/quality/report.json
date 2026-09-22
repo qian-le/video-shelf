@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "status": "passed",
+  "errors": [],
+  "warnings": [
+    "Raw transcript unavailable; corrected-source review only",
+    "Video duration is estimated"
+  ],
+  "metrics": {
+    "markdown_characters": 8177,
+    "reading_units": 5281,
+    "reading_units_definition": "每个汉字或英文/数字词计 1 个阅读单位；Markdown 语法、链接 URL 和 HTML 标签移除；代码与 Mermaid 标签按文本近似计数。",
+    "reading_formula": "reading_units / 400",
+    "reading_minutes_400": 13.2,
+    "reading_minutes_300_500": [
+      10.56,
+      17.6
+    ],
+    "video_minutes": 80.87,
+    "time_saved_percent_400": 83.7,
+    "reading_ratio": 0.1633,
+    "note": "统一估算公式，不是对实际阅读时长的测量；300/500 为敏感性范围。"
+  },
+  "fingerprints": {
+    "book.md": "e12e7f2d765b6b32988696cfa5cb05bf5c57b2fb07fd11a71de41424a6183e79",
+    "book.html": "1bda48f873b517624107e98313fa46ff8029bdf52329cc17409e37a5b9eae7c5",
+    "knowledge.triage.json": "9fe9183182ddd80ceb3d424b7c886db9e9d53859e2529329633d0f126886876a",
+    "coverage.audit.json": "230932813a7950769e27b882c2613b1b3a01849d6e99155e1f4d1a76647b0367",
+    "transcript.corrected.txt": "f8c94ad09724e8f4e6117f09c45d172ad51553c49d75a9d29b630469a50a3e1c",
+    "meta.json": "f70e9fe6272cb3a84c1f8e773fcf0ad43d65866367e17c0c2c3e42694edf1bcf"
+  },
+  "source_completeness": "corrected_only",
+  "limits": "Structural checks plus Agent semantic self-review; not independent factual verification."
+}

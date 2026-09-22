@@ -1,0 +1,469 @@
+{
+  "as_of": "2026-09-22",
+  "lecture": "BV1Nyeq6qEt8",
+  "title": "软件工程的来龙去脉",
+  "source": {
+    "corrected_transcript": {
+      "path": "lecture05.transcript.corrected.txt",
+      "sha256": "5fbd1d9778c4f28e749ea2116b4c3175b33cdb3541553b93fe73ec248c55162c",
+      "bytes": 114236,
+      "timestamped_lines": 2555,
+      "duration_seconds": 5999
+    },
+    "raw_transcript": {
+      "path": "lecture05.transcript.txt or lecture05.transcript.json",
+      "available": false,
+      "impact": "无法完成原始/校正双源核对；本集逐字证据仅来自校正字幕。"
+    },
+    "old_book": {
+      "path": "../lecture05.before.md",
+      "sha256": "7eeddbdcde070b729ddcac4a1452959859b3c1f204e486aac1f6d59b3eed50a5"
+    }
+  },
+  "book_quality_formula": {
+    "source": "src/book_quality.py::metrics (pipeline formula)",
+    "reading_units": "Markdown 标签/链接去除后，每个中日韩字符或英文/数字词计 1 单位；代码/图表近似计数。",
+    "reading_minutes_400": "reading_units / 400",
+    "range_minutes_300_500": "reading_units / 500 到 reading_units / 300",
+    "note": "估算，不是实测；新旧报告必须使用同一公式。"
+  },
+  "old_book_metrics": {
+    "markdown_characters": 5219,
+    "reading_units": 2900,
+    "reading_minutes_400": 7.25,
+    "reading_minutes_300_500": [
+      5.8,
+      9.67
+    ],
+    "video_minutes": 99.98,
+    "time_saved_percent_400": 92.7,
+    "reading_ratio": 0.0725
+  },
+  "required_topic_scope": {
+    "definition": "19 个用户指定/直接相关主题族；status=present 才计严格语义覆盖，partial 按 0.5 计加权覆盖；关键词出现不计分。",
+    "strict_covered": 2,
+    "total": 19,
+    "strict_percent": 10.5,
+    "weighted_score": 4.5,
+    "weighted_percent": 23.7,
+    "topics": [
+      {
+        "id": "T01",
+        "topic": "TypeSafe AI/新闻实体归属",
+        "status": "partial",
+        "evidence": "旧书泛化为‘有团队展示’，未保留字幕‘type c AI’疑义。"
+      },
+      {
+        "id": "T02",
+        "topic": "System One 名称与快速模型赛道",
+        "status": "partial",
+        "evidence": "旧书只写模型新闻，未保留名称/赛道判断。"
+      },
+      {
+        "id": "T03",
+        "topic": "DOOM、JSON、低延迟动作 token",
+        "status": "present",
+        "evidence": "§1.1 保留 DOOM、JSON、毫秒到百毫秒级、专用 token，但链条被压短。"
+      },
+      {
+        "id": "T04",
+        "topic": "数字人微表情/机器人人感",
+        "status": "absent",
+        "evidence": "旧书没有微表情或机器人预测。"
+      },
+      {
+        "id": "T05",
+        "topic": "taste/reward hacking",
+        "status": "absent",
+        "evidence": "旧书没有品位、即时 reward 与长期质量链。"
+      },
+      {
+        "id": "T06",
+        "topic": "可验证/不可验证与形式化 gap",
+        "status": "partial",
+        "evidence": "§4.3/§4.6 谈自然语言与形式语言缝隙，但缺少本段边界论证。"
+      },
+      {
+        "id": "T07",
+        "topic": "scaling law",
+        "status": "absent",
+        "evidence": "旧书未出现 scaling law。"
+      },
+      {
+        "id": "T08",
+        "topic": "数据分布工程",
+        "status": "absent",
+        "evidence": "旧书未出现讲师暂称的数据分布工程。"
+      },
+      {
+        "id": "T09",
+        "topic": "新领域训练反馈飞轮",
+        "status": "absent",
+        "evidence": "旧书未出现新领域、反馈、插件化训练和能力台阶。"
+      },
+      {
+        "id": "T10",
+        "topic": "学术研究/论文与工业 RSI 影响",
+        "status": "absent",
+        "evidence": "旧书没有 AI slop、blog→大规模验证或研究体系预测。"
+      },
+      {
+        "id": "T11",
+        "topic": "Intent–Spec–Implementation",
+        "status": "partial",
+        "evidence": "旧书零散写意图、spec 与生成物边界，缺完整三层与 gap。"
+      },
+      {
+        "id": "T12",
+        "topic": "MVP 的小—暴露 gap—迭代理由",
+        "status": "partial",
+        "evidence": "附录有 MVP 定义，但正文未保留前 20 分钟完整因果。"
+      },
+      {
+        "id": "T13",
+        "topic": "物理设备接入",
+        "status": "absent",
+        "evidence": "旧书没有标签打印机、扫描仪或物理交互演示。"
+      },
+      {
+        "id": "T14",
+        "topic": "打印/扫描抽象接口",
+        "status": "absent",
+        "evidence": "旧书没有 scan/print 与设备实现解耦。"
+      },
+      {
+        "id": "T15",
+        "topic": "Agent 探索硬件协议和参数",
+        "status": "absent",
+        "evidence": "旧书没有 APK、蓝牙逆向、参数试探。"
+      },
+      {
+        "id": "T16",
+        "topic": "快速模型 Computer Use",
+        "status": "absent",
+        "evidence": "旧书没有 computer use。"
+      },
+      {
+        "id": "T17",
+        "topic": "App→API/Agent capability",
+        "status": "absent",
+        "evidence": "旧书没有 App 退居 API 的预测。"
+      },
+      {
+        "id": "T18",
+        "topic": "软件产业影响",
+        "status": "absent",
+        "evidence": "旧书没有驱动成本、软件公司消亡等预测。"
+      },
+      {
+        "id": "T19",
+        "topic": "Agent 时代软件工程智慧仍在",
+        "status": "present",
+        "evidence": "§2 明确写设计、接口、失败路径与软件工程智慧。"
+      }
+    ]
+  },
+  "causal_chain_baseline": [
+    {
+      "id": "C01",
+      "chain": "DOOM state→JSON→fast token→decision",
+      "status": "partial",
+      "old_book_anchor": "§1.1"
+    },
+    {
+      "id": "C02",
+      "chain": "lower latency→digital-human micro-expression→human feel",
+      "status": "missing",
+      "old_book_anchor": null
+    },
+    {
+      "id": "C03",
+      "chain": "immediate reward→reward hack/short-term completion→long-term dissatisfaction",
+      "status": "missing",
+      "old_book_anchor": null
+    },
+    {
+      "id": "C04",
+      "chain": "natural-language intent→formalization→definition gap→wrong proof risk",
+      "status": "partial",
+      "old_book_anchor": "§4.3/§4.6"
+    },
+    {
+      "id": "C05",
+      "chain": "data distribution/scale→new domain feedback→flywheel→capability step-up",
+      "status": "missing",
+      "old_book_anchor": null
+    },
+    {
+      "id": "C06",
+      "chain": "academic output/peer review→industrial data+RSI loop→research ecology pressure",
+      "status": "missing",
+      "old_book_anchor": null
+    },
+    {
+      "id": "C07",
+      "chain": "intent→spec→implementation gap→MVP/iteration",
+      "status": "partial",
+      "old_book_anchor": "§4.2/附录 MVP"
+    },
+    {
+      "id": "C08",
+      "chain": "physical device→abstraction→stable interface→decoupled implementation",
+      "status": "missing",
+      "old_book_anchor": null
+    },
+    {
+      "id": "C09",
+      "chain": "fast Computer Use→App functions as API→software-industry disruption",
+      "status": "missing",
+      "old_book_anchor": null
+    },
+    {
+      "id": "C10",
+      "chain": "historical failures→engineering principles→better Agent collaboration",
+      "status": "partial",
+      "old_book_anchor": "§2/§3"
+    },
+    {
+      "id": "C11",
+      "chain": "software scale/complexity→schedule-cost-quality crisis→software engineering",
+      "status": "present",
+      "old_book_anchor": "§3"
+    },
+    {
+      "id": "C12",
+      "chain": "assume impossible failure→fallback/priority/recovery→critical Apollo task continues",
+      "status": "present",
+      "old_book_anchor": "§3.3"
+    }
+  ],
+  "final_new_book": {
+    "path": "../../../output/BV1Nyeq6qEt8/book.md",
+    "sha256": "fb675c7ca2c070a86588755b2c692c098492408a79d7049f6e818c523eade3b7",
+    "metrics": {
+      "markdown_characters": 11209,
+      "reading_units": 7926,
+      "reading_units_definition": "每个汉字或英文/数字词计 1 个阅读单位；Markdown 语法、链接 URL 和 HTML 标签移除；代码与 Mermaid 标签按文本近似计数。",
+      "reading_formula": "reading_units / 400",
+      "reading_minutes_400": 19.82,
+      "reading_minutes_300_500": [
+        15.85,
+        26.42
+      ],
+      "video_minutes": 100.0,
+      "time_saved_percent_400": 80.2,
+      "reading_ratio": 0.1982,
+      "note": "统一估算公式，不是对实际阅读时长的测量；300/500 为敏感性范围。"
+    },
+    "semantic_review": "newbook.semantic_review.json",
+    "review_status": "static semantic review complete; selected regression books pending pipeline generation"
+  },
+  "new_book_topic_scope": {
+    "definition": "与 old_book_metrics 同一 19 个主题族；mechanism_status 只判正文是否保留主题语义/因果，entity_name_status 单独记录专名/归属是否核定。关键词命中不计分。",
+    "mechanism_strict_covered": 19,
+    "mechanism_total": 19,
+    "mechanism_strict_percent": 100.0,
+    "mechanism_weighted_score": 19.0,
+    "mechanism_weighted_percent": 100.0,
+    "entity_name_note": "校正字幕缺原始字幕与画面核对；候选实体必须维持候选措辞。System One、Dijkstra 作品标题、NATO 会议名称可按清晰上下文合理订正，但不等于所有产品归属已核。",
+    "topics": [
+      {
+        "id": "T01",
+        "topic": "TypeSafe AI/新闻实体归属",
+        "old_status": "partial",
+        "mechanism_status": "present",
+        "entity_name_status": "候选/未核",
+        "evidence": "§1：保留字幕 type c AI、JEFF、JB 变体及用户 Jev/TypeSafe 线索；机制与新闻关联保留，归属未核。"
+      },
+      {
+        "id": "T02",
+        "topic": "System One 名称与快速模型赛道",
+        "old_status": "partial",
+        "mechanism_status": "present",
+        "entity_name_status": "System One 在校正字幕中明确；相关产品名未核",
+        "evidence": "§1：System One、快速实时决策模型与 DOOM 演示均保留。"
+      },
+      {
+        "id": "T03",
+        "topic": "DOOM、JSON、低延迟动作 token",
+        "old_status": "present",
+        "mechanism_status": "present",
+        "entity_name_status": "不适用",
+        "evidence": "§1：DOOM 状态→JSON→动作 token→快速反馈。"
+      },
+      {
+        "id": "T04",
+        "topic": "数字人微表情/机器人人感",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "不适用",
+        "evidence": "§1：50–200ms→微表情实时跟随→人感，并说明是预测。"
+      },
+      {
+        "id": "T05",
+        "topic": "taste/reward hacking",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "不适用",
+        "evidence": "§2：即时奖励→捷径→长期质量风险，并给 reward hacking 中文作用释义。"
+      },
+      {
+        "id": "T06",
+        "topic": "可验证/不可验证与形式化 gap",
+        "old_status": "partial",
+        "mechanism_status": "present",
+        "entity_name_status": "不适用",
+        "evidence": "§2：验证器只证明形式规格，意图到规格仍有 gap。"
+      },
+      {
+        "id": "T07",
+        "topic": "scaling law",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "术语已解释",
+        "evidence": "§3：scaling law 与规模—能力关系。"
+      },
+      {
+        "id": "T08",
+        "topic": "数据分布工程",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "术语已解释",
+        "evidence": "§3：按领域、时机、比例安排数据与反馈。"
+      },
+      {
+        "id": "T09",
+        "topic": "新领域训练反馈飞轮",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "不适用",
+        "evidence": "§3：新领域→数据/反馈→训练→基模能力→下一轮探索。"
+      },
+      {
+        "id": "T10",
+        "topic": "学术研究/论文与工业 RSI 影响",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "不适用",
+        "evidence": "§3：AI slop、博客/自动实验闭环对研究与评审模式的预测。"
+      },
+      {
+        "id": "T11",
+        "topic": "Intent–Spec–Implementation",
+        "old_status": "partial",
+        "mechanism_status": "present",
+        "entity_name_status": "三层英文均有中文作用释义",
+        "evidence": "§4：三层表格、偏离风险与 gap。"
+      },
+      {
+        "id": "T12",
+        "topic": "MVP 的小—暴露 gap—迭代理由",
+        "old_status": "partial",
+        "mechanism_status": "present",
+        "entity_name_status": "MVP 首现给中文释义",
+        "evidence": "§4/§9：小实现→尽早暴露意图/接口假设→迭代。"
+      },
+      {
+        "id": "T13",
+        "topic": "物理设备接入",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "物理设备已中文解释",
+        "evidence": "§5：标签打印机、扫描仪、电子墨水屏与人工反馈边界。"
+      },
+      {
+        "id": "T14",
+        "topic": "打印/扫描抽象接口",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "scan/print、PCL 均有中文作用释义",
+        "evidence": "§5：scan、print、read/write/I/O control 与设备解耦。"
+      },
+      {
+        "id": "T15",
+        "topic": "Agent 探索硬件协议和参数",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "APK、蓝牙、协议均有上下文解释",
+        "evidence": "§5：试打参数、PCL 探索、APK 分析蓝牙协议。"
+      },
+      {
+        "id": "T16",
+        "topic": "快速模型 Computer Use",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "Computer Use 首现给中文作用释义",
+        "evidence": "§6：快速决策与屏幕操作的组合条件及限制。"
+      },
+      {
+        "id": "T17",
+        "topic": "App→API/Agent capability",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "API/Agent capability 首现给中文作用释义",
+        "evidence": "§6：已有 App 操作路径与直接 API 调用区分。"
+      },
+      {
+        "id": "T18",
+        "topic": "软件产业影响",
+        "old_status": "absent",
+        "mechanism_status": "present",
+        "entity_name_status": "不适用",
+        "evidence": "§6：开发/驱动成本、入口与软件公司消亡预测均归因于讲师。"
+      },
+      {
+        "id": "T19",
+        "topic": "Agent 时代软件工程智慧仍在",
+        "old_status": "present",
+        "mechanism_status": "present",
+        "entity_name_status": "不适用",
+        "evidence": "§12：意图、接口、证据、契约、维护与变化仍需工程判断。"
+      }
+    ]
+  },
+  "final_regression_books": {
+    "review": "cross-newbook.semantic_review.json",
+    "status": "independent static semantic review complete; no generation/publish rerun",
+    "books": {
+      "BV1yu9cBCEAb": {
+        "title": "调试 C 标准库",
+        "path": "../BV1yu9cBCEAb/book.md",
+        "sha256": "388768e92f76d8dbae73f3a7900c225997776c51aab67b67d6d8c8d551e23a5e",
+        "metrics": {
+          "markdown_characters": 7957,
+          "reading_units": 5018,
+          "reading_minutes_400": 12.54,
+          "reading_minutes_300_500": [
+            10.04,
+            16.73
+          ],
+          "video_minutes": 80.87,
+          "time_saved_percent_400": 84.5,
+          "reading_ratio": 0.1551
+        }
+      },
+      "BV1qkEX6FEb5": {
+        "title": "计算机系统安全",
+        "path": "../BV1qkEX6FEb5/book.md",
+        "sha256": "0e767a5ffb25e961f9ef7f09fb020e21035d6aca9cd9f2242c5c56949a2eafed",
+        "metrics": {
+          "markdown_characters": 8597,
+          "reading_units": 6104,
+          "reading_minutes_400": 15.26,
+          "reading_minutes_300_500": [
+            12.21,
+            20.35
+          ],
+          "video_minutes": 84.2,
+          "time_saved_percent_400": 81.9,
+          "reading_ratio": 0.1812
+        }
+      }
+    },
+    "semantic_status_counts": {
+      "covered": 6,
+      "partial": 0,
+      "missing": 0
+    }
+  }
+}

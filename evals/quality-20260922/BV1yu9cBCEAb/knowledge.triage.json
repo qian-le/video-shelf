@@ -1,0 +1,810 @@
+{
+  "version": 1,
+  "status": "reviewed",
+  "source_notes": [
+    "完整阅读 transcript.corrected.txt，并按 book_quality.py prepare 生成的 S01–S09 窗口回看；本目录没有 transcript.json 原始转录。",
+    "字幕存在 libc、DWARF、vDSO 等术语的音近误识，正文只在上下文支持的范围内规范化；外部版本号、实现细节和安全事件不作独立核验。",
+    "视频时长按校正字幕末条 01:20:52 估算，meta.json 已明确 duration_is_estimate=true。"
+  ],
+  "reviewed_chunks": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09"
+  ],
+  "items": [
+    {
+      "id": "K01",
+      "priority": "A",
+      "topic": "AI 代执行安装后的逐条验证",
+      "kind": "observation",
+      "why": "失败演示给出可迁移的工程验证原则：自动化成功提示不能替代对实际工具链和调试结果的检查。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "我的编译结果实际上没有"
+        }
+      ],
+      "must_preserve": [
+        "上次失败的根因是目标 libc 没有真正安装或被实际工具链使用",
+        "修复方式是逐条核对命令结果并重新调试确认"
+      ],
+      "terms": [],
+      "key_terms": [
+        {
+          "term": "musl",
+          "definition": "强调小巧、可移植的 C 标准库实现",
+          "origin": "editor"
+        },
+        {
+          "term": "GDB",
+          "definition": "可单步、查看寄存器和源码的调试器",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "字幕中的库名有音近误识；按上下文保留为 musl libc。"
+    },
+    {
+      "id": "K02",
+      "priority": "B",
+      "topic": "Online Judge 测例推断",
+      "kind": "observation",
+      "why": "开场作业背景解释了讲师为何强调生成测试和反推判题行为，但它不是本讲 libc 机制主线。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "你们应该要想一个比较聪明的方式"
+        }
+      ],
+      "must_preserve": [
+        "被 reject 时可生成测试并思考隐藏测例如何检查进程行为"
+      ],
+      "terms": [],
+      "key_terms": [
+        {
+          "term": "Online Judge",
+          "definition": "自动运行提交并按测例判定结果的评测系统",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "字幕把 web coding / Online Judge 的称呼混用，正文只保留其评测作用。"
+    },
+    {
+      "id": "K03",
+      "priority": "A",
+      "topic": "system call、libc 与平台抽象",
+      "kind": "observation",
+      "why": "这是全讲的分层主线：解释为什么需要 libc、它如何把底层接口变成可用的 C API，以及抽象的边界。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "所有的访问操作系统内部的对象或者操作系统的功能"
+        },
+        {
+          "chunk": "S01",
+          "quote": "所以就有了LIPC"
+        }
+      ],
+      "must_preserve": [
+        "访问操作系统对象需要经过 system call，而直接准备参数会使程序冗长",
+        "libc 封装 system call，提供 printf、文件和内存等上层接口并保留跨系统的相似语义",
+        "FILE 与文件描述符的联系说明了 libc 抽象仍受 UNIX 设计影响"
+      ],
+      "terms": [
+        "system call",
+        "libc",
+        "file descriptor"
+      ],
+      "key_terms": [
+        {
+          "term": "system call",
+          "definition": "用户程序受控请求内核服务的入口",
+          "origin": "editor"
+        },
+        {
+          "term": "libc",
+          "definition": "C 程序常用的标准功能库，其中一部分封装系统调用",
+          "origin": "editor"
+        },
+        {
+          "term": "file descriptor",
+          "definition": "内核用整数代表已打开文件等对象的句柄",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "讲师称 libc 为平台无关抽象层是概括性判断；正文保留其有用但不绝对的边界。"
+    },
+    {
+      "id": "K04",
+      "priority": "A",
+      "topic": "从自定义 _start 到 C 函数与汇编",
+      "kind": "observation",
+      "why": "入口、调用约定和 FFI 把 libc 的抽象落回可调试的机器级路径，是后续启动链和 ABI 实验的基础。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "free standing的编译选项"
+        },
+        {
+          "chunk": "S01",
+          "quote": "它会遵循这个指令集体系结构的calling convention"
+        },
+        {
+          "chunk": "S01",
+          "quote": "可以有这个foreign function interface"
+        }
+      ],
+      "must_preserve": [
+        "free-standing 环境允许标准库不存在且启动不必从 main 开始；课堂最小程序另配链接和启动设置以从自定义入口运行",
+        "调用 main 前要按 calling convention 放置 argc、argv、envp 和返回值",
+        "C 可通过 FFI 调用符合约定的汇编代码或内联汇编执行系统调用"
+      ],
+      "terms": [
+        "_start",
+        "free-standing",
+        "calling convention",
+        "FFI"
+      ],
+      "key_terms": [
+        {
+          "term": "_start",
+          "definition": "进程执行的底层入口，负责把初始状态交给 C 运行时",
+          "origin": "editor"
+        },
+        {
+          "term": "free-standing",
+          "definition": "标准库可以不存在、程序启动不一定从 main 开始的 C 运行环境",
+          "origin": "editor"
+        },
+        {
+          "term": "argc",
+          "definition": "命令行参数的个数",
+          "origin": "editor"
+        },
+        {
+          "term": "argv",
+          "definition": "参数字符串数组",
+          "origin": "editor"
+        },
+        {
+          "term": "envp",
+          "definition": "环境变量字符串数组",
+          "origin": "editor"
+        },
+        {
+          "term": "calling convention",
+          "definition": "规定参数、返回值和寄存器保存责任的函数调用约定",
+          "origin": "editor"
+        },
+        {
+          "term": "FFI",
+          "definition": "让一种语言调用另一种语言或运行时代码的互操作接口",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "字幕中的入口和寄存器名称有 ASR 误识，正文只保留可由后续实验支持的关系。"
+    },
+    {
+      "id": "K05",
+      "priority": "A",
+      "topic": "-g、ELF 调试段与库本身的调试构建",
+      "kind": "observation",
+      "why": "解释 GDB 能否进入 libc 源码的直接条件，避免把用户程序带 -g 误当成库也有调试信息。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "GDP告诉我没有可用的源代码"
+        },
+        {
+          "chunk": "S02",
+          "quote": "杠锯会在你的程序的某EF文件的某一个解里面塞入一些额外的信息"
+        }
+      ],
+      "must_preserve": [
+        "-g 把调试映射和类型等元数据写入 ELF 的调试 section",
+        "要调试 musl 必须让库的构建真正使用 -Og/-ggdb 等调试选项并检查 CFLAGS 是否生效",
+        "调试信息缺失时 GDB 可能只能看到地址或符号而不能显示源代码"
+      ],
+      "terms": [
+        "debug info",
+        "ELF",
+        "section"
+      ],
+      "key_terms": [
+        {
+          "term": "debug info",
+          "definition": "把机器状态映射回源代码位置、类型和变量含义的元数据",
+          "origin": "editor"
+        },
+        {
+          "term": "ELF",
+          "definition": "Linux 常用的可执行文件和目标文件格式",
+          "origin": "editor"
+        },
+        {
+          "term": "section",
+          "definition": "按用途划分的二进制数据区域",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "字幕中的 readelf、section 名称个别音近；正文采用上下文能确认的标准写法。"
+    },
+    {
+      "id": "K06",
+      "priority": "A",
+      "topic": "符号表、PC 与 addr2line 的定位粒度",
+      "kind": "observation",
+      "why": "区分粗粒度函数定位和精确到源代码行的调试能力，并保留优化导致映射变难的限制。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "因为你你有你的ERF文件里面有符号表"
+        },
+        {
+          "chunk": "S02",
+          "quote": "而address to line可以把PC的一个地址转换成源代码里面的一行"
+        }
+      ],
+      "must_preserve": [
+        "符号表加 PC 可知道当前函数但不能恢复函数内部行号和变量",
+        "addr2line 可将地址映射到源代码行",
+        "未优化时对应更直观，内联、重排等优化会破坏简单的一一对应"
+      ],
+      "terms": [
+        "符号表",
+        "PC",
+        "addr2line"
+      ],
+      "key_terms": [
+        {
+          "term": "符号表",
+          "definition": "记录函数或变量名称及其地址的表",
+          "origin": "editor"
+        },
+        {
+          "term": "PC",
+          "definition": "当前将要执行的机器指令地址",
+          "origin": "editor"
+        },
+        {
+          "term": "addr2line",
+          "definition": "把程序地址映射为源文件和行号的工具",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "讲师示例地址仅为现场演示值，正文不把具体地址当作通用事实。"
+    },
+    {
+      "id": "K07",
+      "priority": "A",
+      "topic": "DWARF 的变量位置表达式与栈展开",
+      "kind": "observation",
+      "why": "保留调试信息为何需要类似指令集的机制，以及它如何处理寄存器、内存、位域和异常栈。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "它是一个呃有一个bad code的指令集"
+        },
+        {
+          "chunk": "S02",
+          "quote": "他是为了描述在某个PC范围内变量的值在哪里"
+        }
+      ],
+      "must_preserve": [
+        "变量位置随 PC 变化，可能在寄存器、内存或已被优化掉",
+        "DWARF 表达式可通过取寄存器、运算和位域操作重构变量值",
+        "同类展开信息也用于 C++ 异常沿调用栈回退"
+      ],
+      "terms": [
+        "DWARF",
+        "stack unwinding"
+      ],
+      "key_terms": [
+        {
+          "term": "DWARF",
+          "definition": "描述调试信息及其读取方式的通用格式",
+          "origin": "editor"
+        },
+        {
+          "term": "stack unwinding",
+          "definition": "沿调用栈回退到异常处理点的过程",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "字幕把 bytecode 误识为 bad code；正文采用讲师给出的“可执行表达式”含义，不扩写实现细节。"
+    },
+    {
+      "id": "K08",
+      "priority": "B",
+      "topic": "跨语言 source map 与构建安全边界",
+      "kind": "observation",
+      "why": "跨语言例子说明调试信息的共同目标；依赖脚本的风险是有价值的工程提醒，但不占本讲主篇幅。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "有点像compiler叫叫转译器"
+        },
+        {
+          "chunk": "S03",
+          "quote": "如果这个人不怀好意的在他的依赖里面投一些毒"
+        }
+      ],
+      "must_preserve": [
+        "TypeScript 等源码经过多层转译后仍需要映射回原始源码",
+        "浏览器沙盒没有项目目录，source map 可能连同源码片段保存映射",
+        "构建不明项目会执行脚本，应在隔离环境中处理且不能盲信 AI 扫描结论"
+      ],
+      "terms": [
+        "transpiler",
+        "source map",
+        "sandbox"
+      ],
+      "key_terms": [
+        {
+          "term": "transpiler",
+          "definition": "把一种源码转换成另一种可执行源码的转译器",
+          "origin": "editor"
+        },
+        {
+          "term": "source map",
+          "definition": "记录转译后代码如何对应原始源码的映射文件",
+          "origin": "editor"
+        },
+        {
+          "term": "sandbox",
+          "definition": "限制程序访问宿主资源的隔离环境",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "安全事件和具体项目名称来自课堂演示与讲师提醒，未在本回归中外部核验。"
+    },
+    {
+      "id": "K09",
+      "priority": "A",
+      "topic": "从机器状态到调用栈、性能和内存错误",
+      "kind": "observation",
+      "why": "这是 debug info 的应用因果链：恢复源代码模型后才能做调用栈、采样分析、崩溃快照和错误诊断。",
+      "sources": [
+        {
+          "chunk": "S04",
+          "quote": "然后你再通过debug info可以恢复出程序的"
+        },
+        {
+          "chunk": "S04",
+          "quote": "你就可以得到这这边的一个flame graph"
+        },
+        {
+          "chunk": "S04",
+          "quote": "你在free了一个指针以后再使用它"
+        }
+      ],
+      "must_preserve": [
+        "debug info 可把寄存器和内存状态恢复成函数、变量和完整调用栈",
+        "固定间隔采样调用栈能估计性能热点并形成火焰图；标准 flame graph 的横向宽度表示聚合样本占比而非时间顺序，讲师现场的时间轴说法需与 flame chart 区分",
+        "use-after-free 可能暂时不崩溃却属于未定义行为，sanitizer 可借助调试信息定位"
+      ],
+      "terms": [
+        "backtrace",
+        "flame graph",
+        "sanitizer",
+        "use-after-free",
+        "undefined behavior"
+      ],
+      "key_terms": [
+        {
+          "term": "backtrace",
+          "definition": "从当前状态恢复完整函数调用链的调试操作",
+          "origin": "editor"
+        },
+        {
+          "term": "flame graph",
+          "definition": "以横向样本宽度、纵向调用栈深度展示函数在采样中的占比的性能图",
+          "origin": "editor"
+        },
+        {
+          "term": "sanitizer",
+          "definition": "在编译和运行时检查内存等错误的工具集",
+          "origin": "editor"
+        },
+        {
+          "term": "use-after-free",
+          "definition": "释放堆内存后仍通过旧指针访问的错误",
+          "origin": "editor"
+        },
+        {
+          "term": "undefined behavior",
+          "definition": "C 标准不保证结果的程序状态",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "采样火焰图和崩溃快照的具体工具依赖实现；正文保留讲师演示的能力边界。"
+    },
+    {
+      "id": "K10",
+      "priority": "A",
+      "topic": "_start 读取 initial process stack",
+      "kind": "observation",
+      "why": "启动实验把抽象的 argc/argv/envp 还原为 execve 后内核实际布置的内存布局，是理解 libc 初始化的关键因果链。",
+      "sources": [
+        {
+          "chunk": "S04",
+          "quote": "指针部分我就可以逆向工程reverse出"
+        },
+        {
+          "chunk": "S04",
+          "quote": "二个C等于P0"
+        }
+      ],
+      "must_preserve": [
+        "_start 从栈指针取 argc、argv、envp，并在环境变量之后继续找到 auxv",
+        "auxv 携带 vDSO 地址、随机种子等运行时元数据",
+        "初始化阶段处理这些数据后才通过 __libc_start_main 一类逻辑进入 main"
+      ],
+      "terms": [
+        "initial process stack",
+        "auxv"
+      ],
+      "key_terms": [
+        {
+          "term": "initial process stack",
+          "definition": "execve 创建进程时由内核布置、依次放入参数、环境和辅助信息的初始栈区",
+          "origin": "editor"
+        },
+        {
+          "term": "auxv",
+          "definition": "内核传给运行时的键值元数据，如快速时间代码的地址和随机数种子",
+          "origin": "editor"
+        },
+        {
+          "term": "CRT",
+          "definition": "负责把进程初始状态接到 C 运行时的启动代码",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "字幕中的 arm64 栈图方向被讲师指出曾被 AI 写反；正文只保留已通过 GDB 观察到的排列关系。"
+    },
+    {
+      "id": "K11",
+      "priority": "A",
+      "topic": "从 CRT 初始化到 printf 的系统调用",
+      "kind": "observation",
+      "why": "保留从 main 返回、exit 清理到 printf/vfprintf/write 的完整路径，展示 libc 如何隐藏底层细节。",
+      "sources": [
+        {
+          "chunk": "S04",
+          "quote": "你其实就想实现这句话"
+        },
+        {
+          "chunk": "S05",
+          "quote": "print f里面用了一个C语言的"
+        }
+      ],
+      "must_preserve": [
+        "main 返回后经过 exit 清理并最终由底层系统调用结束进程",
+        "printf 先处理格式和变参数，再通过 stdout 的 FILE 状态进入 write 类系统调用",
+        "strace 只看到少量写调用，说明 libc 将缓冲和格式化细节封装起来"
+      ],
+      "terms": [
+        "strace"
+      ],
+      "key_terms": [
+        {
+          "term": "strace",
+          "definition": "记录进程发出的系统调用及其参数的跟踪工具",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "字幕将 musl、stdout 和函数名多处音近识别；正文按演示语义规范化。"
+    },
+    {
+      "id": "K12",
+      "priority": "A",
+      "topic": "变参与寄存器保存",
+      "kind": "observation",
+      "why": "解释 printf 的 varargs 为何依赖体系结构和 libc 序言，避免把 32 位栈布局经验误套到寄存器传参架构。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "语法特性叫呃变参数"
+        },
+        {
+          "chunk": "S05",
+          "quote": "但在像X8664arm researfive上面"
+        }
+      ],
+      "must_preserve": [
+        "x86 32 位 cdecl 可把参数看成栈上连续区域的旧式技巧不适用于寄存器传参架构",
+        "ARM64 调用者先把参数放入 x0、x1 等寄存器，libc 再将它们保存到栈上的可遍历区域",
+        "变参访问的实际布局由 ABI 和编译器共同决定"
+      ],
+      "terms": [
+        "varargs"
+      ],
+      "key_terms": [
+        {
+          "term": "varargs",
+          "definition": "参数个数可变的 C 函数参数机制",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "字幕中的体系结构名称有音近误识；正文只保留 x86-64、ARM64、RISC-V 的对比。"
+    },
+    {
+      "id": "K13",
+      "priority": "A",
+      "topic": "setjmp/longjmp 与 ARM64 调用约定",
+      "kind": "observation",
+      "why": "寄存器刷色实验同时给出非局部跳转的真实机制和 ABI 保存责任的可观察证据。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "set jump可以在程序运行到任何一个地方的时候"
+        },
+        {
+          "chunk": "S06",
+          "quote": "然后long jump做的事情是set jump的"
+        },
+        {
+          "chunk": "S06",
+          "quote": "从X0到X18的寄存器可以随便用"
+        }
+      ],
+      "must_preserve": [
+        "setjmp 保存执行环境，longjmp 从深层调用跳回并使中间路径不再继续",
+        "ARM64 实验观察到 X19–X28 恢复而 X0–X18 不保证恢复",
+        "call-clobbered 与 callee-saved 的区别解释了为何只保存后一组寄存器"
+      ],
+      "terms": [
+        "setjmp/longjmp",
+        "ABI",
+        "call-clobbered",
+        "callee-saved"
+      ],
+      "key_terms": [
+        {
+          "term": "setjmp/longjmp",
+          "definition": "先保存执行环境、后从任意深层调用跳回保存点的 C 机制",
+          "origin": "editor"
+        },
+        {
+          "term": "ABI",
+          "definition": "约束跨编译单元、库和函数调用时数据布局与寄存器责任的二进制接口规则",
+          "origin": "editor"
+        },
+        {
+          "term": "call-clobbered",
+          "definition": "被调用后不保证原值、调用者应自行保存的寄存器",
+          "origin": "editor"
+        },
+        {
+          "term": "callee-saved",
+          "definition": "被调用函数若要使用、必须先保存并在返回前恢复的寄存器",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "X19–X28 是本次 ARM64 演示的观察结果；正文不把它泛化为所有架构的固定编号。"
+    },
+    {
+      "id": "K14",
+      "priority": "A",
+      "topic": "vDSO 让 gettimeofday 避免内核陷入",
+      "kind": "observation",
+      "sources": [
+        {
+          "chunk": "S06",
+          "quote": "但是没有任何get time of day"
+        },
+        {
+          "chunk": "S07",
+          "quote": "然后VDSO就是操作系统内核给每一个进程提供的一小一段代码"
+        }
+      ],
+      "why": "解释 strace 看不到 gettimeofday 的表面矛盾，并保留 auxv→ELF 头→符号解析→直接跳转的机制链。",
+      "must_preserve": [
+        "gettimeofday 测得时间正常但 strace 只看到 clock_nanosleep",
+        "vDSO 是内核映射到进程地址空间的代码，libc 从 auxv 找到其 ELF 头并解析符号",
+        "定位到时钟函数后直接在用户态执行，因此没有常规系统调用陷入"
+      ],
+      "terms": [
+        "gettimeofday",
+        "vDSO"
+      ],
+      "key_terms": [
+        {
+          "term": "gettimeofday",
+          "definition": "读取墙上时钟时间的 libc 接口",
+          "origin": "editor"
+        },
+        {
+          "term": "vDSO",
+          "definition": "由内核映射到每个进程、让 libc 在用户态直接读取时间的一小段代码",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "vDSO 内部符号名和加载细节按讲师对 musl 的现场调试描述整理，未外部核验版本差异。"
+    },
+    {
+      "id": "K15",
+      "priority": "A",
+      "topic": "vDSO 顺序读取与单步调试循环",
+      "kind": "observation",
+      "why": "保留正常运行与单步调试行为不同的原因，说明调试器本身会改变时序而不代表目标机制失效。",
+      "sources": [
+        {
+          "chunk": "S07",
+          "quote": "每次时钟中断的时候"
+        },
+        {
+          "chunk": "S08",
+          "quote": "如果读到两次这个tick不相等的时候"
+        }
+      ],
+      "must_preserve": [
+        "先读一次 clock tick 再读一次，只有相同才接受时间数据，否则重试",
+        "单步的巨大延迟让两次读取更容易跨 tick，于是循环看起来不退出",
+        "正常执行路径很短，通常不会遇到同样的时序窗口"
+      ],
+      "terms": [
+        "clock tick"
+      ],
+      "key_terms": [
+        {
+          "term": "clock tick",
+          "definition": "由时钟中断推进、可用来判断读取期间是否跨过更新时间点的序号",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "课堂用 clock / sequence count 描述同一演示中的计数；正文统一为 clock tick 并保留其用途。"
+    },
+    {
+      "id": "K16",
+      "priority": "A",
+      "topic": "malloc/free 的页粒度与用户态分配池",
+      "kind": "observation",
+      "why": "解释小块分配为何不是每次都向内核要一页，以及 malloc/free 如何建立在 mmap/brk 之上的机制层。",
+      "sources": [
+        {
+          "chunk": "S08",
+          "quote": "它最终live c里面会自己分配一些相对来说比较大的内存的池子"
+        },
+        {
+          "chunk": "S08",
+          "quote": "操作系统是不支持分配那么小的内存的"
+        }
+      ],
+      "must_preserve": [
+        "操作系统分配接口粒度较粗，mmap 通常按页的整数倍、brk 调整堆顶",
+        "libc 先获得较大区域并维护空闲池，再从池中切出小块给 malloc",
+        "malloc(0) 等特殊返回语义不应成为程序逻辑的依赖"
+      ],
+      "terms": [
+        "malloc/free",
+        "mmap",
+        "brk",
+        "memory allocator"
+      ],
+      "key_terms": [
+        {
+          "term": "malloc/free",
+          "definition": "申请堆内存并在使用后归还的成对接口",
+          "origin": "editor"
+        },
+        {
+          "term": "mmap",
+          "definition": "按映射和页粒度向内核申请地址空间的接口",
+          "origin": "editor"
+        },
+        {
+          "term": "brk",
+          "definition": "调整进程堆顶的内核接口",
+          "origin": "editor"
+        },
+        {
+          "term": "memory allocator",
+          "definition": "在用户态维护分配区间、向程序提供堆内存的分配器",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "字幕对 calloc 和 malloc(0) 的描述不完整；正文只保留课堂明确的基础机制和谨慎边界。"
+    },
+    {
+      "id": "K17",
+      "priority": "A",
+      "topic": "malloc/free 的生命周期负担与语言替代路线",
+      "kind": "opinion",
+      "why": "讲师明确把 malloc/free 评价为设计负担，并通过泄漏、use-after-free、RAII 和所有权模型给出因果解释。",
+      "sources": [
+        {
+          "chunk": "S08",
+          "quote": "他要求在任何可能的路径上"
+        },
+        {
+          "chunk": "S08",
+          "quote": "C加加用了这个RAWI的这种方式"
+        }
+      ],
+      "must_preserve": [
+        "每条可能路径都要配对 free，否则泄漏",
+        "free 后旧指针立即失效，继续访问会造成内存安全问题",
+        "C++ RAII 用构造/析构绑定资源生命周期，Rust ownership/borrowing 把更多约束交给编译期"
+      ],
+      "terms": [
+        "RAII",
+        "ownership/borrowing"
+      ],
+      "key_terms": [
+        {
+          "term": "RAII",
+          "definition": "对象构造时取得资源、离开作用域时自动释放的资源管理方式",
+          "origin": "editor"
+        },
+        {
+          "term": "ownership/borrowing",
+          "definition": "以所有权和借用规则约束资源访问的编程模型",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "“billion-dollar mistake”等是讲师引用的评价性说法，正文以“讲师认为/看作”归属，不当作定量事实。"
+    },
+    {
+      "id": "K18",
+      "priority": "B",
+      "topic": "小块分配的区间数据结构与现实差距",
+      "kind": "observation",
+      "why": "保留作业视角中大块直取、小块维护互不相交空闲区间的差异，并明确平衡树练习不能代表现代分配器。",
+      "sources": [
+        {
+          "chunk": "S08",
+          "quote": "你的MALLOC每次就是从你从你的空闲的区域里面找一块足够的空间"
+        },
+        {
+          "chunk": "S09",
+          "quote": "但是这个不是现在的memory allocator的"
+        }
+      ],
+      "must_preserve": [
+        "大块分配可直接向操作系统申请，小块分配要从空闲区间中切分",
+        "算法课的平衡二叉搜索树是练习解法，不等同于现实 allocator 的全部实现",
+        "1995 年 malloc/free 综述只是继续阅读入口，课堂没有展开其结论"
+      ],
+      "terms": [],
+      "key_terms": [],
+      "uncertainty": "综述年份和实现比较按字幕保留，未核对原文论文。"
+    },
+    {
+      "id": "C01",
+      "priority": "C",
+      "topic": "口癖、重复确认和无信息互动",
+      "kind": "observation",
+      "why": "大量“呃”“好”“对吧”及同一句确认不增加机制、因果或验证证据。",
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    },
+    {
+      "id": "C02",
+      "priority": "C",
+      "topic": "命令行与界面操作的重复走场",
+      "kind": "observation",
+      "why": "逐次 step、鼠标和寄存器打印的重复操作在机制已经明确后删除，只保留能证明结论的关键观察。",
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    },
+    {
+      "id": "C03",
+      "priority": "C",
+      "topic": "与本讲因果链无关的自嘲和闲聊",
+      "kind": "observation",
+      "why": "讲师关于自己或 AI 的重复感叹、课程现场玩笑和等待过程不改变 libc、调试或分配器机制。",
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    }
+  ]
+}

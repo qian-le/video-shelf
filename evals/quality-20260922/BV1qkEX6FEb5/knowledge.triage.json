@@ -1,0 +1,550 @@
+{
+  "version": 1,
+  "status": "reviewed",
+  "source": {
+    "path": "transcript.corrected.txt",
+    "video_id": "BV1qkEX6FEb5",
+    "title": "计算机系统安全",
+    "video_url": "https://www.bilibili.com/video/BV1qkEX6FEb5/",
+    "duration_seconds": 5052,
+    "duration_is_estimate": true,
+    "raw_available": false
+  },
+  "source_notes": [
+    "完整校正字幕 transcript.corrected.txt 是当前可用主来源；目录没有 transcript.json 原始转录，因此无法做原始/校正双源核对。",
+    "Luna agent-assisted 已逐窗阅读 quality/source.md 的 S01–S09，并按跨窗知识链聚合；正文中的基础释义是编辑补充，不冒充讲师原话。",
+    "部分产品名、攻击名和专名来自 ASR 音近写法；正文保留确定机制，未经字幕支持或外部核验的名称按课堂说法/不确定性呈现。"
+  ],
+  "reviewed_chunks": ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09"],
+  "items": [
+    {
+      "id": "K01",
+      "priority": "A",
+      "topic": "8086 实模式没有内存保护，程序可改写别的程序；加壳为病毒植入持续行为提供入口。",
+      "kind": "observation",
+      "why": "建立从硬件/地址空间缺少隔离到程序可篡改、病毒可传播的安全边界背景。",
+      "sources": [
+        {"chunk": "S01", "quote": "然后注意这个8086的CPU是没有任何保护的"},
+        {"chunk": "S01", "quote": "然后你的壳儿运行完了以后"}
+      ],
+      "must_preserve": [
+        "8086 实模式按 CS 左移四位加 IP 形成 20 位地址，CPU 不保护用户内存，程序可改写其他程序。",
+        "加壳修改可执行文件入口，先执行附加代码再跳回原入口，因此可在表面行为不变时复制、感染或破坏。"
+      ],
+      "terms": ["8086 实模式", "中断向量表", "加壳"],
+      "key_terms": [
+        {"term": "8086 实模式", "definition": "早期处理器直接用段寄存器和指针计算地址的运行方式", "origin": "editor"},
+        {"term": "中断向量表", "definition": "把中断编号映射到处理代码地址的表", "origin": "editor"},
+        {"term": "加壳", "definition": "改可执行文件入口，先执行附加代码再回原逻辑", "origin": "editor"}
+      ],
+      "uncertainty": "字幕中的 ERF/FIRMA 等为明显 ASR 音近词；正文只保留可确认的入口、固件和内存保护机制。"
+    },
+    {
+      "id": "K02",
+      "priority": "A",
+      "topic": "安全的 CIA 三维：机密性、完整性、可用性。",
+      "kind": "observation",
+      "why": "这是全讲评价攻击与防御的统一框架，三维失败条件和例子必须分别解释。",
+      "sources": [
+        {"chunk": "S01", "quote": "我们的安全有三个方面"},
+        {"chunk": "S01", "quote": "还有一个维度\n[00:09:41] 安全叫可用性"}
+      ],
+      "must_preserve": [
+        "机密性是未授权者不能读，完整性是未授权者不能改，可用性是合法用户需要时仍能使用。",
+        "操作系统主要通过访问控制帮助实现机密性和完整性，可用性还依赖资源管理和抗拒绝服务。"
+      ],
+      "terms": ["CIA", "机密性", "完整性", "可用性"],
+      "key_terms": [
+        {"term": "CIA", "definition": "把安全目标分为机密性、完整性、可用性的三维框架", "origin": "editor"}
+      ],
+      "uncertainty": "教务系统和学生故事是讲师举例；正文保留其说明的权限后果，不把个人故事扩写成外部事实。"
+    },
+    {
+      "id": "K03",
+      "priority": "A",
+      "topic": "拒绝服务与算法复杂性攻击从资源侧破坏可用性。",
+      "kind": "observation",
+      "why": "补足可用性维度的机制：不必读取或改写数据，也能耗尽服务资源；哈希碰撞是具体可推理的例子。",
+      "sources": [
+        {"chunk": "S02", "quote": "叫做denial of service"},
+        {"chunk": "S02", "quote": "它都hash function到同一个地址上"}
+      ],
+      "must_preserve": [
+        "DDoS 用大量受控机器同时请求压垮服务；长输出/长请求是课堂设想，规模数字不能当实测。",
+        "构造哈希碰撞会让哈希表从平均 O(1) 退化到近似线性；冲突过多时切换树形结构可改善最坏情况。"
+      ],
+      "terms": ["拒绝服务", "DDoS", "算法复杂性攻击"],
+      "key_terms": [
+        {"term": "拒绝服务", "definition": "让合法用户暂时无法使用服务的攻击", "origin": "editor"},
+        {"term": "DDoS", "definition": "由大量受控机器同时发起请求的分布式拒绝服务", "origin": "editor"},
+        {"term": "算法复杂性攻击", "definition": "构造输入，让程序从通常的低复杂度退化为高复杂度", "origin": "editor"}
+      ],
+      "uncertainty": "字幕把攻击名称和模型名多处识别错误；正文不依赖这些专名，只保留可用性和哈希碰撞因果。"
+    },
+    {
+      "id": "K04",
+      "priority": "A",
+      "topic": "单向函数与密码学哈希支持完整性摘要，但不等于加密。",
+      "kind": "observation",
+      "why": "密码学段落的核心是正向易算、逆向困难、难构造碰撞，以及用摘要校验文件。",
+      "sources": [
+        {"chunk": "S02", "quote": "首先有一种东西叫做one way function"},
+        {"chunk": "S02", "quote": "我可以在网站上面把他的杀完sum写下来"}
+      ],
+      "must_preserve": [
+        "密码学哈希易于计算、难以从输出反推输入且难以构造碰撞；它不同于只为分桶的普通哈希。",
+        "公布并重新计算 hash digest 可校验下载文件完整性，但摘要公开不提供原文解密。"
+      ],
+      "terms": ["单向函数", "密码学哈希", "hash digest"],
+      "key_terms": [
+        {"term": "单向函数", "definition": "正向计算容易、从输出反推输入很难的函数", "origin": "editor"},
+        {"term": "密码学哈希", "definition": "把输入压成固定长度且难逆向、难构造碰撞的摘要函数", "origin": "editor"},
+        {"term": "hash digest", "definition": "文件内容经过哈希函数得到的短摘要", "origin": "editor"}
+      ],
+      "uncertainty": "字幕将 SHA-256、MD5 等读音写得不稳定；正文只把它们作为讲师举出的摘要函数例子，不声称独立安全评估。"
+    },
+    {
+      "id": "K05",
+      "priority": "A",
+      "topic": "Trapdoor 函数用秘密参数把单向难题变成可逆入口，统一解释加密、认证和数字签名。",
+      "kind": "observation",
+      "why": "这是密码学与机密性、完整性、身份认证的机制桥梁，需保留正用/反用和公钥信任边界。",
+      "sources": [
+        {"chunk": "S02", "quote": "但是如果我有一个数字T差不多有一个T"},
+        {"chunk": "S02", "quote": "如果你把这个随机数换成是任意文件的哈"}
+      ],
+      "must_preserve": [
+        "没有秘密参数时难求逆，持有 trapdoor 时可求逆；公开函数/公钥可被验证，私钥不应公开。",
+        "公开函数加密实现机密性；随机挑战证明持有秘密实现认证；对文件摘要求逆形成数字签名，公钥分发仍需可信渠道。"
+      ],
+      "terms": ["Trapdoor function", "公钥", "私钥", "数字签名"],
+      "key_terms": [
+        {"term": "Trapdoor function", "definition": "无秘密参数时难求逆、持有秘密参数时易求逆的函数", "origin": "editor"},
+        {"term": "公钥", "definition": "任何人都可用来执行公开操作的钥匙", "origin": "editor"},
+        {"term": "私钥", "definition": "只有持有者保存、用于解密或证明身份的秘密", "origin": "editor"},
+        {"term": "数字签名", "definition": "用私钥对摘要作证明、让他人检查来源和完整性的结果", "origin": "editor"}
+      ],
+      "uncertainty": "字幕中的 RSA/SSH 文件名为课堂例子且有 ASR 疑义；不外推具体算法实现。"
+    },
+    {
+      "id": "K06",
+      "priority": "B",
+      "topic": "区块链用前缀哈希、签名和工作量证明维护可追加共识，但公开结构没有内置机密性。",
+      "kind": "observation",
+      "why": "这是密码学概念的延伸案例，保留其可验证/可用与不保密的边界，压缩狗和骨头的比喻。",
+      "sources": [
+        {"chunk": "S02", "quote": "如果我们有一个append only的数据结构"},
+        {"chunk": "S03", "quote": "这个叫proof of work"}
+      ],
+      "must_preserve": [
+        "记录通过前缀哈希、签名链接，工作量证明让追加昂贵；分叉时按协议向更长链收敛。",
+        "多方副本带来可用性和可验证性，但公开账本没有内置机密性；资产转移权由私钥控制。"
+      ],
+      "terms": ["区块链", "append-only", "工作量证明"],
+      "uncertainty": "24 个单词和 1.3 亿美元是讲师称为网上传闻的故事，正文必须保持传闻属性。"
+    },
+    {
+      "id": "K07",
+      "priority": "A",
+      "topic": "操作系统用虚拟地址空间和系统 API 把对象访问收束到可检查的边界。",
+      "kind": "observation",
+      "why": "这是从安全目标进入操作系统安全的主转折，必须保留 API 的行为与权限双重职责。",
+      "sources": [
+        {"chunk": "S03", "quote": "你的进程的地址空间是隔离的"},
+        {"chunk": "S03", "quote": "你的进程的地址空间是隔离的"}
+      ],
+      "must_preserve": [
+        "默认情况下进程在隔离的虚拟地址空间内运行，访问文件、设备等对象需经过操作系统 API。",
+        "API 一方面定义 open/read/write 等行为，另一方面可在行为前拒绝越权读写，分别帮助机密性和完整性；资源公平只提供部分可用性。"
+      ],
+      "terms": ["虚拟地址空间", "访问控制"],
+      "key_terms": [
+        {"term": "虚拟地址空间", "definition": "程序看到的、由系统映射到真实内存的地址视图", "origin": "editor"},
+        {"term": "访问控制", "definition": "在访问发生前判断主体能否执行某种操作的机制", "origin": "editor"}
+      ],
+      "uncertainty": "讲师以 API 作为教学抽象；正文不将其扩展为所有操作系统实现的完整安全模型。"
+    },
+    {
+      "id": "K08",
+      "priority": "A",
+      "topic": "访问控制矩阵被 UNIX 的 UID/GID、所有者和 mode 位压缩表达，root 与进程继承构成特权边界。",
+      "kind": "observation",
+      "why": "访问控制矩阵是全讲最经典的模型；UNIX 投影、root 恢复路径、登录切换和继承机制必须连起来。",
+      "sources": [
+        {"chunk": "S03", "quote": "所以访问控制就是一张巨大无比的表"},
+        {"chunk": "S04", "quote": "UID等于零"},
+        {"chunk": "S04", "quote": "紫禁城会继承父进程的用户"}
+      ],
+      "must_preserve": [
+        "矩阵的主体是进程/线程，对象是文件、设备等，格子记录读写执行等允许/拒绝；因规模和稀疏性，系统用投影压缩。",
+        "UNIX 用 UID/GID、所有者和所有者/组/其他人的读写执行位表达常见投影；UID 0 的 root 保留恢复路径，登录和子进程继承改变后的身份。"
+      ],
+      "terms": ["访问控制矩阵", "UID/GID", "root"],
+      "key_terms": [
+        {"term": "访问控制矩阵", "definition": "用主体、对象和操作的表记录允许或拒绝的模型", "origin": "editor"},
+        {"term": "UID/GID", "definition": "分别标识用户和用户组的整数编号", "origin": "editor"},
+        {"term": "root", "definition": "UNIX 中几乎不受普通权限位限制的特权用户", "origin": "editor"}
+      ],
+      "uncertainty": "字幕对 setuid、setgid、UID 字段的读音混杂；正文只保留可确认的用户/组/特权身份关系。"
+    },
+    {
+      "id": "K09",
+      "priority": "A",
+      "topic": "setuid 让普通用户借助特权文件完成密码修改，但把程序漏洞放大为提权风险。",
+      "kind": "observation",
+      "why": "setuid 是访问控制的现实例外与安全风险，需解释为什么存在、怎样工作、漏洞为何危险。",
+      "sources": [
+        {"chunk": "S04", "quote": "以文件所有者的权限运行"},
+        {"chunk": "S04", "quote": "但是如果一旦password这个程序里面有一个漏洞"}
+      ],
+      "must_preserve": [
+        "带 setuid 位的 passwd 以文件所有者（通常为 root）运行，因而能改写普通用户不能直接改的密码文件。",
+        "real/effective/saved 等 UID 是历史补丁；setuid 程序一旦有漏洞，低权限输入可能在 root 权限下执行。"
+      ],
+      "terms": ["setuid", "effective UID"],
+      "key_terms": [
+        {"term": "setuid", "definition": "执行文件时临时采用文件所有者身份的权限位", "origin": "editor"},
+        {"term": "effective UID", "definition": "当前用于权限检查的有效用户编号", "origin": "editor"}
+      ],
+      "uncertainty": "讲师把若干 UID 名称读成近音词；正文用常见术语整理，但不展开已停用字段的历史细节。"
+    },
+    {
+      "id": "K10",
+      "priority": "A",
+      "topic": "ACL、AppArmor、seccomp 与 eBPF/LSM 是访问控制矩阵的不同投影，细粒度与性能/复杂度存在取舍。",
+      "kind": "observation",
+      "why": "保留从文件视角到程序视角、系统调用过滤和内核钩子的机制差异，避免只列名词。",
+      "sources": [
+        {"chunk": "S05", "quote": "有一个机制叫access control list"},
+        {"chunk": "S05", "quote": "然后这个内核里面机就这段代码"}
+      ],
+      "must_preserve": [
+        "ACL 以文件/对象为主体提供用户和组的细粒度权限；AppArmor 以程序为主体限制其可见对象。",
+        "seccomp 与 eBPF/LSM 可在 API/内核钩子处运行检查并返回允许/拒绝；更细的检查会增加运行时开销和维护复杂度。"
+      ],
+      "terms": ["ACL", "AppArmor", "seccomp", "eBPF/LSM"],
+      "key_terms": [
+        {"term": "ACL", "definition": "按对象列出用户或组细粒度权限的访问控制列表", "origin": "editor"},
+        {"term": "AppArmor", "definition": "按程序限制其最多能看见的对象", "origin": "editor"},
+        {"term": "seccomp", "definition": "在进程边界过滤系统调用的机制", "origin": "editor"},
+        {"term": "eBPF/LSM", "definition": "把受限检查程序挂到内核安全钩子上的机制", "origin": "editor"}
+      ],
+      "uncertainty": "字幕中的 AppArmor、seccomp、LSM 读音多有错字；正文按机制整理，不补充未讲出的内核版本细节。"
+    },
+    {
+      "id": "K11",
+      "priority": "A",
+      "topic": "模糊测试利用非预期输入寻找异常路径；大模型降低找漏洞成本的趋势判断需保留不确定性。",
+      "kind": "observation",
+      "why": "它说明访问控制之外仍有程序内部状态和输入验证问题，并连接到后面的内存攻击。",
+      "sources": [
+        {"chunk": "S05", "quote": "现在就有专门有一种技术叫做fast testing"},
+        {"chunk": "S06", "quote": "各个各大黑客们手上都掌握了海量的zero day"}
+      ],
+      "must_preserve": [
+        "自动生成随机、异常或边界输入可以把程序推进开发者未预期的路径，暴露隐私泄露、状态溢出等问题。",
+        "讲师预计大语言模型可能让漏洞发现成本下降、zero-day 增多；这是课堂判断，不是已盘点的数量。"
+      ],
+      "terms": ["模糊测试", "zero-day"],
+      "key_terms": [
+        {"term": "模糊测试", "definition": "自动生成大量异常、随机或边界输入来寻找未预料执行路径的测试方法", "origin": "editor"},
+        {"term": "zero-day", "definition": "尚未公开、通常还没有补丁的漏洞", "origin": "editor"}
+      ],
+      "uncertainty": "字幕将 fuzzing 误识别为 fast testing，将 GCC/LLVM 等名称写乱；趋势和数量均归因于讲师。"
+    },
+    {
+      "id": "K12",
+      "priority": "A",
+      "topic": "栈缓冲区溢出覆盖返回地址，可能把低权限输入转成特权控制流。",
+      "kind": "observation",
+      "why": "这是访问控制失效的核心程序漏洞案例，必须保留边界越写、返回地址、合法跳转和 setuid 后果链。",
+      "sources": [
+        {"chunk": "S06", "quote": "这个buffer是可能会溢出的"},
+        {"chunk": "S06", "quote": "如果你有一个办法知道"}
+      ],
+      "must_preserve": [
+        "固定大小栈 buffer 的无界输入越过数组边界，覆盖返回地址；return 随后跳到攻击者构造的地址。",
+        "若跳到危险函数并给出合法参数，且程序以 root/setuid 运行，普通用户可能获得 root shell；早期还可直接注入 shellcode。"
+      ],
+      "terms": ["栈溢出", "shellcode"],
+      "key_terms": [
+        {"term": "栈溢出", "definition": "写入越过栈上数组边界并破坏返回地址等数据", "origin": "editor"},
+        {"term": "shellcode", "definition": "注入内存、用于执行攻击者指令的一小段机器码", "origin": "editor"}
+      ],
+      "uncertainty": "课堂 exploit 使用了旧编译器行为和示意地址；正文保留机制，不复写可操作 payload。"
+    },
+    {
+      "id": "K13",
+      "priority": "A",
+      "topic": "NX、ASLR、canary、CFI 逐层提高控制流劫持成本，但攻防继续演进。",
+      "kind": "observation",
+      "why": "需要把防御机制与它们阻断的攻击步骤对应起来，而非只罗列缩写。",
+      "sources": [
+        {"chunk": "S06", "quote": "比如说一个最简单的方式\n[00:56:38] 就是我让站上不不能执行"},
+        {"chunk": "S07", "quote": "只有我程序里面写的那个控制流是允许的"}
+      ],
+      "must_preserve": [
+        "NX/DEP 使栈数据不可执行，ASLR 随机化栈和代码地址，canary 检测溢出覆盖，CFI 限制合法间接跳转。",
+        "这些防御减少攻击面但不是绝对防御；运行时动态检查或沙箱可换取更多安全，代价是性能和复杂度。"
+      ],
+      "terms": ["NX/DEP", "ASLR", "Stack canary", "CFI"],
+      "key_terms": [
+        {"term": "NX/DEP", "definition": "把数据页标成不可执行的防御", "origin": "editor"},
+        {"term": "ASLR", "definition": "每次运行随机化地址空间位置的防御", "origin": "editor"},
+        {"term": "Stack canary", "definition": "返回前检查的随机栈哨兵值", "origin": "editor"},
+        {"term": "CFI", "definition": "只允许预先认可的间接跳转目标的控制流完整性机制", "origin": "editor"}
+      ],
+      "uncertainty": "课堂对 endbr64 等指令的 ASR 拼写不稳定；正文以 CFI 的合法目标约束为主。"
+    },
+    {
+      "id": "K14",
+      "priority": "A",
+      "topic": "ROP 复用已有代码 gadget，在 NX 之后继续拼出攻击控制流。",
+      "kind": "observation",
+      "why": "这是 K13 的重要反例，说明不可执行栈并不等于控制流安全。",
+      "sources": [
+        {"chunk": "S06", "quote": "他就去已有的代码里面减"},
+        {"chunk": "S06", "quote": "加return orange的PROMING"}
+      ],
+      "must_preserve": [
+        "攻击者把多个返回地址放进栈中，每个地址指向已有代码里以 ret 结尾的 gadget，按序组合出所需语义。",
+        "ROP 绕过“栈上不能执行新代码”的限制，因此需要 CFI 等机制继续限制合法跳转。"
+      ],
+      "terms": ["ROP", "gadget"],
+      "key_terms": [
+        {"term": "ROP", "definition": "利用已有代码片段而不在栈上执行新代码的返回导向编程", "origin": "editor"},
+        {"term": "gadget", "definition": "可被返回地址拼接起来的短代码片段", "origin": "editor"}
+      ],
+      "uncertainty": "字幕把 return-oriented programming 识别成多种近音词；正文保留通用攻击机制，不展开可执行利用细节。"
+    },
+    {
+      "id": "K15",
+      "priority": "A",
+      "topic": "时间侧信道让看似正确的密码比较逐字泄露秘密。",
+      "kind": "observation",
+      "why": "它是“逻辑无漏洞仍泄密”的关键因果例子，必须保留页边界、换出和时间差如何逐字推断。",
+      "sources": [
+        {"chunk": "S07", "quote": "所以就会有一个从磁盘上面一来一回的时间差"},
+        {"chunk": "S07", "quote": "这种timing science channel引发了一个更严重的问题"}
+      ],
+      "must_preserve": [
+        "攻击者把待猜字符放在页边界并制造内存压力；猜对会继续访问下一页并触发缺页，猜错则提前返回，所以耗时不同。",
+        "重复测量并逐字移动边界即可把时间这一副作用变成密码输出；统一 sleep 不能消除访问模式泄露。"
+      ],
+      "terms": ["侧信道"],
+      "key_terms": [
+        {"term": "侧信道", "definition": "从时间、缓存、功耗或电磁等副作用推断秘密的通道", "origin": "editor"}
+      ],
+      "uncertainty": "课堂代码是机制演示；正文不声称该示例对应某个具体生产实现或漏洞编号。"
+    },
+    {
+      "id": "K16",
+      "priority": "A",
+      "topic": "Meltdown 把投机执行、权限异常和缓存痕迹组合成跨边界读取。",
+      "kind": "observation",
+      "why": "这是微架构安全主例，需保留非法读取、缓存编码、回滚不抹痕迹、测时推断和内核隔离修补。",
+      "sources": [
+        {"chunk": "S07", "quote": "因为我们现在的CPU有一个叫投机执行的"},
+        {"chunk": "S08", "quote": "但是对cash的影响永远都被保留下来了"}
+      ],
+      "must_preserve": [
+        "投机执行在权限异常真正提交前暂时读取内核字节，并用该字节选择缓存位置；异常后指令结果被丢弃但缓存热度留下。",
+        "另一线程测量候选地址的访问延迟即可推断字节；内核随后避免与用户进程共享同一映射视图，但这不是所有旁路漏洞的终点。"
+      ],
+      "terms": ["投机执行", "Meltdown"],
+      "key_terms": [
+        {"term": "投机执行", "definition": "CPU 为隐藏延迟而预先执行尚未确认路径的指令", "origin": "editor"},
+        {"term": "Meltdown", "definition": "利用投机执行与缓存痕迹越过内核/用户边界推断数据的漏洞", "origin": "editor"}
+      ],
+      "uncertainty": "字幕将 Meltdown 读成 mail down、缓存读成 cash；正文按机制整理，未补外部漏洞时间线。"
+    },
+    {
+      "id": "K17",
+      "priority": "B",
+      "topic": "电磁辐射与冷启动展示软件之外的物理侧信道。",
+      "kind": "observation",
+      "why": "这些案例共同扩展“安全边界”的范围，保留差异但压缩故事化操作。",
+      "sources": [
+        {"chunk": "S08", "quote": "他们可以可以放一个天线"},
+        {"chunk": "S08", "quote": "然后液氮一交"}
+      ],
+      "must_preserve": [
+        "显示器/CPU 电磁信号可能被传感器用于还原画面或推断私钥，断电后低温维持 DRAM 残留也可能恢复秘密。",
+        "软件 bug、微架构副作用和物理信号都需要纳入威胁模型；讲师以脑洞案例说明可能性，不提供可复现实验。"
+      ],
+      "terms": ["冷启动攻击"],
+      "uncertainty": "天线、饼中传感器和液氮故事是讲师引用的经典/概念性案例，未在本回归中外部核验。"
+    },
+    {
+      "id": "K18",
+      "priority": "A",
+      "topic": "Prompt injection 与 jailbreak 利用上下文包装和伪造历史绕过模型安全策略。",
+      "kind": "observation",
+      "why": "这是 AI 时代的新输入攻击面，须保留示例的机制而不把早期案例写成当前模型保证。",
+      "sources": [
+        {"chunk": "S08", "quote": "prompt injection或者jail break"},
+        {"chunk": "S08", "quote": "然后伪造一个chat history"}
+      ],
+      "must_preserve": [
+        "将恶意请求包装成奶奶故事、绝症叙事或伪造 chat history，可能让模型把攻击者想要的内容当成已许可上下文。",
+        "后训练改进可能提高难度，但长上下文、权重修改等仍被讲师视为潜在绕过路径；这是课堂判断。"
+      ],
+      "terms": ["Prompt injection", "jailbreak"],
+      "key_terms": [
+        {"term": "Prompt injection", "definition": "把恶意指令藏进输入或上下文、诱导模型偏离原任务的攻击", "origin": "editor"},
+        {"term": "jailbreak", "definition": "通过构造对话绕过模型安全限制的尝试", "origin": "editor"}
+      ],
+      "uncertainty": "示例描述的是讲师回忆的早期模型行为；未把任何模型的当前防御能力写成确定事实。"
+    },
+    {
+      "id": "K19",
+      "priority": "A",
+      "topic": "Agent 工具调用放大提示注入后果，沙箱与最小权限在安全和可用性之间取舍。",
+      "kind": "observation",
+      "why": "这是从模型输入风险到操作系统访问控制的闭环，需保留分段注入、网页污染、密钥外传和权限张力。",
+      "sources": [
+        {"chunk": "S08", "quote": "在agent能调用工具的时候"},
+        {"chunk": "S08", "quote": "所以基本上你只能通过沙箱或者访问控制"}
+      ],
+      "must_preserve": [
+        "注入可以分成多次看似无害的写入，等 Agent 读取文件或网页后拼成恶意指令；未经清洗的重复网页提示可能诱导小模型外传 API key。",
+        "沙箱和最小权限限制工具爆炸半径，但权限太少会阻塞任务、权限全开又扩大风险；不存在绝对防御。"
+      ],
+      "terms": ["Agent", "沙箱", "最小权限", "API key"],
+      "key_terms": [
+        {"term": "Agent", "definition": "能根据模型输出调用工具、文件或网络服务的自动化程序", "origin": "editor"},
+        {"term": "沙箱", "definition": "把程序限制在隔离环境中的执行边界", "origin": "editor"},
+        {"term": "最小权限", "definition": "只授予完成任务所需的权限", "origin": "editor"},
+        {"term": "API key", "definition": "调用服务的秘密凭据", "origin": "editor"}
+      ],
+      "uncertainty": "课堂用网页和模型作设想；正文保留攻击链和访问控制原则，不声称某个具体 Agent 已被攻破。"
+    },
+    {
+      "id": "K20",
+      "priority": "A",
+      "topic": "供应链攻击通过维护者信任、恶意包和安装钩子把密钥风险扩散到下游。",
+      "kind": "observation",
+      "why": "供应链是结尾最重要的工程案例，须保留从上游权限到下游执行的完整因果链和防护方向。",
+      "sources": [
+        {"chunk": "S08", "quote": "会带来的这种供应链攻击"},
+        {"chunk": "S09", "quote": "它是在NPM的那个install的时候有一个hook"}
+      ],
+      "must_preserve": [
+        "攻击者取得维护者仓库权限或长期建立信任，发布看似正常的依赖；安装时 hook 可遍历当前用户可见的环境变量、配置和 API key 并外传。",
+        "一旦恶意包进入依赖关系并通过 CI/CD 发布，更新会把影响扩大到下游；依赖审查、最小权限、可复现构建和密钥不入仓库可降低风险。"
+      ],
+      "terms": ["供应链攻击", "install hook", "CI/CD"],
+      "key_terms": [
+        {"term": "供应链攻击", "definition": "污染被许多项目依赖的上游组件，让下游更新时一起中招", "origin": "editor"},
+        {"term": "install hook", "definition": "安装或更新包时自动运行的脚本", "origin": "editor"},
+        {"term": "CI/CD", "definition": "持续集成与持续交付的自动构建发布流程", "origin": "editor"}
+      ],
+      "uncertainty": "字幕将 NPM 包名、xz-utils、构建组件等多处识别错误；正文保留课堂案例和机制，未作外部核验。"
+    },
+    {
+      "id": "K21",
+      "priority": "B",
+      "topic": "xz-utils 后门案例展示长期建立信任、混淆构建代码、绕过检查与性能异常暴露之间的关系。",
+      "kind": "observation",
+      "why": "这是供应链机制的差异化案例；压缩重复故事但保留性能回归也可能是安全线索的工程教训。",
+      "sources": [
+        {"chunk": "S09", "quote": "这个开发者肯定是一个人类花了两到3年"},
+        {"chunk": "S09", "quote": "他的代码里面有一个performance bug"}
+      ],
+      "must_preserve": [
+        "长期贡献建立信任、构建系统混入难读修改并让检查脚本失败，可使恶意代码躲过部分自动检查并污染下游。",
+        "异常 CPU 消耗暴露了问题；生产环境的性能、构建和依赖行为需要独立观察，性能回归可能成为安全线索。"
+      ],
+      "terms": ["xz-utils"],
+      "uncertainty": "讲师明确以课堂案例叙述，具体归因、时间和技术细节未在本回归中独立核验。"
+    },
+    {
+      "id": "C01",
+      "priority": "C",
+      "topic": "课程安排、考试是否覆盖和下一讲预告",
+      "kind": "observation",
+      "why": "不改变计算机系统安全的知识链，删除以缩短开场。",
+      "sources": [{"chunk": "S01", "quote": "然后这些补充内容不做考试的要求"}],
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    },
+    {
+      "id": "C02",
+      "priority": "C",
+      "topic": "BBS 版面、热门话题和个人怀旧细节",
+      "kind": "observation",
+      "why": "保留明文传输和批量试密码机制后，站点操作与怀旧故事没有额外学习价值。",
+      "sources": [{"chunk": "S01", "quote": "然后当时我们我们就干了一件什么事呢"}],
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    },
+    {
+      "id": "C03",
+      "priority": "C",
+      "topic": "人物处罚、公司设备和个人评价闲聊",
+      "kind": "opinion",
+      "why": "这些评价不增加 CIA、会话窃取或权限后果的解释，正文只保留对应安全机制。",
+      "sources": [{"chunk": "S01", "quote": "反正我觉得对于学校对于他来说"}],
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    },
+    {
+      "id": "C04",
+      "priority": "C",
+      "topic": "密码学比喻的重复确认和与数据结构课的玩笑",
+      "kind": "observation",
+      "why": "单向、trapdoor、区块链的机制已在 A/B 项中一次解释，重复口头确认与笑话删除。",
+      "sources": [{"chunk": "S03", "quote": "这是一个非常聪明的"}],
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    },
+    {
+      "id": "C05",
+      "priority": "C",
+      "topic": "让学生把课件交给 AI、制作 skill 和情绪价值的学习建议",
+      "kind": "observation",
+      "why": "它是学习方法闲聊，不是本讲系统安全机制；删除可避免与 AI 安全段落混淆。",
+      "sources": [{"chunk": "S04", "quote": "我有一个更高效的看法"}],
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    },
+    {
+      "id": "C06",
+      "priority": "C",
+      "topic": "对论文标题 demystified 的个人偏好及命令演示走场",
+      "kind": "opinion",
+      "why": "不影响 setuid 的机制与风险，删除个人标题品味和逐步终端操作。",
+      "sources": [{"chunk": "S05", "quote": "我自己观点"}],
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    },
+    {
+      "id": "C07",
+      "priority": "C",
+      "topic": "exploit 的编译参数、输入字符串和重复执行口语",
+      "kind": "observation",
+      "why": "保留越界→返回地址→提权的机制后，逐字 payload 和现场调试步骤会增加风险与阅读负担。",
+      "sources": [{"chunk": "S06", "quote": "然后我会发送一个payload"}],
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    },
+    {
+      "id": "C08",
+      "priority": "C",
+      "topic": "关于安全有趣、脑洞大开和回去了解的重复收束",
+      "kind": "opinion",
+      "why": "属于态度和过渡，不增加侧信道或供应链的原因、结果、条件。",
+      "sources": [{"chunk": "S09", "quote": "所以安全是个很有意思的主题"}],
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    }
+  ]
+}

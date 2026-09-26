@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from urllib.parse import quote
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,6 +28,12 @@ PAGES = "pages"
 CORRECTED = "transcript.corrected.txt"
 SHELF_TITLE = "书架 · 电子书库"
 SPINE = ["#0f766e", "#b45309", "#1d4ed8", "#9f1239"]
+
+try:
+    from src.book_quality import check_ready
+except ImportError:  # direct execution from src/ on older environments
+    sys.path.insert(0, BASE)
+    from src.book_quality import check_ready
 
 
 def run(args, env=None, cwd=BASE, check=True):
@@ -235,6 +242,11 @@ def main():
     for vid in ids:
         if not os.path.isfile(os.path.join(out, vid, "book.html")):
             sys.exit(f"output/{vid}/book.html 不存在，先完成渲染步骤")
+        if check_ready is not None:
+            try:
+                check_ready(Path(out) / vid)
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                sys.exit(f"output/{vid} 质量审计未通过，禁止发布：{exc}")
 
     tip = pages_tip()
     tmp = tempfile.mkdtemp(prefix="shelf_publish_")

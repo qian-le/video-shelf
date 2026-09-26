@@ -1,0 +1,111 @@
+{
+  "method": "独立人工语义复核：逐条阅读第10/28讲最终 book.md，并对照 cross-lecture.regression.jsonl 的 source evidence、target_semantics、causal_chain；不以关键词命中代替关系支持。",
+  "source_scope": "两讲均使用仓库内 evals/quality-20260922/*/transcript.corrected.txt；本复核不宣称有原始字幕双源核验。",
+  "books": {
+    "BV1yu9cBCEAb": {
+      "title": "调试 C 标准库",
+      "path": "../BV1yu9cBCEAb/book.md",
+      "sha256": "e12e7f2d765b6b32988696cfa5cb05bf5c57b2fb07fd11a71de41424a6183e79",
+      "metrics": {
+        "markdown_characters": 8177,
+        "reading_units": 5281,
+        "reading_minutes_400": 13.2,
+        "reading_minutes_300_500": [
+          10.56,
+          17.6
+        ],
+        "video_minutes": 80.87,
+        "time_saved_percent_400": 83.7,
+        "reading_ratio": 0.1633
+      }
+    },
+    "BV1qkEX6FEb5": {
+      "title": "计算机系统安全",
+      "path": "../BV1qkEX6FEb5/book.md",
+      "sha256": "38c3aa7c951088db0409c7bd27201faacc00a96a379e655bae4c3b1e70a17fca",
+      "metrics": {
+        "markdown_characters": 8991,
+        "reading_units": 6435,
+        "reading_minutes_400": 16.09,
+        "reading_minutes_300_500": [
+          12.87,
+          21.45
+        ],
+        "video_minutes": 84.2,
+        "time_saved_percent_400": 80.9,
+        "reading_ratio": 0.1911
+      }
+    }
+  },
+  "items": [
+    {
+      "id": "L10-001",
+      "status": "covered",
+      "book_anchor": "BV1yu9cBCEAb §1.1 lines 15-17",
+      "causal_check": "pass",
+      "term_check": "pass",
+      "note": "明确写出 AI 的编译/安装成功提示不等于系统正在使用目标库；错误安装位置导致调试信息未生效；逐条命令核对和工具链确认恢复可信度。"
+    },
+    {
+      "id": "L10-002",
+      "status": "covered",
+      "book_anchor": "BV1yu9cBCEAb §1.2 lines 21-23",
+      "causal_check": "pass",
+      "term_check": "pass",
+      "note": "先解释 system call 是访问内核服务的低层入口，再说明直接调用要手工准备文件描述符、缓冲区和长度、代码冗长易错，继而引出 libc 的 C 接口抽象；system call/libc 首现均有中文作用释义。"
+    },
+    {
+      "id": "L10-003",
+      "status": "covered",
+      "book_anchor": "BV1yu9cBCEAb §1.2-1.3 lines 23-38",
+      "causal_check": "pass",
+      "term_check": "pass",
+      "note": "保留 C 经 FFI/汇编进入系统调用的路径、libc 对上层的跨平台接口意义，并明确这是有用但不绝对严谨的示意；FFI 首现有中文作用释义。"
+    },
+    {
+      "id": "L28-001",
+      "status": "covered",
+      "book_anchor": "BV1qkEX6FEb5 §1 lines 23-35",
+      "causal_check": "pass",
+      "term_check": "pass",
+      "note": "CIA 首现即给出机密性、完整性、可用性中文释义和三行对应例子，并补充三目标可相互独立；没有把安全压成只有保密。"
+    },
+    {
+      "id": "L28-002",
+      "status": "covered",
+      "book_anchor": "BV1qkEX6FEb5 §3 lines 103-109",
+      "causal_check": "pass",
+      "term_check": "pass",
+      "note": "先解释 setuid 解决普通用户改自己密码的实际需求，再写特权程序漏洞可把输入变成 root 行为，最后给出低权限运行限制影响的因果；setuid/root/最小权限均有中文作用释义。"
+    },
+    {
+      "id": "L28-003",
+      "status": "covered",
+      "book_anchor": "BV1qkEX6FEb5 §6 lines 190-204",
+      "causal_check": "pass",
+      "term_check": "pass",
+      "note": "保留从传统安全进入 AI 时代 prompt injection 的转场，并将后续定义、伪造对话历史、网页注入、Agent 权限与沙箱/最小权限作为字幕后续已有证据支持的展开；没有把黄金行的两句转场单独当作具体攻击事实。prompt injection 首现有中文作用释义。"
+    }
+  ],
+  "summary": {
+    "semantic_status_counts": {
+      "covered": 6,
+      "partial": 0,
+      "missing": 0
+    },
+    "beginner_readability": {
+      "pass": [
+        "system call",
+        "libc",
+        "FFI",
+        "CIA",
+        "setuid",
+        "root",
+        "prompt injection"
+      ],
+      "note": "按每讲首次实际出现位置抽查中文作用释义；没有要求字幕未出现的术语强行加入。"
+    },
+    "redundancy": "未见黄金链对应的关键语义被重复口号挤掉；两讲均压缩口癖和走场，同时保留因果。",
+    "e2e_status": "最终两讲 book.md 已生成，本次为独立静态正文/来源语义复核；未独立运行生成模型或发布流程。"
+  }
+}

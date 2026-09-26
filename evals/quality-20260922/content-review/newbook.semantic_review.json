@@ -1,0 +1,333 @@
+{
+  "book": "output/BV1Nyeq6qEt8/book.md",
+  "source": "lecture05.transcript.corrected.txt",
+  "method": "独立人工语义复核：逐条对照黄金集的短证据、命题与因果链；关键词命中不自动计为 covered。",
+  "raw_source_limit": "原始字幕缺失，因此名称/纠错判断只基于校正字幕。",
+  "items": [
+    {
+      "id": "L05-001",
+      "status": "covered",
+      "book_anchor": "§1 标题/首段",
+      "note": "书首明确以字幕支持的“type c AI”等待核名称为主；用户提供的 Jev / TypeSafe AI 只列为候选、不作为本书主称，并保留 JEFF、JB 变体及归属待原视频确认，满足命名疑义边界。"
+    },
+    {
+      "id": "L05-002",
+      "status": "covered",
+      "book_anchor": "§1 首段",
+      "note": "保留 JSON→动作 token→毫秒/百毫秒决策、非自然语言输出链。"
+    },
+    {
+      "id": "L05-003",
+      "status": "covered",
+      "book_anchor": "§1 首段",
+      "note": "保留 System One 名称、技术并非全新和赛道打开判断，并明确字幕无法支持架构。"
+    },
+    {
+      "id": "L05-004",
+      "status": "covered",
+      "book_anchor": "§1 低延迟小节",
+      "note": "保留 50–200ms 是设想及低延迟进入连续交互的机制。"
+    },
+    {
+      "id": "L05-005",
+      "status": "covered",
+      "book_anchor": "§1 低延迟小节",
+      "note": "保留低延迟决策→数字人微表情→人感的因果，归为设想。"
+    },
+    {
+      "id": "L05-006",
+      "status": "covered",
+      "book_anchor": "§1 低延迟小节",
+      "note": "保留机器人微表情预测并明确不是已完成系统。"
+    },
+    {
+      "id": "L05-007",
+      "status": "covered",
+      "book_anchor": "§2",
+      "note": "解释 taste、reward hacking、即时奖励与长期质量链，保留讲师推测属性。"
+    },
+    {
+      "id": "L05-008",
+      "status": "covered",
+      "book_anchor": "§2 可验证小节",
+      "note": "保留自然语言→形式化→定义错位→证明不等于原问题已解。"
+    },
+    {
+      "id": "L05-009",
+      "status": "covered",
+      "book_anchor": "§3 开头",
+      "note": "scaling law 与‘数据分布工程’均明确是讲师解释框架，附中文作用释义。"
+    },
+    {
+      "id": "L05-010",
+      "status": "covered",
+      "book_anchor": "§3 空间推理段",
+      "note": "保留训练/后训练数据和反馈是讲师推测，未写成训练报告事实。"
+    },
+    {
+      "id": "L05-011",
+      "status": "covered",
+      "book_anchor": "§3 新领域表格",
+      "note": "保留强基模+新领域 RL 可能带来迁移改善，明确需要实验。"
+    },
+    {
+      "id": "L05-012",
+      "status": "covered",
+      "book_anchor": "§3 新领域表格",
+      "note": "保留模拟器像素奖励漏洞→不可泛化与强基模可能省数据的双路比较。"
+    },
+    {
+      "id": "L05-013",
+      "status": "covered",
+      "book_anchor": "§3 新领域段",
+      "note": "保留‘基础越丰富可能更有效率’且标猜测，不升级为定律。"
+    },
+    {
+      "id": "L05-014",
+      "status": "covered",
+      "book_anchor": "§3 飞轮小节",
+      "note": "保留数据时机/比例、训练稳定性/推理一致性和可扩展性条件，避免架构算法绝对化。"
+    },
+    {
+      "id": "L05-015",
+      "status": "covered",
+      "book_anchor": "§3 学术冲击",
+      "note": "保留学术 output/资源不平等→blog→大规模验证/RSI 的讲师判断，并标鲜明立场。"
+    },
+    {
+      "id": "L05-016",
+      "status": "covered",
+      "book_anchor": "§3 飞轮小节",
+      "note": "保留新领域→反馈→分布优化→基模能力台阶以及候选领域未核实限制。"
+    },
+    {
+      "id": "L05-017",
+      "status": "covered",
+      "book_anchor": "§3 学术冲击",
+      "note": "保留传统论文/评审体系受冲击是预测，不写成已崩溃事实。"
+    },
+    {
+      "id": "L05-018",
+      "status": "covered",
+      "book_anchor": "§3 飞轮小节/§12",
+      "note": "保留系统设计作为新训练领域及未来模型能力的可能性，归为研究方向。"
+    },
+    {
+      "id": "L05-019",
+      "status": "covered",
+      "book_anchor": "§12 学习段/结尾",
+      "note": "结尾和设备段保留能力门槛上移、AI 不能替代人的意图判断与验证的因果；压缩了“斩杀线”原词，但语义充分。"
+    },
+    {
+      "id": "L05-020",
+      "status": "covered",
+      "book_anchor": "§4 表格",
+      "note": "三层均有中文作用解释，完整保留 intent→spec→implementation 的 gap 及错误规格仍会做错产品。"
+    },
+    {
+      "id": "L05-021",
+      "status": "covered",
+      "book_anchor": "§4 MVP 段",
+      "note": "保留小版本→低成本暴露 gap→迭代，且没有把 MVP 写成永远忽略质量。"
+    },
+    {
+      "id": "L05-022",
+      "status": "covered",
+      "book_anchor": "§5/§5.1",
+      "note": "保留物理设备、厂商软件痛点、scan/print 抽象和设计/实现解耦。"
+    },
+    {
+      "id": "L05-023",
+      "status": "covered",
+      "book_anchor": "§5.1",
+      "note": "保留 read/write/I/O control 到 scan/print 及 DPI/单双面参数，给出接口示意边界。"
+    },
+    {
+      "id": "L05-024",
+      "status": "covered",
+      "book_anchor": "§5.2",
+      "note": "保留非标准硬件→测试标签→人反馈→调参数→PCL 尝试→可验收闭环，区分现场与摄像头设想。"
+    },
+    {
+      "id": "L05-025",
+      "status": "covered",
+      "book_anchor": "§6",
+      "note": "区分 Computer Use 与 API，保留快模型+连续点击等待的条件与 App→Agent capability 趋势。"
+    },
+    {
+      "id": "L05-026",
+      "status": "covered",
+      "book_anchor": "§6 产业链",
+      "note": "保留软件成本/入口/商业分工冲击及‘软件公司消亡’作为激进预测。"
+    },
+    {
+      "id": "L05-027",
+      "status": "covered",
+      "book_anchor": "§5.2",
+      "note": "保留 APK→蓝牙协议→设备驱动探索和物理验收；没有声称 Linux 驱动或逆向必然成功。"
+    },
+    {
+      "id": "L05-028",
+      "status": "covered",
+      "book_anchor": "§8/结尾",
+      "note": "把历史工程原则连到 Agent 时代的接口、验证、容错与取舍。"
+    },
+    {
+      "id": "L05-029",
+      "status": "covered",
+      "book_anchor": "§5/§8/结尾",
+      "note": "全书把设备抽象、验证、容错和演进连到 Agent 协作，结尾明确软件工程仍回答如何理解意图、组织复杂性、获得证据和应对变化。"
+    },
+    {
+      "id": "L05-030",
+      "status": "covered",
+      "book_anchor": "§7",
+      "note": "保留软件需求社会性/可变性、选课例外和 intent 漏掉 corner case 的链。"
+    },
+    {
+      "id": "L05-031",
+      "status": "covered",
+      "book_anchor": "§7",
+      "note": "保留进度/成本/质量一起失控的危机表现，未补统计数字。"
+    },
+    {
+      "id": "L05-032",
+      "status": "covered",
+      "book_anchor": "§8 goto 小节",
+      "note": "解释 goto 及受限 goto release，保留滥用有害与 cleanup 反例的边界。"
+    },
+    {
+      "id": "L05-033",
+      "status": "covered",
+      "book_anchor": "§8 goto 小节",
+      "note": "保留 The Humble Programmer、现实 intent 增多→复杂度上升→良好分解与谦逊的因果；Dijkstra 与清晰作品标题可按课件上下文合理订正。"
+    },
+    {
+      "id": "L05-034",
+      "status": "covered",
+      "book_anchor": "§8 阿波罗段",
+      "note": "保留约 1968 年 NATO 软件工程会议→学科形成→Hamilton/Apollo 的转场；正文用清晰历史名称并说明按常见称呼订正，未复写旧书“资助”错误。"
+    },
+    {
+      "id": "L05-035",
+      "status": "covered",
+      "book_anchor": "§8 异常段",
+      "note": "保留异常→优先级/恢复→关键下降任务继续的机制，没有补警报编号。"
+    },
+    {
+      "id": "L05-036",
+      "status": "covered",
+      "book_anchor": "§8 异常段",
+      "note": "保留成本/时间约束下的可工作、可维护、可演进定义。"
+    },
+    {
+      "id": "L05-037",
+      "status": "covered",
+      "book_anchor": "§9",
+      "note": "保留瀑布原文批判、测试晚证据、漂移→返工/成本链。"
+    },
+    {
+      "id": "L05-038",
+      "status": "covered",
+      "book_anchor": "§9",
+      "note": "保留 pilot/do it twice→低成本反馈→MVP 映射，并明确现代 MVP 非原文术语。"
+    },
+    {
+      "id": "L05-039",
+      "status": "covered",
+      "book_anchor": "§9",
+      "note": "保留极小可运行版本→尽早证据→反复迭代，未硬编码 hello world 步骤。"
+    },
+    {
+      "id": "L05-040",
+      "status": "covered",
+      "book_anchor": "§9/§10",
+      "note": "保留 intent/spec/implementation 阶段映射及 MVP/TDD/敏捷提前反馈目的。"
+    },
+    {
+      "id": "L05-041",
+      "status": "covered",
+      "book_anchor": "§11",
+      "note": "保留性质→生成输入→寻找反例→增加信心但不等于证明；工具名写作“字幕疑似对应 QuickCheck”并给中文作用释义，未把名称当已核事实。"
+    },
+    {
+      "id": "L05-042",
+      "status": "covered",
+      "book_anchor": "§11 契约段",
+      "note": "保留 MVP 先排除异常→演进后契约显式化假设的因果。"
+    },
+    {
+      "id": "L05-043",
+      "status": "covered",
+      "book_anchor": "§11 UML/契约段",
+      "note": "保留 UML 作为自然语言与形式语言之间的对齐目标及工具变化观点；Eiffel、Dafny、Verus 均以字幕疑似/语境整理表述，机制优先。"
+    },
+    {
+      "id": "L05-C01",
+      "status": "redundant_ok",
+      "book_anchor": "§1",
+      "note": "重复‘不说人话’已压入专用 token 解释，删除重复口语符合 C 标签。"
+    }
+  ],
+  "summary": {
+    "semantic_status_counts": {
+      "covered": 43,
+      "partial": 0,
+      "missing": 0,
+      "redundant_ok": 1
+    },
+    "a_items_reviewed": 40,
+    "b_items_reviewed": 3,
+    "c_items_reviewed": 1,
+    "fidelity_risks": [
+      "原始字幕缺失，无法验证校正稿的同音错字和画面中的产品名；Jev / TypeSafe 只保留为候选，type c AI 为校正字幕实际写法。",
+      "Dijkstra、Go To Statement Considered Harmful、NATO 依清晰作品标题/历史上下文合理订正；QuickCheck、Eiffel、Dafny、Verus 保持字幕疑似/机制优先，均不宣称产品归属已核。"
+    ],
+    "accessibility_findings": {
+      "pass": [
+        "Agent",
+        "DOOM",
+        "JSON",
+        "token",
+        "reward hacking",
+        "scaling law",
+        "intent/specification/implementation",
+        "MVP",
+        "API",
+        "computer use",
+        "PCL",
+        "goto",
+        "UML",
+        "traceability",
+        "contract",
+        "The Bitter Lesson",
+        "QuickCheck",
+        "System One/TypeSafe candidate boundary"
+      ],
+      "needs_fix": []
+    },
+    "redundancy_findings": [
+      "C01 口语重复已压入专用 token 解释。",
+      "§1–§3 的 AI 进步/恐怖/软件消亡感叹已合并，独特因果链仍在。",
+      "§12 的操作等待、窗口切换和价格个例已压缩为知识压缩原则。"
+    ],
+    "e2e_status": "新 book.md 与 book.html 已由 pipeline 生成；本独立审查没有运行生成模型或发布流程，只做静态来源/正文语义复核。"
+  },
+  "book_sha256": "fb675c7ca2c070a86588755b2c692c098492408a79d7049f6e818c523eade3b7",
+  "book_metrics": {
+    "markdown_characters": 11209,
+    "reading_units": 7926,
+    "reading_units_definition": "每个汉字或英文/数字词计 1 个阅读单位；Markdown 语法、链接 URL 和 HTML 标签移除；代码与 Mermaid 标签按文本近似计数。",
+    "reading_formula": "reading_units / 400",
+    "reading_minutes_400": 19.82,
+    "reading_minutes_300_500": [
+      15.85,
+      26.42
+    ],
+    "video_minutes": 100.0,
+    "time_saved_percent_400": 80.2,
+    "reading_ratio": 0.1982,
+    "note": "统一估算公式，不是对实际阅读时长的测量；300/500 为敏感性范围。",
+    "source": "src/book_quality.py::metrics"
+  }
+}

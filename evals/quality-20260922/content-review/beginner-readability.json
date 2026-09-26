@@ -1,0 +1,217 @@
+{
+  "purpose": "独立检查首次出现的技术术语是否有适合小白的短中文释义；释义是编辑审查要求，不代表讲师原话。",
+  "rule": "首次实际出现时用‘术语（中文作用/用途短释义）’或紧邻句解释；保留上下文和准确边界，后续不重复长定义。英文展开本身不算中文作用解释。",
+  "lecture05": [
+    {
+      "term": "DOOM",
+      "first_evidence": "L05-002 / 00:00:32",
+      "expected": "DOOM（《毁灭战士》游戏）",
+      "old_book_status": "pass: 旧书写《毁灭战士》（DOOM）",
+      "check": "保留即可",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "JSON",
+      "first_evidence": "L05-002 / 00:00:49",
+      "expected": "JSON（用来表示结构化状态数据的格式）",
+      "old_book_status": "fail: 旧书只写 JSON，无作用释义",
+      "check": "新版首现应补短释义",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "token",
+      "first_evidence": "L05-002 / 00:01:07",
+      "expected": "token（模型一次输出的离散文本或动作单位；本例是专用动作编码）",
+      "old_book_status": "fail: 旧书只写 token",
+      "check": "避免把动作 token 写成自然语言",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "Agent",
+      "first_evidence": "L05-019 / 00:17:39（前置栏更早出现）",
+      "expected": "Agent（能根据目标调用工具并执行多步任务的模型/程序）",
+      "old_book_status": "fail: 旧书前置栏只列 Agent，无作用释义",
+      "check": "首次正文或前置栏补一句，勿把讲师原话与编者释义混写",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "reward hacking",
+      "first_evidence": "L05-007 / 00:08:37",
+      "expected": "reward hacking（钻奖励指标的漏洞完成表面目标）",
+      "old_book_status": "fail: 旧书缺失",
+      "check": "同时保留即时奖励与长期质量的因果",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "scaling law",
+      "first_evidence": "L05-009 / 00:10:19",
+      "expected": "scaling law（模型规模、数据或算力变化与能力变化的经验规律）",
+      "old_book_status": "fail: 旧书缺失",
+      "check": "字幕多处 ASR 为 skin law，名称须标证据/归因",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "数据分布工程",
+      "first_evidence": "L05-009 / 00:10:39",
+      "expected": "数据分布工程（按领域、时机和比例组织训练数据的工程做法；本讲是讲师暂称）",
+      "old_book_status": "fail: 旧书缺失",
+      "check": "不能写成公认术语",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "intent",
+      "first_evidence": "L05-020 / 00:18:41",
+      "expected": "intent（想达到的目标或意图）",
+      "old_book_status": "fail: 旧书仅用英文，无首现释义",
+      "check": "与 specification、implementation 并列时三者都要解释",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "specification/spec",
+      "first_evidence": "L05-020 / 00:18:46",
+      "expected": "specification/spec（把目标写成可检查的功能、接口和约束说明）",
+      "old_book_status": "partial: 旧书后文写‘规格/spec’，首现未短释义",
+      "check": "避免把 spec 等同于完整实现",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "implementation",
+      "first_evidence": "L05-020 / 00:18:48",
+      "expected": "implementation（把规格落实成可运行的代码或系统）",
+      "old_book_status": "fail: 旧书未在正文保留该英文三元链",
+      "check": "保留 intent→spec→implementation 的方向",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "MVP",
+      "first_evidence": "L05-021 / 00:19:24",
+      "expected": "MVP（最小可行产品：先做能运行、可获得反馈的最小版本）",
+      "old_book_status": "partial: 旧书附录解释‘最小可用版本’，但正文首现只写 MVP",
+      "check": "解释后保留‘暴露 gap→迭代’因果，不重复定义",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "physical device",
+      "first_evidence": "L05-022 / 00:20:21",
+      "expected": "physical device（能被软件驱动的现实硬件设备）",
+      "old_book_status": "fail: 旧书缺失",
+      "check": "与打印机/扫描仪示例紧邻解释",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "API",
+      "first_evidence": "L05-025 / 00:26:21",
+      "expected": "API（供其他程序或 Agent 调用的接口）",
+      "old_book_status": "fail: 旧书只写‘调 API’",
+      "check": "与 App→API 的预测链一起解释",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "computer use",
+      "first_evidence": "L05-025 / 00:26:05",
+      "expected": "computer use（让 Agent 像用户一样操作应用界面或设备的能力/工具）",
+      "old_book_status": "fail: 旧书缺失",
+      "check": "不要暗示这是任何模型都已具备的能力",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "PCL",
+      "first_evidence": "L05-024 / 00:24:55",
+      "expected": "PCL（打印机控制语言；本讲只是一次设备尝试）",
+      "old_book_status": "fail: 旧书缺失",
+      "check": "型号/支持关系不确定时保留疑义，不扩写成标准兼容保证",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "goto",
+      "first_evidence": "L05-032 / 00:39:19",
+      "expected": "goto（让程序跳到指定位置继续执行的语句）",
+      "old_book_status": "partial: 旧书解释结构化编程但没有首现作用释义",
+      "check": "同时说明滥用与受限 goto release 的区别",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "The Humble Programmer",
+      "first_evidence": "L05-033 / 00:41:57",
+      "expected": "The Humble Programmer（讨论程序复杂性与程序员谦逊的文章/演讲）",
+      "old_book_status": "partial: 旧书给出中文概念但姓名证据疑义未标",
+      "check": "Dijkstra 归名需标 ASR 疑义",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "UML",
+      "first_evidence": "L05-043 / 01:32:30",
+      "expected": "UML（统一建模语言，用图和形式化元素描述软件结构与交互）",
+      "old_book_status": "pass: 旧书给出全称与建模语言",
+      "check": "保留‘讲师认为已死’的观点属性，不写成客观状态",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "property-based testing",
+      "first_evidence": "L05-041 / 01:24:14（字幕工具名不清）",
+      "expected": "基于性质的测试（从不变量/性质生成输入并寻找反例）",
+      "old_book_status": "partial: 旧书有术语与类比，但未明确‘信心不等于证明’",
+      "check": "工具名疑为 QuickCheck，不能擅自确认",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "traceability",
+      "first_evidence": "transcript 01:25:29（本黄金集补充样本外）",
+      "expected": "traceability（把需求、设计、代码和测试之间的对应关系持续记录下来）",
+      "old_book_status": "fail: 旧书缺失",
+      "check": "若新版保留后半段，首次出现必须解释",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "contract / precondition / postcondition",
+      "first_evidence": "transcript 01:28:11–01:29:02",
+      "expected": "契约（用前置条件说明调用前假设、后置条件说明执行后保证）",
+      "old_book_status": "pass: 旧书正文有前置/后置定义",
+      "check": "首次出现可用一处短释义，后续不重复",
+      "new_book_status": "pass"
+    }
+  ],
+  "cross_lecture": [
+    {
+      "term": "system call",
+      "first_evidence": "L10-002 / 00:02:10",
+      "expected": "system call（系统调用，程序请求操作系统服务的入口）",
+      "old_book_status": "pass: 第10讲前置栏与正文均解释",
+      "check": "因果样本要求保留低层参数负担→libc抽象",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "libc",
+      "first_evidence": "L10-002 / 00:02:00–00:03:20",
+      "expected": "libc（C 标准库，把系统调用包装成较易用的接口）",
+      "old_book_status": "pass: 第10讲正文与附录解释",
+      "check": "不把 libc 说成完全脱离 OS 的抽象",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "CIA",
+      "first_evidence": "L28-001 / 00:06:04",
+      "expected": "CIA（安全的三个维度：机密性、完整性、可用性）",
+      "old_book_status": "pass: 第28讲标题与表格解释",
+      "check": "三维各自的含义/例子都要覆盖",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "setuid",
+      "first_evidence": "L28-002 / 00:48:19（正文 earlier access-control section）",
+      "expected": "setuid（让程序按文件属主权限运行的机制）",
+      "old_book_status": "pass: 第28讲正文与附录解释",
+      "check": "同时保留最小权限与 root 风险",
+      "new_book_status": "pass"
+    },
+    {
+      "term": "prompt injection",
+      "first_evidence": "L28-003 后续章节 / 约 00:50:28 起",
+      "expected": "prompt injection（用输入内容诱导模型/Agent 执行原本不该执行的行为）",
+      "old_book_status": "pass: 第28讲附录解释",
+      "check": "仅有转场证据时不得补造攻击细节",
+      "new_book_status": "pass"
+    }
+  ],
+  "cross_lecture_review": "最终书独立复核见 cross-newbook.semantic_review.json；system call/libc/FFI、CIA、setuid/root、prompt injection 首现均给出中文作用释义。"
+}

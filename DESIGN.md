@@ -17,9 +17,14 @@
 ## 流水线
 
 ```text
-dump_transcript  →  Agent(stitcher_system.md)  →  capture_frames
-       →  post_process  →  make_corrected  →  publish(pages)
+dump_transcript → make_corrected → book_quality prepare(source windows)
+       → Agent/editor knowledge.triage.json
+       → Agent(stitcher_system.md) → book.md → capture_frames
+       → post_process(book.html) → Agent/editor coverage.audit.json
+       → book_quality audit → publish(pages)
 ```
+
+`book_quality.py prepare` 只展开完整字幕来源窗口；它不调用模型。知识价值判断和书籍化由 Agent/编辑完成，必须保存 `knowledge.triage.json` 与 `coverage.audit.json`。最终质量顺序是渲染 `book.html` 后再审计；审计将 HTML 与 Markdown、sidecar 一起 fingerprint，不能让旧 HTML 搭配新正文通过。`book_quality.py audit` 只做证据、完整性、阅读预算和审查 provenance 的结构校验，不能自动证明语义覆盖；缺少逐项 Agent/编辑语义审查时保持 needs review，不能静默发布。
 
 无字幕：`asr_transcript.py`（faster-whisper）。
 
@@ -28,8 +33,13 @@ dump_transcript  →  Agent(stitcher_system.md)  →  capture_frames
 ```text
 output/<id>/
   transcript.json
+  quality/source.json               # 完整来源窗口元数据
+  quality/source.md                 # 带时间定位的来源材料
+  knowledge.triage.json             # Agent/editor reviewed triage
   book.md / book.tagged.md
   book.html          # 暖纸色阅读页
+  coverage.audit.json               # Agent/editor semantic review
+  quality/report.json               # 结构审计结果
   images/shot_*.png
   transcript.corrected.txt
 ```

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</title>
+<title>04 软件仓库管理 (2)</title>
 <style>
 /* Shelf design tokens — 单主题浅色暖纸 */
 :root {
@@ -401,6 +401,11 @@ body {
   html { scroll-behavior: auto; }
 }
 
+/* quality gate badges (local preview only) */
+.lec-quality{margin-left:.5rem;font-size:.72rem;padding:.1rem .4rem;border-radius:999px;background:var(--chip,#f4efe6);color:#0f766e;border:1px solid rgba(15,118,110,.25)}
+.quality-banner{margin:0 0 1rem;padding:.55rem .85rem;border-radius:8px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:.92rem}
+.quality-banner[data-quality="未审稿"]{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
+
 </style>
 </head>
 <body>
@@ -419,521 +424,75 @@ body {
     </aside>
     <div class="book-main">
       <header class="book-head">
-        <p class="course-line"><strong>26生成式软件工程</strong> · NJU 生成式软件工程 · 第 4 讲</p>
-        <h1>软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</h1>
-        <p class="book-summary">从 Git 的 merge/rebase 与 change 概念出发，讨论为 Agent 时代重新设计版本管理，并演示 Vibe Coding 从零做个人助手时的架构陷阱。</p>
-        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1Q6en6NEUo/" target="_blank" rel="noopener">BV1Q6en6NEUo</a> · 时长 1h38m · 标签：版本控制、Git、Jujutsu、Agent、MVP</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+        <p class="course-line"><strong>26生成式软件工程</strong> · NJU · 第 4 讲</p>
+        <h1>04 软件仓库管理 (2)</h1>
+        <p class="book-summary">仓库管理进阶与工具</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1Q6en6NEUo/" target="_blank" rel="noopener">BV1Q6en6NEUo</a> · 时长 1h38m · 标签：生成式软件工程、软件仓库管理 (2)</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
       </header>
       <article class="book-body">
-<blockquote>
-<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1Q6en6NEUo/">Bilibili · BV1Q6en6NEUo</a>（时长约 98 分钟）
-<strong>课程</strong>：南京大学《生成式软件工程》（2026）第 04 讲 · Raw 版
-<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语，并修正了转录中的明显识别错误；关键时间点均标注 <em>(参考时间)</em>，点击截图卡片可跳转视频对应位置。</p>
-</blockquote>
-<hr />
-<h2 id="1-lab1">1. Lab1：会成长的个人助手</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 听说过 ChatGPT / 一类「和 AI 对话让它写代码」的工具即可
-- 知道课程作业可以自己选做、用链接验收（本课约定）
-- 本章实验背景零基础可跟
-
-</div>
-
-<p><em>(参考时间: 00:00)</em></p>
-<p>课程回顾了上周的软件项目管理内容，并发布了第一个选做实验（Lab1）——<strong>会成长的个人助手</strong>。</p>
-<p>作业本身「不限实现方式」：想怎么做就怎么做，最好用 Vibe Coding（用自然语言驱动 AI 写代码的工作方式） 完成。课程会在课上留出时间，现场演示直接让 Agent 做一个，并指出其中的坑。</p>
-<h3 id="_1">为什么要做这个实验</h3>
-<p>几乎所有任务都在 AI 的能力范围之内。但如果直接把实验要求丢给 AI，它一开始就会做出许多「看起来合理」的决定，而这些决定会让项目维护越来越困难，最终陷入软件工程里的<strong>焦油坑（项目越改越难维护、越投入越陷进去的泥潭）</strong>。</p>
-<p>实验的真正目的，是让每位同学体验：</p>
+<p><em>(参考时间: 00:00:00–01:38:29)</em></p>
+<p>本讲继续软件仓库管理：从项目文件与 README 的定位，讲到文件系统的局限、未来仓库形态、Git 的提交哲学、合并与变基的得失、下一代版本控制工具，再推到 Agent 时代的版本控制与产品起步策略。阅读时长约 18 分钟（估算），不是实测；视频约 98 分钟。两讲合起来回答同一个问题：仓库到底在管什么——现在、历史，还是教训？</p>
+<h2 id="_1">一、项目是什么：意图与规格</h2>
+<p><em>(参考时间: 00:00:00–00:06:49)</em></p>
+<p>项目是各种文件的集合：intent（设计初衷：想做一个什么样的产品、达到什么效果）、spec（规格：数据库、语言、项目结构乃至模块接口等实现前决策）、代码实现都放在同一仓库里。三者层次分明：intent 最原始、最重要；spec 把意图落成可实现方案；code 是执行结果。仓库是把这些东西管起来的容器——这就是版本管理要「记住现在」的那一面。</p>
+<p>README 不宜写成百科长文。讲师认为它更该写清设计这个项目时的初衷、想做的产品与预期效果，最多两张截图，再加上最重要的设计判断。好比你想说服一位会架构、会写代码的同事加入创业：对方不需要你讲清存储选型或如何从 1 扩到 1 亿用户，只需要那份最原始的 intent；剩下的 spec 与 code 可以由协作补全。层次很清楚：intent 是原始设计，spec 是选型与结构（用什么数据库、什么语言、模块接口怎么定），code 是实现；三者都在同一仓库里，但 README 只该把 intent 说清楚。写 README 的目标读者是「会被说服的协作者」，不是搜索引擎，也不是百科全书。</p>
+<p>课堂还预告了第一个实验「会成长的个人助手」：需求不限、最好自己 web code 一个；可把专业课资料、研究组文献、个人信息填表等收进个人数据库，可关联邮箱做 always-on 回复，甚至在宿舍一两百块的小设备上跑 agent loop。填表这类事讲师已全部交给 agent；他带过一个做自动填表系统的学生，毕业时恰逢 ChatGPT 出现，一度很慌——世界就是发展这么快。还可以做手机端联动，让 agent 自己下好依赖把 app 做出来。讲师强调——直接把实验要求丢给 AI，它会做出很多看起来合理、但让项目越来越难维护的决定，最后陷入焦油坑；每个同学都有必要体验一次「AI slop（模型批量产出的、看似合理但不是你想要的内容）把 token 烧光、只好删库重来」，或回退到某个很早的版本从头做。下一个 lab 会在舒适助手之上追加一个与旧需求关联且冲突的新需求，专门让你体验改崩的过程。如果你这一步就躺倒、全丢给 AI，就得不到软件工程的体验。实验的初衷是让每个人都有一个真有用的助手——顺便学会管它。两种做法对比很清楚：一上来大步做完全部功能、拖着技术债往前堆；或者先空仓库、约定规范、只迈一小步。后者前期慢，后期稳。</p>
+<h2 id="_2">二、文件系统的局限与技术债</h2>
+<p><em>(参考时间: 00:06:58–00:10:28)</em></p>
+<p>用文件系统管理项目很大程度是历史惯性：回到 1950–1960 年代，操作系统给你的存储功能就只有文件，当时关系型数据库尚未出现，程序员别无他法，只能把项目以文件形式存下来。历史就这样一直往后涨，涨到今天。文件系统可能不是组织项目的正确方式——它丢失了太多不适合用树表达的信息：intent、spec、测试用例的输入输出与断言，都还算好写；真正丢掉的是工件之间的隐藏关联。</p>
+<p>问题在于，文件树表达不了工件之间大量隐藏的关联。例如你让 AI 把 link list 换成更高效的 tree 优化性能，代码改了，但某个 markdown 里还写着「本项目用 link list」——文档、代码与测试之间本有对应关系，却没有被强制联系上。这就是 technical debt（技术债：为图省事欠下的不一致，后续修改成本会不断变大）。写文档时可能还没有代码，随手一写；等代码实现了，若不强行挂上关联，债就欠下了。随着文档和代码各自向前推演，不一致只会越来越多，不会越来越少，软件会陷入维护泥潭：后人（或 AI）拿到代码时，已经分不清是文档对还是代码对；当年的对话历史已经消失，git 里或许只剩 change 日志。</p>
+<p>软件工程把「在演进中持续维持测试用例、文档、代码之间关联」研究了很多年，叫 software traceability（可追踪性：需求、设计、文档、代码与测试之间关联可被持续核对）。2014 年已有综述回顾更早的文献——这不是新问题。它不是文件命名问题，而是仓库设计的核心目标：演进过程中，文档一行、代码一块、测试一例之间的关联能不能一直对得上。文件系统将错就错用了很多年（打压缩包发合作者终于维护不下去，才有了 SVN、git）；下一个形态值得现在就想。</p>
+<h2 id="ai">三、未来仓库：关系图与 AI 维护</h2>
+<p><em>(参考时间: 00:11:11–00:17:24)</em></p>
+<p>若不再以「一堆文件」看待软件，文档、实现、测试更像互相连接的实体：某文档被某实现满足、某测试覆盖某文档、文档之间也有引用。这是可以带环的图，文件系统树状结构装不下，但可以放进名为 repo.db 的数据库。</p>
+<p>人很难用 UNIX 工具直接维护这种图，讲师提出的路径是用 AI 维护工件一致性：文档说数据结构是 link list，实现就必须是 link list；文档写明要有 A/B/C 三方面测试，测试用例就必须齐备。用魔法打败魔法——人类理解不了的结构化仓库，只要有强化学习的反馈信号，AI 就能学会维护。做一小步修改时（比如对幻灯片样式不满意），绝大部分内容与这一步无关，可让 AI 根据对话摘出相关的文件、测试与文档，再用数据库视图（同一份数据按查询需要换一种形式展示）生成一张「与本步相关」的可视化看板，改完后回到一致的下一版本——从 V0 到 V1，关系图保持一致。AI 有动态生成任何内容的能力（everything as code），看板也可以随步生成。仓库里可能有 assets、缓存、P1–P5 课件、脚本等一大堆东西；只改一步时，真正相关的往往只有三五个工件。</p>
+<p>即便走向该形态，讲师预计初期仍应沿用小步前进等软件工程智慧，而不是指望模型一步把大型项目改成另一个项目——除非模型强到「一个大项目一步变成下一个」，那我们还不知道怎么做。推演过程中用到的正是经典计算机科学：数据库的实体与关系、视图，git 的小步哲学。AI 时代也许「再也不用看代码」，但创造这些系统时用的仍是你们正在学的东西。今天的 IDE（如 Cursor）默认进 agent mode，讲师其实有点讨厌——他仍有「古法编程」的掌控欲；这可能不对，但未来也许就是这样。</p>
+<h2 id="git">四、Git 的工作方式与合并变基</h2>
+<p><em>(参考时间: 00:13:23–00:28:33)</em></p>
+<p>Git 希望小步前进：修一个 bug、改一处文档都产生 commit；多人各自提交，再把历史合到一起，形成可追踪的修改历史。这与「项目是快照序列」的哲学一致：每个 commit 钉住一个目录状态，修改藏在 commit 与 parent 的关系里。对 agent 来说，这套模型原则上仍可用——只要 agent 还在做小步、可审计的修改。上一讲的纪律在这里延伸：message 要能读懂、提交要可构建、历史要可 bisect。当两条开发线要汇合时，常见两种做法：</p>
 <ul>
-<li>当 AI Slop（AI 量产的、看起来像模像样却空洞或错误百出的内容） 开始不断消耗 Token 时，你会下定决心删掉项目从头重做，或回退到很早期的版本；</li>
-<li>下一个 Lab 会与本 Lab 强关联且有一定冲突——如果不认真做 Lab1，就没有完整的软件工程体验。</li>
+<li>merge（把两条历史合成一个带双亲的新提交）：所有旧 id 保留，再新建一个 id。但若由 A 执行合并并解决冲突，B 写的修改在冲突 resolve 后 ownership 可能归到 A，形成隐藏的作者变更——比如 B 在某处加了一行，冲突解决时被 A 裁决进结果，这笔修改的作者就变模糊了。这是 merge 相对隐蔽的小麻烦。</li>
+<li>rebase（把本地提交的基座改到另一条历史上）：把 feature、测试等改动逐个搬到新基座上，得到线性历史。每次搬动都会创建新的 commit，因为 base 被改掉了——commit 有 id，换基座就意味着新 id，历史会「变」。一旦中途冲突，就要进入 rebase 的 resolve 模式——现场往往瞬间不知道该怎么办，只能问 agent「我发生了什么」；而且 feature 搬完后测试可能再失败，还要继续搬。两条线完全不冲突时 rebase 最漂亮；一有冲突就最危险。</li>
 </ul>
-<div class="video-card screenshot-card"><img src="images/shot_00_00_30.png" alt="Lab1：会成长的个人助手需求" loading="lazy"><p class="video-caption"><span class="cap-text">Lab1：会成长的个人助手需求</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=30" target="_blank" rel="noopener">在 B 站打开 (00:00:30)</a></span></p></div>
-
-<h3 id="_2">参考需求形态</h3>
-<p>个人助手可以承载多种「个人数据库」：</p>
-<ul>
-<li>专业课资料（计算机网络、概率论等）；</li>
-<li>研究组论文与文献；</li>
-<li>个人信息（填表场景：姓名、学号、身份证号、简历等）。</li>
-</ul>
-<p>在此基础上，还可以：</p>
-<ul>
-<li>与学校邮箱关联，实现 always-on 的后台 Agent Loop；</li>
-<li>用一两百元的嵌入式小设备在宿舍持续运行；</li>
-<li>手机端联动（网页 / iOS / Android）。</li>
-</ul>
-<p>主讲人现场展示了自己用 Agent 处理填表的效率提升——过去需要研究生三年做的自动填表系统，如今几乎是一句话的事。</p>
-<hr />
-<h2 id="2-intent">2. 项目、Intent 与可追踪性</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 知道「项目」不只是代码，还有文档、测试
-- 用过或听说过 Git 仓库（会 clone / 看文件即可）
-- 若没听过技术债、可追踪性，本章会用例子展开
-
-</div>
-
-<p><em>(参考时间: 00:05:17)</em></p>
-<h3 id="21">2.1 项目是什么</h3>
-<p>项目是各种文件的集合：intent、设计文档、README、spec、code implementation。主讲人不喜欢 AI 生成的超长 README；对他而言，README 只应写清楚：</p>
-<ul>
-<li>设计的<strong>初衷</strong>；</li>
-<li>想做一个什么样的产品；</li>
-<li>产品能达到什么效果（可附截图）；</li>
-<li>最重要的设计取舍。</li>
-</ul>
-<p>类比：你有一个能挣一个亿的点子，要说服别人加入创业团队，只需要一份较短的 README——intent。剩下架构、实现、扩展性，由有相应能力的人补完。</p>
-<p>层次可以概括为：</p>
-<pre><code class="language-text">Intent（我想做什么）
-  → Spec（选型、结构、接口）
-    → Code Implementation（实现）
-</code></pre>
-<h3 id="22">2.2 文件系统是历史包袱</h3>
-<p>用文件系统管理项目，更多是历史原因：1950–60 年代操作系统只提供文件存储，关系型数据库尚未发明。程序员别无他法。</p>
-<p>文件系统作为树状结构，<strong>丢失了大量不适合用树表达的关联</strong>。例如：</p>
-<ul>
-<li>文档写「本项目用链表管理」；</li>
-<li>代码后来改成树；</li>
-<li>测试用例依赖旧行为。</li>
-</ul>
-<p>文档、代码、测试之间形成关联，却没有被强行绑定。这正是<strong>技术债 technical debt（现在偷懒，以后要付更高代价去还的不一致）</strong>：随演进，不一致只会越来越多。</p>
-<p>软件工程里对应的研究方向叫 <strong>Traceability（可追踪性）</strong>——在系统演进中维持测试、文档、代码之间的关联。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_09_50.png" alt="项目中的 Traceability 问题" loading="lazy"><p class="video-caption"><span class="cap-text">项目中的 Traceability 问题</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=590" target="_blank" rel="noopener">在 B 站打开 (00:09:50)</a></span></p></div>
-
-<h3 id="23">2.3 未来可能的仓库形态</h3>
-<p>如果未来几乎不再手写代码，软件可能不再是「一堆文件」，而是：</p>
-<ul>
-<li>文档、实现、测试切成对象（object / entity）；</li>
-<li>对象之间用关系连接（实现了、测试了、引用了）；</li>
-<li>形成带环的图（graph），存进 <code>repo.db</code>。</li>
-</ul>
-<p>人类无法用现有 Unix 工具维护这种仓库，但可以<strong>用魔法打败魔法</strong>：用强化学习反馈训练 AI 理解该图；每次小步修改（fix bug、改文档、加功能）时，AI 根据 chat 摘出相关的 view（视图），完成修改后再写回下一版本。</p>
-<pre><code class="language-mermaid">graph LR
-    A[&quot;用户 chat：改这一小步&quot;] --&gt; B[&quot;AI 从 repo.db 摘出相关 view&quot;]
-    B --&gt; C[&quot;可视化看板 / 相关 artifacts&quot;]
-    C --&gt; D[&quot;小步修改 V0 → V1&quot;]
-    D --&gt; E[&quot;写回一致的 repo.db&quot;]
-</code></pre>
-<p>这里借用了数据库「视图」的概念：数据不变，用不同查询以另一种形式展示。</p>
-<hr />
-<h2 id="3-git-mergerebase-change">3. Git 深潜：Merge、Rebase 与 Change</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 用过 git commit（提交一次改动）
-- 知道分支 branch 可以让两个人同时改代码
-- 若没用过 rebase / stash，本章按步骤讲，可先当故事听
-
-</div>
-
-<p><em>(参考时间: 00:22:53)</em></p>
-<h3 id="31-merge">3.1 Merge 的问题</h3>
-<p>Git 管理的是<strong>目录快照</strong>。开发者 A、B 可在两条线上独立提交，合并时用两路 merge：</p>
-<ul>
-<li>产生有两个 parent 的 commit；</li>
-<li>若 merge 由 A 完成，B 写的部分在冲突解决后 <strong>ownership 可能归到 A</strong>。</li>
-</ul>
-<h3 id="32-rebase">3.2 Rebase 的机制与风险</h3>
-<p>Rebase（把提交搬家、接到新的基线上，常用来整理历史） 试图把一侧的修改「搬到」另一侧之后，得到<strong>线性历史</strong>：</p>
+<p>课堂用横图演示了这一过程：A 先改文档再加测试，B 加 feature 再加测试；rebase 试着把 feature 接到 A 后面，再把 test 搬过去——两边完全不冲突时一路线性；一旦冲突就危险。风险在于：A 加的测试用例可能与 B 的 feature 不兼容，或两人改了同一处。成功则继续搬 test；失败则进入 resolve，而且每次搬动都产生新 commit。Git 里并没有独立的「修改」对象，只是用 commit 及其与 parent 的关系来代替 change；绝大多数情况够用，但语义上始终有一点错位——你关心的是「把这个修改搬过去」，git 给你的却是「换基座的提交」。协作时再在 merge 与 rebase 之间做选择。</p>
+<p>真实项目里，协作规范写在仓库根目录的 CONTRIBUTING.md（贡献者指南：说明如何参与该项目）中，包括总体结构、分支、提交信息与 PR 流程。其中常见约束如「必须在自己的分支上 rebase、禁止制造分叉 merge」，读多了自然明白 rebase 是干什么的。学生时代少有协作场景，所以 rebase/merge 用得少是正常的；但互联网开发者社区文档铺天盖地，CONTRIBUTING.md 一看便知。有人 raise 了一个 valid point：学生大多只做作业、不与他人协作，自然很少用 rebase——回应是：走出校园后，规范文档会替你补齐这一课。高中「老师不教就不学」的应试心态，到大学会变成新人与旧人之间的 gap；AI 时代「斩杀线」以下的低智力劳动价值会归零，经典课里的智慧要变成你自己的理解。把注意力放在「还有哪些规范我没见过」上，rebase/merge 自然就学会了。</p>
+<h2 id="_3">五、把修改变成一等公民</h2>
+<p><em>(参考时间: 00:28:36–00:35:34)</em></p>
+<p>如果把 change（修改）提升为 first-class citizen，而不只是用 commit 代替，就能推出更好用的下一代版本控制系统。Jujutsu（与 git 底层兼容的版本控制工具，把「修改」建模为可搬运的一等对象）就是这条推导线上的代表：它与 git 兼容，可当 git 用，但增加了 change 概念；rebase 时直接把 change 搬过去，冲突也能随 change 一路带下，再统一 resolve。推导方式值得学：从「我要把修改搬过去」这个真实需求出发，发现 git 只能搬 commit，于是把 change 本身建模成可搬运对象——这就是第一性原理设计。git 最早没料到 rebase 会有这么大影响，有 merge 就够用了；概念模型因此留了一点错位。学习时也可以用 virtually implement 的方法：先想「如果我设计 VCS 会怎么做 change」，再对照 Jujutsu，差距就是你的学习点。</p>
+<p>另一个特点是它不需要 staging area（git 暂存区：commit 前先挑选要纳入下一次提交的改动）。人改到一半被打断时，git 里往往要 stash 来回切换，栈一深就很痛苦——导师来电插一个更高优先级 bug，就得再 stash 一层；stash 本身是个栈，还可能要对着 stash 再 rebase。而在 change 一等的模型里，改一个字节也处于「当前修改已记录」的状态（相当于自动 commit 并抹掉上一次同 change 的提交），没有暂存区也更自然。讲师认为它对人类更友好，对 agent 也略友好，并鼓励同学质疑 git 哪里还不够好，再从第一性原理重新设计。</p>
+<p>历史是积累的：SVN 用不下去才有了 git，发现 git 缺点后有了 Jujutsu。讲师说自己已形成 git 肌肉记忆，即便理解新设计也难再练一套习惯；AI native 的同学正好相反——还没固化时直接用更对的设计，回头再理解 git 为何「有点蠢」。</p>
+<h2 id="agent">六、Agent 时代的版本控制</h2>
+<p><em>(参考时间: 00:36:37–01:02:13)</em></p>
+<p>既有版本控制共享一个假设：使用者是人。人是单线程的——一双手、一对眼，读写不能同时，沟通也慢；一个十几人模块组大约十分钟才产生一个提交。git 的合并因此偏乐观并发控制（先各自改、假定多半不冲突，冲突了再合并或回滚）：早上开过会分好工，合并时大概率顺利。这和教务系统里「各人选各人的课」冲突概率低是同一类假设——事务各读各写，全局冲突不大。人与人还有无法逾越的物理屏障，沟通再快也要几十秒确认；大厂每天早会分 scope，也是为了把项目切开、降低冲突概率。数据库事务里，读—计算—写之间还可能发生死锁或依赖环，最后只能回滚；git 假设这类 abort 少见，agent 加速后这个假设会变脆。</p>
+<p>agent 不同：上下文热时秒级就能产生原子提交（甚至更快），又很容易拉起十倍、百倍的 agent team——可以是监工 agent + 多个子 agent，也可以放两个强模型互相 review 打架。为人设计的模型开始跟不上；即便有测试流水线做门控（跑几分钟会放缓提交），agent 仍整体加速了软件开发。指挥若有一点差错，或任务切分不当，冲突会立刻变密——这是 agent swarm 的新常态。乐观并发在「人十分钟一提交」时够用，在「agent 秒级一提交」时就脆了。讲师的判断是：在 agent 时代应更偏悲观并发控制（使用资源前先声明并上锁，别人必须等锁释放）——主 agent 规划后把某个 scope 或文件级上锁，做完再 commit；被锁住的 agent 等释放后再干。这样几乎避免了全部冲突；又因为 agent 数量足够多、速度足够快，其他不冲突的任务仍可并行，整体进度不受损。一把大锁会把并行退回串行，但系统里若有许多互不冲突的线程，各自持锁仍可高效——这是操作系统课里互斥锁与并行张力的老问题。数据库里还有 ad-hoc lock 之类机制，也值得回头对照。</p>
+<p><em>(参考时间: 00:47:02–00:51:04)</em></p>
+<p>今天可用的 workaround 是 git worktree（同一仓库挂多个工作目录，各自独立提交、本地共享历史）。worktree 里的 .git 可以只是一个指针文件，指向带 head、index、objects 的小型 git 目录；git 最大程度复用了操作系统机制。提交在本地互相可见，不必反复 push。多 agent 可各占一个 worktree，冲突了再自己修或上报主 agent；也可以给两个 agent 各开一个 tmux，在隔离容器里当「单人开发者」。但有冲突修改时仍要 merge/rebase，它是并行隔离的权宜之计，不是终极形态。若大家挤在同一个 repo 上提交，冲突会立刻变多；分开 worktree 则清爽很多。提问本身就是关键技能：听到 worktree、sandbox、container 这类词，就立刻让 agent 帮你试一试。worktree 把「隔离工作区」做成了 git 原生特性，比各开虚拟机再 push/pull 轻量得多。</p>
+<p><em>(参考时间: 00:53:22–00:55:24)</em></p>
+<p>人用 git blame 是为了问责；agent 没有「坐牢、被开除」的机制后，blame 模型就变了。历史的价值可以从「谁写错了」变成「我怎么把它修好」：只要知道哪里错、怎么向前修即可，不必追溯每一个历史成因。快照仍要保留——走错方向时回退比硬修便宜——但不必再为问责翻旧账。而且很多 agent 用的是同一模型的克隆体，同一件事大概率收敛到相似结果，更没有「找人背锅」的必要。项目可以永远向前：合并、合并、再合并，commit 里留下的主要是 lessons，而不是追责档案。人类当年需要 blame/bisect，是因为出问题要回到那个时间点，让当事人回忆早会沟通记录；agent 时代这套问责链条可以省掉。上一讲把 blame/bisect 当调试与审计工具；这里进一步指出：当执行者换成了无法被问责的 agent，工具的用途会跟着变。</p>
+<p><em>(参考时间: 01:04:12–01:08:13)</em></p>
+<p>工具之外，真正的难点是团队管理。人和人两两之间是平方级的沟通关系，百人团队到不了十人团队的十倍产出（两三倍就不错了）。最难招的不是码农，而是能把国民级应用拆成多个小团队、最后还能拼回去的 team leader；能带小团队的人同样稀缺。这就是《人月神话》说的道理：即便你份内做好，不了解全局时仍会互相踩——你写的测试我过不了。版本控制是工具，蒸馏的是人类多年软件工程经验；在此之上，才长得出你自己的工程直觉。今天就可以把自己当主 agent：给多个 sub agent 分任务、定提交策略、定何时提交与合并，把版本控制概念带进开发流程。这也是在练毕业后真正稀缺的那块能力：任务分解与拼装。</p>
+<h2 id="ai_1">七、把任务交给 AI 之前</h2>
+<p><em>(参考时间: 01:20:10–01:28:00)</em></p>
+<p>现场把实验需求直接丢给模型后，AI 几乎只会生成 slop：文档齐全、分层正确，看起来什么都对，却不是你想要的东西，甚至连 git 仓库都没建。原因是你脑子里的 intent 与写出来的 specification 有巨大 gap；而模型已被训练成高度遵循指令（self attention 会看到提示词里每一个词），对开放的讨论稿会过度遵循，把字面要求做完。实验要求的言外之意其实是「实现一个持续为你工作的个人助手」——真正该先做的是一个月内最大的痛点（比如高效学习与复习），而不是一上来就搭数据库。讲师现场演示时，模型果然在做 database、没做邮箱；连一号办理也只需一个出口，不必先设计整个教务系统。</p>
+<p>成熟做法是先建空仓库，约定协作与项目管理，再往前迈一小步——从零做 slop 的难度远大于在成熟项目里做维护性任务。早期别急着上 multi-agent：项目初期你是包工头，先跟能用到的最强模型多轮对话。产品经理在写下第一行代码之前，就会先讨论协作方式、项目管理、每天何时开会；AI 一上来就动手，反而像「用一次就丢」的草稿。模型会进 plan mode 甚至生成带循环的 workflow 脚本，看起来很聪明，但开放需求下的过度遵循仍然危险。</p>
+<p><em>(参考时间: 01:13:20–01:38:18)</em></p>
+<p>产品侧同理。MVP（最小可验证产品：先做能验证核心需求的最小版本）逼你想清楚哪些需求是绝对要的。课堂引用一句话：the biggest risk in product development is building something nobody wants——产品开发最大的风险，是做出没人想要的东西——AI 大步做完的「教务系统式」全量设计常常中招：看起来什么都有，却不是你要的。GPT 给的「API + 关系数据库 + 对象存储」是教科书式的正常设计，但讲师本质需求是版本管理，宁可让学生提交直接进 git：每次运行、改题就自动 commit，AI 点评挂在提交上分叉即可——产生这个记录的成本，远低于把轨迹持久化进数据库的成本。Overleaf 可以把文档当 git repo 导出，讲师给学生改论文时就直接 clone 下来让 codex 批量修语法，不必忍受网页界面——版本管理本身就是需求。</p>
+<p>早期能用文件系统就别上数据库：调目录心智负担小，人人都熟——小学电脑课就开始整理文件了；一旦带上数据库，每次 schema 重构都要让 agent 做迁移，你还要在脑子里做一次「概念 → schema」的翻译。文件系统膨胀时再让 agent 按数据组织提炼成数据库，问题就结束了。讲师回邮件的个人 agent 到今天也没用数据库，只用云盘同步 email id 与草稿流水线，多级流水线通过云盘协作；引入云盘本身也是需求变更的练习。而早期 prompt 对整个项目走向影响最大，第一份需求要慎重写——直接把 README 丢过去说要做 MVP，会决定后面一切。连「是不是引入云盘」这种需求，都会牵动架构；早期决策杠杆最大。什么是好架构？你能不能以不变应万变——需求大变时，架构能否以最少的变化去应对，而不是拖着技术债反复大改。</p>
+<h2 id="_4">八、版本管理的三件事与好架构</h2>
+<p><em>(参考时间: 01:28:08–01:38:24)</em></p>
+<p>版本管理要做三件事，古法编程时代与 agent 时代都成立——这是两讲的总收束：</p>
 <ol>
-<li>把 B 的 feature 尝试接到 A 的历史后面；</li>
-<li>成功则继续搬 test；</li>
-<li>任一步冲突都需 resolve，且会<strong>创建新的 commit id</strong>（base 变了）。</li>
+<li><strong>记住现在</strong>：必须有 repository，把当前文件与工件管起来。不管是 C/C++、Python 还是 JavaScript 项目，文件总要有个容器。</li>
+<li><strong>记住历史</strong>：删掉的东西以后可能还要捞回来；历史能看出如何演进到失败点，再回到正确路线分叉重来。</li>
+<li><strong>记住教训</strong>：历史里的 lessons 不断警示你下一步该怎么迈——从第一步开始，只迈向后的一小步，而不是「看它已经实现完了没有」。</li>
 </ol>
-<pre><code class="language-mermaid">graph TD
-    A0[&quot;A: 文档&quot;] --&gt; A1[&quot;A: 测试&quot;]
-    B0[&quot;B: feature&quot;] --&gt; B1[&quot;B: 测试&quot;]
-    A1 --&gt; R1[&quot;rebase（把你的一串提交「搬家」接到别人最新进度后面）: 搬 feature&quot;]
-    R1 --&gt; R2[&quot;rebase: 搬测试&quot;]
-    R2 --&gt; L[&quot;线性历史&quot;]
-</code></pre>
-<p>麻烦在于：</p>
-<ul>
-<li>进入 rebase 冲突模式时，人很容易懵；</li>
-<li>每次 rebase 都生成新 id，历史被改写；</li>
-<li>我们真正关心的是 <strong>change（修改）</strong>，Git 却用 commit 代替 change，没有专门的 change 对象。</li>
-</ul>
-<h3 id="33-stash">3.3 Stash 与人的单线程假设</h3>
-<p>经典场景：改到一半（编译不过、测试不过），导师突然打电话要修更高优先级 bug。Git 的解法是 <code>git stash（把改到一半的工作临时藏起来，好先去修别的）</code>——把工作区压栈。</p>
-<p>再被打断一次，stash 栈就变深。在「古法编程」时代这尚可接受，因为：</p>
-<ul>
-<li>人是 <strong>single-threaded</strong>：只有一双手、一张嘴、一对眼睛；</li>
-<li>读与写不能同时发生（类似 shared memory 的 load/store）；</li>
-<li>人类提交以小时计，团队沟通以天/会为单位，冲突概率低。</li>
-</ul>
+<p>对架构的检验标准是：你能不能以不变应万变？需求发生根本性变化时，架构是否还能以最少的变化去应对——而不是拖着技术债反复大改。这才是一开始就要想清「什么样的需求才是绝对要的」的原因。早期的大步实现，往往拖着技术债往后加功能；从最小、精巧的架构出发，到遇到性能瓶颈前都不必迁移，反而更轻松。AI 助教可能是文字、图像、有交互或无交互，需求会不断变；架构要扛得住这些变化。软件工程与操作系统、数据库课最不一样的地方，恰恰是对「未来需求变化」的应对——而不是只讲当前系统长什么样。两种开发方式的对比：一上来大步实现全部需求、拖着技术债迭代；或从精巧最小架构出发、遇到瓶颈再迁。讲师的例子是学生提交直接进 git，直到性能不够再上库——而不是反过来。</p>
 <hr />
-<h2 id="4-jujutsu-change">4. Jujutsu：把 Change 变成一等公民</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 读过本册第 3 章，或知道 Git 的 commit 与 rebase 大致在干什么
-- 理解「我们真正关心的是修改内容，而不只是快照编号」
-- 不必事先会用 jj / Jujutsu
-
-</div>
-
-<p><em>(参考时间: 00:28:40)</em></p>
-<p>如果把 <strong>change 提升为 first-class citizen</strong>，就接近下一代版本控制工具——<strong>Jujutsu（jj）</strong>。</p>
-<h3 id="_3">核心特点</h3>
-<ul>
-<li>与 Git 底层兼容，可当 Git 用；</li>
-<li>增加 change 概念：rebase 时搬的是 change，冲突可以「带下来」再 resolve；</li>
-<li><strong>没有 staging area（提交前的暂存区：决定哪些改动进入下一次 commit）</strong>：你改一个字节，就像隐式做了一次 commit（并抹掉上一次未完成的提交）；</li>
-<li>工作区永远处于「当前 change 已提交」的状态，不需要手动 <code>git add</code>。</li>
-</ul>
-<pre><code class="language-text">Git:  working tree → index → commit
-jj:   working copy ≡ 当前 change（自动提交）
-</code></pre>
-<h3 id="_4">学习建议</h3>
-<ul>
-<li>上一代人形成 SVN 肌肉记忆，本代人形成 Git 肌肉记忆；</li>
-<li>AI native 一代应<strong>先用更正确的设计建立肌肉记忆</strong>，再回头理解 Git 为何如此；</li>
-<li>可以把「从 change 理解版本管理」这样的 prompt 交给 Agent 辅助学习。</li>
-</ul>
-<div class="video-card screenshot-card"><img src="images/shot_00_31_00.png" alt="Jujutsu：Change 作为一等公民" loading="lazy"><p class="video-caption"><span class="cap-text">Jujutsu：Change 作为一等公民</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=1860" target="_blank" rel="noopener">在 B 站打开 (00:31:00)</a></span></p></div>
-
+<p>课堂最后留下的问题与上一讲呼应：如果 agent 快了一千倍，版本控制该怎么重新设计？从记忆现在、历史、教训三件事出发，再叠上 change 一等公民与悲观锁，或许是一条路。下一讲进入软件架构与构造。</p>
 <hr />
-<h2 id="5-agent">5. 为 Agent 重新设计版本管理</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 知道 AI Agent 可以自动改代码、产生很多次修改
-- 了解 Git 是「给人用的」协作工具（有 rebase、blame 等）
-- 并发 / 锁若未学过，可先看第 6 章再回来
-
-</div>
-
-<p><em>(参考时间: 00:35:54)</em></p>
-<p>这门课是<strong>生成式软件工程</strong>，真正要问的是：在 Agent 时代如何再次重新设计版本管理。</p>
-<h3 id="51-agent">5.1 为人设计的模型跟不上 Agent</h3>
-<table>
-<thead>
-<tr>
-<th>维度</th>
-<th>人类</th>
-<th>Agent</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>并发</td>
-<td>单线程个体</td>
-<td>可 10× / 100× 并行</td>
-</tr>
-<tr>
-<td>提交粒度</td>
-<td>10 分钟～小时</td>
-<td>秒级原子提交</td>
-</tr>
-<tr>
-<td>沟通</td>
-<td>会、口头、文档</td>
-<td>prompt / 结构化消息</td>
-</tr>
-<tr>
-<td>冲突处理</td>
-<td>痛苦、易懵</td>
-<td>可自动 resolve</td>
-</tr>
-</tbody>
-</table>
-<p>即便使用 Git worktree（同一仓库开出多个工作目录，供并行修改） 等 workaround，本质仍是「为人设计的模型」。</p>
-<h3 id="52-agent">5.2 多 Agent 协作的两种拓扑</h3>
-<p><strong>方式一：一人一机（严格类比人类）</strong></p>
-<ul>
-<li>每个 Agent 独立容器 / 虚拟机；</li>
-<li>克隆同一 remote；</li>
-<li>主 Agent 负责协调与 inject prompt。</li>
-</ul>
-<p><strong>方式二：Git worktree（更轻量）</strong></p>
-<ul>
-<li>同一仓库多个工作树；</li>
-<li><code>.git</code> 在 worktree 里可只是一个文本文件，指向共享的 git dir；</li>
-<li>提交本地互相可见，无需反复 push；</li>
-<li>冲突仍需 merge / rebase。</li>
-</ul>
-<p>现场演示中，主讲人开了多个 tmux session 作为 coding agent，让它们并行工作；并让 Agent 把会话改到 worktree 上。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_47_00.png" alt="多 Agent 并行：tmux + worktree" loading="lazy"><p class="video-caption"><span class="cap-text">多 Agent 并行：tmux + worktree</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=2820" target="_blank" rel="noopener">在 B 站打开 (00:47:00)</a></span></p></div>
-
-<h3 id="53-blame">5.3 不再需要 blame</h3>
-<p>Git 为人设计的特性还包括 <code>git blame（查某一行是谁、哪次提交改的——用来追责）</code>：出问题时回溯是谁的 commit。</p>
-<p>Agent 时代：</p>
-<ul>
-<li>Agent 不能被「开除」或「坐牢」；</li>
-<li>同一模型的克隆体做同一件事，大概率收敛到相同结果；</li>
-<li>历史价值从「谁写错了」变成「怎么把它修好」；</li>
-<li>项目可以<strong>大步向前</strong>，快照仍保留（方向走错时可回退），但几乎不必「看过去」。</li>
-</ul>
-<hr />
-<h2 id="6">6. 从第一性原理看并发控制</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 操作系统课：线程、锁是什么（没学过也能按「先上锁再干活」理解）
-- 数据库课：事务 transaction、冲突大致是什么（选修）
-- 知道 Git 协作里 merge / rebase 可能失败即可
-
-</div>
-
-<p><em>(参考时间: 00:55:36)</em></p>
-<h3 id="61-git">6.1 Git ≈ 乐观并发控制</h3>
-<p>数据库里，事务（transaction）可先读、再算、再写；写时可能冲突或死锁，需 rollback。Git 的协作模型很像<strong>乐观并发控制（optimistic）</strong>：</p>
-<ul>
-<li>假设事先开过会，各做各的大概率不冲突；</li>
-<li>merge / rebase 时再处理冲突。</li>
-</ul>
-<p>教务系统选课是典型低冲突场景：每人读写自己的数据。</p>
-<h3 id="62-agent">6.2 Agent 应更偏向悲观并发控制</h3>
-<p>操作系统课的并发是<strong>锁</strong>：访问可能冲突的资源前先 lock，release 后别人才能 lock。</p>
-<p>Agent 动作极快时，乐观模型会更频繁触发冲突。更好的设计可能是：</p>
-<ol>
-<li>主 Agent 规划；</li>
-<li>对项目 scope（如文件级）<strong>先上锁</strong>；</li>
-<li>完成后 commit 并释放锁；</li>
-<li>其他 Agent 若所需资源被锁，则等待。</li>
-</ol>
-<p>即便悲观，只要 Agent 数量足够多、不冲突的 scope 足够多，整体吞吐仍可很高——与操作系统里「细粒度锁下多线程仍可高效」同理。</p>
-<pre><code class="language-mermaid">graph TD
-    P[&quot;主 Agent 规划任务&quot;] --&gt; L1[&quot;锁: 模块 A&quot;]
-    P --&gt; L2[&quot;锁: 模块 B&quot;]
-    L1 --&gt; W1[&quot;Agent1 工作&quot;]
-    L2 --&gt; W2[&quot;Agent2 工作&quot;]
-    W1 --&gt; C1[&quot;commit + 解锁&quot;]
-    W2 --&gt; C2[&quot;commit + 解锁&quot;]
-</code></pre>
-<hr />
-<h2 id="7">7. 团队管理才是真正的难点</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 知道软件团队要拆任务、开会同步进度
-- 听说过《人月神话》里「人越多沟通成本越高」即可
-- 本章后半的汉诺塔题偏趣味，不影响主线
-
-</div>
-
-<p><em>(参考时间: 01:03:52)</em></p>
-<p>版本控制本质是工具。真正困难的是<strong>进度与团队管理</strong>。</p>
-<ul>
-<li>若 AI 能一句话直出微信级产品，软件工程就「死了」；斩杀线暂未到这一层；</li>
-<li>人月神话指出：人与人沟通关系是<strong>平方级</strong>上升；</li>
-<li>最难招的不是码农，而是能把国民级应用拆成多个 team、并让十个 team 拼起来仍是一个产品的 leader。</li>
-</ul>
-<p>你现在就可以把自己当成主 Agent：如何分解任务给多个 Agent？何时提交？何时合并？——把版本控制概念带进自己的开发流程。</p>
-<h3 id="_5">汉诺塔的隐喻</h3>
-<p>课上穿插了一个带方向限制的汉诺塔变体（只能单向移动），用来说明：看起来简单的约束会显著改变最优策略。更重要的是产品思维——如何把这个「小学生考级题」做成可售卖的产品：可编辑 playground + 付费 AI 助教。</p>
-<div class="video-card screenshot-card"><img src="images/shot_01_11_40.png" alt="单向汉诺塔可视化 Playground" loading="lazy"><p class="video-caption"><span class="cap-text">单向汉诺塔可视化 Playground</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=4300" target="_blank" rel="noopener">在 B 站打开 (01:11:40)</a></span></p></div>
-
-<p>设计讨论中出现了一个反例：GPT 给出的「一个 API + 关系数据库 + 对象存储」是正常软件工程课答案，但主讲人不喜欢——因为本质需求是<strong>版本管理</strong>，用 Git 管理学生提交直到格式收敛，再迁移到数据库，往往更合理（Overleaf 导出为 git repo 同理）。</p>
-<hr />
-<h2 id="8-vibe-coding-lab1">8. 现场翻车：Vibe Coding 从零做 Lab1</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 知道 Vibe Coding ≈ 用自然语言让 AI 写代码
-- 了解 Lab1 是「会成长的个人助手」即可
-- 本章零基础可跟，重在看「AI 为什么做出你不想要的系统」
-
-</div>
-
-<p><em>(参考时间: 01:18:17)</em></p>
-<p>项目早期<strong>不应直接上 multi-agent</strong>。应先找能力最强的模型，多轮对话把 intent 对齐。</p>
-<h3 id="81">8.1 直接丢需求会发生什么</h3>
-<p>现场把 Lab1 需求直接丢给 Agent，观察其行为：</p>
-<ul>
-<li>一线模型会进 plan mode，确认事实后生成 workflow；</li>
-<li>但提示词里每一个词 self-attention 都会看到；模型已被训练成「prompt 的舔狗」，会<strong>过度遵循</strong>讨论稿式需求；</li>
-<li>结果：满足了字面指令，却不是你想要的东西。</li>
-</ul>
-<div class="video-card screenshot-card"><img src="images/shot_01_20_10.png" alt="直接把 Lab 需求丢给 Agent" loading="lazy"><p class="video-caption"><span class="cap-text">直接把 Lab 需求丢给 Agent</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=4810" target="_blank" rel="noopener">在 B 站打开 (01:20:10)</a></span></p></div>
-
-<h3 id="82-intent-gap">8.2 Intent 与实现的巨大 Gap</h3>
-<p>真正重要的言外之意是：</p>
-<blockquote>
-<p>实现一个<strong>持续为你工作的个人助手</strong>。</p>
-</blockquote>
-<p>对同学而言，第一个 feature 往往应是：<strong>高效学习与复习</strong>——自动收集外部信息、层次化归档、给出好界面。</p>
-<p>而 Agent 一上来就在做 database、SMail、一一号对接……从 README 看每一步都「对」，最终却得到一个你不想要的系统，甚至像一个教务系统。</p>
-<p>它甚至没有 <code>git init</code>——你不跟它讲，它就当一次性脚本。</p>
-<h3 id="83">8.3 正确的起步方式</h3>
-<ol>
-<li><strong>先创建空仓库</strong>；</li>
-<li>想清楚下一步只迈<strong>一小步</strong>；</li>
-<li>不要一上来就上数据库：文件系统膨胀时再让 Agent 提炼 schema；</li>
-<li>人对文件目录的心智负担远低于 database schema。</li>
-</ol>
-<p>主讲人自己的邮件 Agent 至今没有数据库：邮箱 → 共享云盘上的 email id 目录（含草稿、分类、是否垃圾邮件）→ 下一级流水线处理。</p>
-<hr />
-<h2 id="9-mvp">9. MVP 与可演进架构</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 知道产品要先做「最小可用版本」再迭代（MVP）
-- 理解「需求会变」，架构要为变化留余地
-- 不必事先会画架构图
-
-</div>
-
-<p><em>(参考时间: 01:32:40)</em></p>
-<p>更符合主流 best practice 的是从零构建时使用 <strong>MVP（Minimum Viable Product）</strong>。</p>
-<blockquote>
-<p>The biggest risk in product development is building something nobody wants.</p>
-</blockquote>
-<p>MVP 逼迫你想清楚：<strong>什么需求是绝对要的</strong>。</p>
-<h3 id="_6">好架构的标准</h3>
-<p>不是「当前实现了需求」，而是：</p>
-<blockquote>
-<p>需求发生根本性变化时，架构能否以最少变化应对？</p>
-</blockquote>
-<p>这是软件工程与操作系统/数据库课最不一样的地方：<strong>对未来需求变化的应对</strong>。</p>
-<p>两种开发方式对比：</p>
-<table>
-<thead>
-<tr>
-<th>方式</th>
-<th>过程</th>
-<th>风险</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>大步快跑</td>
-<td>上来大而全，拖着技术债加功能</td>
-<td>维护泥潭</td>
-</tr>
-<tr>
-<td>MVP 演进</td>
-<td>最小精巧架构，遇瓶颈再迁移</td>
-<td>需克制过度设计</td>
-</tr>
-</tbody>
-</table>
-<p>需求变更示例：希望邮件和资料都与云盘同步——检验现有架构是否需要摧毁性修改。</p>
-<div class="video-card screenshot-card"><img src="images/shot_01_36_10.png" alt="需求变更：引入云盘同步" loading="lazy"><p class="video-caption"><span class="cap-text">需求变更：引入云盘同步</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Q6en6NEUo/?t=5770" target="_blank" rel="noopener">在 B 站打开 (01:36:10)</a></span></p></div>
-
-<p>早期 prompt 对项目走向影响最大：直接丢 README 说「做个 MVP」，与「先讨论再写第一行代码」，结果天差地别。</p>
-<hr />
-<h2 id="10">10. 结语：版本管理要记住的三件事</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 建议至少浏览过第 2–5 章标题
-- 零基础也可读作全书小结
-
-</div>
-
-<p><em>(参考时间: 01:29:46)</em></p>
-<p>无论古法编程还是 Agent 时代，版本管理本质做三件事：</p>
-<ol>
-<li><strong>记住现在</strong>——必须有 repository 把文件/工件管起来；</li>
-<li><strong>记住历史</strong>——删掉的东西还能捞回来，能看到如何演进到当前点、哪条路失败了；</li>
-<li><strong>记住教训</strong>——lessons 持续警示下一步该怎么迈。</li>
-</ol>
-<p>从 SVN 的局限，到 Git 的局限，再到 Agent 时代的破局点：管理快照、版本、change，以及<strong>飞快的 change</strong>。</p>
-<p>经典课程（操作系统、数据库、软件工程）里的概念会在生成式软件工程中反复出现：视图、事务、乐观/悲观锁、快照、可追踪性。学它们仍然有用——它们是你带着 AI 做 AI 做不到之事时的判断力来源。</p>
-<p>下一讲将进入<strong>软件架构与构造</strong>。</p>
-<hr />
-<hr />
-<h2 id="_7">附录：概念补给</h2>
-<p>给可能「只听过、没深究」的同学：每条尽量先说人话，再扣回本讲。</p>
-<h3 id="_8">版本管理 / 版本控制</h3>
-<ul>
-<li><strong>是什么</strong>：记录文件随时间怎么变，便于回退、对比、多人协作。</li>
-<li><strong>课上为何出现</strong>：整讲的主线工具；从 SVN→Git→Jujutsu→Agent 时代一路追问。</li>
-<li><strong>和什么像</strong>：游戏存档、网盘历史版本。</li>
-</ul>
-<h3 id="intent-spec">Intent（意图）与 Spec（规格）</h3>
-<ul>
-<li><strong>是什么</strong>：Intent=你想解决什么；Spec=做成什么样、选什么技术、接口怎么定。</li>
-<li><strong>课上为何出现</strong>：README 更该写清 Intent；AI 若只对齐字面需求，会和 Intent 产生巨大 gap。</li>
-<li><strong>和什么像</strong>：先说「我想从宿舍到火车站」（Intent），再定「打车还是地铁、几点走」（Spec）。</li>
-</ul>
-<h3 id="technical-debt">技术债（Technical Debt）</h3>
-<ul>
-<li><strong>是什么</strong>：现在不一致、偷工减料，以后改功能要付更高代价。</li>
-<li><strong>课上为何出现</strong>：文档写链表、代码改树，却没有机制强制同步。</li>
-<li><strong>常见误解</strong>：不是「代码写得丑」，而是<strong>工件之间关系烂掉</strong>。</li>
-</ul>
-<h3 id="traceability">可追踪性（Traceability）</h3>
-<ul>
-<li><strong>是什么</strong>：需求、文档、代码、测试之间能否说清「谁对应谁」。</li>
-<li><strong>课上为何出现</strong>：文件系统是树，真实关联是图；演进中要维持这些边。</li>
-<li><strong>和什么像</strong>：论文引用链：这一段结论依据哪篇文献。</li>
-</ul>
-<h3 id="git-commit">Git 的 commit / 快照</h3>
-<ul>
-<li><strong>是什么</strong>：commit 是一次提交；Git 实质保存目录在某一刻的样子（快照）及父子关系。</li>
-<li><strong>课上为何出现</strong>：所有协作与历史都建立在「可提交的快照」上。</li>
-<li><strong>和什么像</strong>：给整个项目文件夹拍一张带时间戳的证件照。</li>
-</ul>
-<h3 id="merge-rebase">Merge 与 Rebase</h3>
-<ul>
-<li><strong>是什么</strong>：merge 把两条历史合成有多个父节点的新提交；rebase 把提交挪到新基底上，历史更直。</li>
-<li><strong>课上为何出现</strong>：Git 模型对「修改」表达不够一等，rebase 会改 id、冲突难处理。</li>
-<li><strong>常见误解</strong>：rebase 不是「更高级的 merge」，是<strong>改写历史</strong>的另一条路。</li>
-</ul>
-<h3 id="staging-area-stash">Staging Area 与 Stash</h3>
-<ul>
-<li><strong>是什么</strong>：暂存区决定下次 commit 含什么；stash 临时收起未完成改动。</li>
-<li><strong>课上为何出现</strong>：说明 Git 假设「人是单线程、被打断不频繁」。</li>
-<li><strong>和什么像</strong>：寄快递前先摊在桌上挑（staging）；有人敲门先把东西扫进抽屉（stash）。</li>
-</ul>
-<h3 id="change">Change（修改）作为一等公民</h3>
-<ul>
-<li><strong>是什么</strong>：把「一次业务上的改动」做成系统里的对象，而不是只靠 commit 编号代替。</li>
-<li><strong>课上为何出现</strong>：Jujutsu 的核心；我们关心的是改了什么，不是快照 id 变没变。</li>
-<li><strong>和什么像</strong>：你关心的是「提交了请假申请」这件事，而不是服务器上的单号。</li>
-</ul>
-<h3 id="jujutsujj">Jujutsu（jj）</h3>
-<ul>
-<li><strong>是什么</strong>：与 Git 底层兼容的新版本控制工具，突出 change，弱化 staging。</li>
-<li><strong>课上为何出现</strong>：示范「可以从第一性原理重设计工具」，而非只会用 Git。</li>
-<li><strong>和什么像</strong>：从纸质表格流程换成流程引擎，业务步骤还在，操作更顺。</li>
-</ul>
-<h3 id="agent">Agent（智能体）</h3>
-<ul>
-<li><strong>是什么</strong>：能看上下文、规划步骤、调用工具并循环到完成的 AI 程序。</li>
-<li><strong>课上为何出现</strong>：版本管理的使用者从人变成 Agent Team，约束条件全变了。</li>
-<li><strong>和什么像</strong>：不只会聊天的实习生，还能自己开电脑干活（但可能干偏）。</li>
-</ul>
-<h3 id="_9">乐观 / 悲观并发控制</h3>
-<ul>
-<li><strong>是什么</strong>：乐观=先改，冲突再处理；悲观=先锁资源再改。</li>
-<li><strong>课上为何出现</strong>：人用 Git 偏乐观（开会分工）；Agent 又快又多，可能更该悲观锁。</li>
-<li><strong>和什么像</strong>：自习座位：乐观=先坐，有人来再让；悲观=先登记锁座。</li>
-</ul>
-<h3 id="git-blame">Git Blame</h3>
-<ul>
-<li><strong>是什么</strong>：查某行代码是谁在哪次提交改的。</li>
-<li><strong>课上为何出现</strong>：为人追责设计；Agent 不能「被开除」，项目只需前进与修复。</li>
-</ul>
-<h3 id="git-worktree">Git Worktree</h3>
-<ul>
-<li><strong>是什么</strong>：同一仓库多份工作目录，各自检出不同分支，适合并行。</li>
-<li><strong>课上为何出现</strong>：多 Agent 同仓并行的轻量方案；提交本地可见，仍可能要 merge。</li>
-<li><strong>和什么像</strong>：一套账本复印出多张办公桌副本，各记各的，最后要对账。</li>
-</ul>
-<h3 id="mvp">MVP（最小可用产品）</h3>
-<ul>
-<li><strong>是什么</strong>：用最少功能验证「有没有人要、方向对不对」。</li>
-<li><strong>课上为何出现</strong>：现场把 Lab 需求整包丢给 AI，得到「像教务系统」的空壳。</li>
-<li><strong>常见误解</strong>：MVP 不是偷工减料版终稿，而是<strong>学习与验证的工具</strong>。</li>
-</ul>
-<h3 id="vibe-coding-ai-slop">Vibe Coding 与 AI Slop</h3>
-<ul>
-<li><strong>是什么</strong>：Vibe Coding≈自然语言驱动写代码；Slop=AI 量产的空洞/不可靠产出。</li>
-<li><strong>课上为何出现</strong>：作业可以 vibe，但 Intent 不清时，AI 很会生产 slop。</li>
-<li><strong>和什么像</strong>：让文笔很好的写手代写情书——文笔好 ≠ 写的是你的心里话。</li>
-</ul>
-<h3 id="_10">《人月神话》与沟通成本</h3>
-<ul>
-<li><strong>是什么</strong>：人月不能简单线性叠加；人与人沟通近似随人数平方上升。</li>
-<li><strong>课上为何出现</strong>：解释为何大团队不一定更快，以及为何要拆 team、找能拆任务的人。</li>
-</ul>
-<h3 id="_11">架构「以不变应万变」</h3>
-<ul>
-<li><strong>是什么</strong>：需求会变时，好架构用尽量少的改动接住变化。</li>
-<li><strong>课上为何出现</strong>：判断 AI 生成系统好坏，不只看「功能看起来全」。</li>
-<li><strong>和什么像</strong>：乐高底板 vs 胶水粘死的模型——前者好拆改。</li>
-</ul>
-<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1Q6en6NEUo</em></p>
+<p><em>本讲对应视频约 98 分钟（估算）；上文为知识压缩稿。完整逐句对照见 <code>transcript.corrected.txt</code>。</em></p>
       </article>
-      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%5B03-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">软件仓库管理：项目、文件与版本控制入门</span></a><a class="pager-btn next" href="../%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%E7%9A%84%E6%9D%A5%E9%BE%99%E5%8E%BB%E8%84%89%20%5B05-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">软件工程的来龙去脉</span></a></nav>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%5B03-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">03 软件仓库管理</span></a><a class="pager-btn next" href="../%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%E7%9A%84%E6%9D%A5%E9%BE%99%E5%8E%BB%E8%84%89%20%5B05-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">05 软件工程的来龙去脉</span></a></nav>
     </div>
   </div>
 </div>

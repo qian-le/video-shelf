@@ -263,6 +263,11 @@ body.shelf-page {
   .collection-card:hover { border-color: var(--line); }
 }
 
+/* quality gate badges (local preview only) */
+.lec-quality{margin-left:.5rem;font-size:.72rem;padding:.1rem .4rem;border-radius:999px;background:var(--chip,#f4efe6);color:#0f766e;border:1px solid rgba(15,118,110,.25)}
+.quality-banner{margin:0 0 1rem;padding:.55rem .85rem;border-radius:8px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:.92rem}
+.quality-banner[data-quality="未审稿"]{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
+
 </style>
 </head>
 <body class="shelf-page">
@@ -272,62 +277,72 @@ body.shelf-page {
       <p class="crumb"><a href="../../index.html">← 书架</a></p>
       <div class="collection-title-row">
         <h1>26生成式软件工程</h1>
-        <span class="collection-author">作者——绿导师原谅你了（蒋炎岩）</span>
+        <span class="collection-author">作者——NJU 软件学院</span>
       </div>
-      <p>绿导师原谅你了（蒋炎岩） · 共 5 讲</p>
+      <p>NJU 软件学院 · 共 6 讲</p>
     </div>
-    <div class="shelf-count">5 讲</div>
+    <div class="shelf-count">6 讲</div>
   </header>
   <div class="lecture-list">
       <article class="lecture-row" style="--spine:#0F766E">
-        <a class="stretch" href="../../%E6%AC%A2%E8%BF%8E%E6%9D%A5%E5%88%B0%E6%9C%AA%E6%9D%A5%20%5B01-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 欢迎来到未来：生成式软件工程第一讲"></a>
+        <a class="stretch" href="../../%E6%AC%A2%E8%BF%8E%E6%9D%A5%E5%88%B0%E6%9C%AA%E6%9D%A5%20%5B01-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 01 欢迎来到未来"></a>
         <div class="lecture-num">01</div>
         <div class="lecture-body">
-          <h2>欢迎来到未来：生成式软件工程第一讲</h2>
-          <p class="card-summary">从计算机史上的「昂贵能力日用品化」讲起，直面 AI 时代的学生焦虑与简历同质化；介绍课程 Token/考核政策，用使用者视角解释大语言模型与 Agent，并以装机、终端、邮件、读书、浏览器填表等案例展示 skill 生态与个人知识飞轮。</p>
+          <h2>01 欢迎来到未来</h2>
+          <p class="card-summary">AI 时代的学习与软件工程开篇</p>
           <p class="card-meta">BV1pb8o6yE8f · 1h39m</p>
         </div>
         <div class="card-actions"><a class="btn primary" href="../../%E6%AC%A2%E8%BF%8E%E6%9D%A5%E5%88%B0%E6%9C%AA%E6%9D%A5%20%5B01-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">开始阅读</a></div>
       </article>
       <article class="lecture-row" style="--spine:#0F766E">
-        <a class="stretch" href="../../%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%20%5B02-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 提示词工程：与模型对话的方法"></a>
+        <a class="stretch" href="../../%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%20%5B02-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 02 提示词工程"></a>
         <div class="lecture-num">02</div>
         <div class="lecture-body">
-          <h2>提示词工程：与模型对话的方法</h2>
-          <p class="card-summary">从提示词扩展到整段 Agent 上下文工程：讲清 system prompt/skills/工具如何构成模型可见输入，用可验证 Spec 与 Verifier 引导模型，分析思维链、注意力与上下文污染，并讨论长程任务中 reward hacking 与人的角色。</p>
+          <h2>02 提示词工程</h2>
+          <p class="card-summary">提示词工程的方法与实践</p>
           <p class="card-meta">BV1CQt365EzW · 1h38m</p>
         </div>
         <div class="card-actions"><a class="btn primary" href="../../%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%20%5B02-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">开始阅读</a></div>
       </article>
       <article class="lecture-row" style="--spine:#0F766E">
-        <a class="stretch" href="../../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%5B03-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 软件仓库管理：项目、文件与版本控制入门"></a>
+        <a class="stretch" href="../../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%5B03-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 03 软件仓库管理"></a>
         <div class="lecture-num">03</div>
         <div class="lecture-body">
-          <h2>软件仓库管理：项目、文件与版本控制入门</h2>
-          <p class="card-summary">从「项目是一个目录」讲起，介绍软件与版本管理的基本需求，入门 Git 的初始化、提交与最佳实践，说明冲突/blame/bisect 与对象模型，并以原子改动总结项目组织方式；相对第 04 讲更偏基础，不深挖 Jujutsu。</p>
+          <h2>03 软件仓库管理</h2>
+          <p class="card-summary">版本库与协作流程</p>
           <p class="card-meta">BV1kybV6DE47 · 1h40m</p>
         </div>
         <div class="card-actions"><a class="btn primary" href="../../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%5B03-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">开始阅读</a></div>
       </article>
       <article class="lecture-row" style="--spine:#0F766E">
-        <a class="stretch" href="../../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 软件仓库管理（二）：从 Git 到 Agent 时代的版本控制"></a>
+        <a class="stretch" href="../../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 04 软件仓库管理 (2)"></a>
         <div class="lecture-num">04</div>
         <div class="lecture-body">
-          <h2>软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</h2>
-          <p class="card-summary">从 Git 的 merge/rebase 与 change 概念出发，讨论为 Agent 时代重新设计版本管理，并演示 Vibe Coding 从零做个人助手时的架构陷阱。</p>
+          <h2>04 软件仓库管理 (2)</h2>
+          <p class="card-summary">仓库管理进阶与工具</p>
           <p class="card-meta">BV1Q6en6NEUo · 1h38m</p>
         </div>
         <div class="card-actions"><a class="btn primary" href="../../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">开始阅读</a></div>
       </article>
       <article class="lecture-row" style="--spine:#0F766E">
-        <a class="stretch" href="../../%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%E7%9A%84%E6%9D%A5%E9%BE%99%E5%8E%BB%E8%84%89%20%5B05-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 软件工程的来龙去脉"></a>
+        <a class="stretch" href="../../%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%E7%9A%84%E6%9D%A5%E9%BE%99%E5%8E%BB%E8%84%89%20%5B05-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 05 软件工程的来龙去脉"></a>
         <div class="lecture-num">05</div>
         <div class="lecture-body">
-          <h2>软件工程的来龙去脉</h2>
-          <p class="card-summary">从课前 AI 新闻切入，梳理软件危机与软件工程的诞生（goto 之争、NATO 会议、阿波罗容错、被误读的瀑布模型），讨论流程/契约/形式化与 UML 的兴衰，并指出 never-goes-away 的工程原则与 AI 时代的学习成本问题。</p>
+          <h2>05 软件工程的来龙去脉</h2>
+          <p class="card-summary">从 AI 新闻到软件危机、过程模型与追溯/测试/契约/UML 的工程智慧</p>
           <p class="card-meta">BV1Nyeq6qEt8 · 1h39m</p>
         </div>
         <div class="card-actions"><a class="btn primary" href="../../%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%E7%9A%84%E6%9D%A5%E9%BE%99%E5%8E%BB%E8%84%89%20%5B05-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">开始阅读</a></div>
+      </article>
+      <article class="lecture-row" style="--spine:#0F766E">
+        <a class="stretch" href="../../%E9%9C%80%E6%B1%82%E5%92%8C%E6%9E%B6%E6%9E%84%20%281%29%20%5B06-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html" aria-label="阅读 需求和架构（一）"></a>
+        <div class="lecture-num">06</div>
+        <div class="lecture-body">
+          <h2>需求和架构（一）</h2>
+          <p class="card-summary">从 Intent→Spec→实现回顾软件工程主线，展开需求工程与拆课导致的准出规则变更案例，讨论无处不在的架构与需求变化的承载，并回到教务系统看规则与架构如何共同演进。</p>
+          <p class="card-meta">BV1Rch76WEfQ · 1h36m</p>
+        </div>
+        <div class="card-actions"><a class="btn primary" href="../../%E9%9C%80%E6%B1%82%E5%92%8C%E6%9E%B6%E6%9E%84%20%281%29%20%5B06-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html">开始阅读</a></div>
       </article>
   </div>
   <footer class="shelf-footer">

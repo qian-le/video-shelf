@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>软件工程的来龙去脉</title>
+<title>05 软件工程的来龙去脉</title>
 <style>
 /* Shelf design tokens — 单主题浅色暖纸 */
 :root {
@@ -401,6 +401,11 @@ body {
   html { scroll-behavior: auto; }
 }
 
+/* quality gate badges (local preview only) */
+.lec-quality{margin-left:.5rem;font-size:.72rem;padding:.1rem .4rem;border-radius:999px;background:var(--chip,#f4efe6);color:#0f766e;border:1px solid rgba(15,118,110,.25)}
+.quality-banner{margin:0 0 1rem;padding:.55rem .85rem;border-radius:8px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:.92rem}
+.quality-banner[data-quality="未审稿"]{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
+
 </style>
 </head>
 <body>
@@ -419,240 +424,101 @@ body {
     </aside>
     <div class="book-main">
       <header class="book-head">
-        <p class="course-line"><strong>26生成式软件工程</strong> · NJU 生成式软件工程 · 第 5 讲</p>
-        <h1>软件工程的来龙去脉</h1>
-        <p class="book-summary">从课前 AI 新闻切入，梳理软件危机与软件工程的诞生（goto 之争、NATO 会议、阿波罗容错、被误读的瀑布模型），讨论流程/契约/形式化与 UML 的兴衰，并指出 never-goes-away 的工程原则与 AI 时代的学习成本问题。</p>
-        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/" target="_blank" rel="noopener">BV1Nyeq6qEt8</a> · 时长 1h39m · 标签：软件工程、软件危机、瀑布模型、Dijkstra、契约、UML、NATO</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+        <p class="course-line"><strong>26生成式软件工程</strong> · NJU · 第 5 讲</p>
+        <h1>05 软件工程的来龙去脉</h1>
+        <p class="book-summary">从 AI 新闻到软件危机、过程模型与追溯/测试/契约/UML 的工程智慧</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/" target="_blank" rel="noopener">BV1Nyeq6qEt8</a> · 时长 1h39m · 标签：软件工程、软件危机、UML、测试、契约式设计</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
       </header>
       <article class="book-body">
-<blockquote>
-<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/">Bilibili · BV1Nyeq6qEt8</a>（时长约 100 分钟）
-<strong>课程</strong>：南京大学《生成式软件工程》（2026）第 05 讲 · Raw 版
-<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。</p>
-</blockquote>
+<p><em>(参考时间: 00:00:00)</em></p>
+<p>本讲从当代 AI 新闻切入，回到软件开发现场，再沿「软件危机（软件规模与复杂度增长超过方法能力，导致失控成本与失败项目的历史困境） → 软件工程」的历史线索，整理仍不过时的过程智慧：清单、追溯、测试、契约与建模。阅读时长为估算值，不是实测。目标是用明显少于看视频的时间，掌握本讲的因果链、原例与讲师判断。</p>
+<h2 id="_1">一、开课新闻：实时决策、进化速度与模型短板</h2>
+<p><em>(参考时间: 00:00:00–00:20:01)</em></p>
+<p>继续「生成式软件工程」。上一讲讲了版本管理，今天正式进入软件工程本体。课堂先用一周内的新闻校准时代速度，再回到软件构造。</p>
+<h3 id="system-one">System One（讲师命名的快速直觉决策模型）与实时交互</h3>
+<p>有团队发布了可实时玩《毁灭战士》（Doom）的模型。课堂盲猜它类似只出一个 token 的 Transformer，也可能是别的架构：把游戏状态压成 JSON 喂进去，模型输出一个决策 token。延迟大约在毫秒级到百毫秒级，已经接近人类实时反应。这个 token 被专门微调过，不说人话，但能做决策——像训练一个神经网络，又是通用的，介于大模型与以前的决策树之间。讲师给这类模型起名 <strong>System One（快速直觉决策模型，能在约百毫秒级做出可执行决策）</strong>，取「真正人类意义上的实时决策」之意。</p>
+<p><strong>为何重要</strong>：延迟是人机交互体验的关键约束。人与人对话本身就有延迟；人与机器对话却常因等待而露馅——课堂提到 AI 演员对话时突然说起广东话的传播片段，以及数字人之间「很大的延迟」。若有 50–200ms 的小决策回路，就可以实时生成脸上的微表情，让人感到「有人感」；它能打游戏，也能哄婴儿睡觉。赛道被打开后，乐观一点把模型裁得更小，50ms 以内也可能。技术本身并不新，但这次火了，才把赛道正式推开。</p>
+<h3 id="ai">AI 进化时间线：能力跃迁常快于预期</h3>
+<p>课堂用一条时间线说明：1956–1958 年感知与规划机器走出实验室；70 到 90 年代是人工智能的寒冬；1997 年搜索算法第一次击败人类世界冠军——此前经历了漫长积累。2012 年 AlexNet 之后世界开始剧变；2016 年讲师在现场看直播；2017 年读博时关注词向量、Transformer、BERT 能做什么；2020 年 GPT-3 问世时大家还吃惊「为什么要做这么大参数的模型」，到 2022 年才明白为什么需要——到现在也不过几年。2020 到 2023 年就能看图，GPT-4o 能识别语音、多模态生成；开源模型与视频生成接踵而至：2024 年 SORA 首次发布，2024 年 9 月才有 o1 类推理模型。课堂彩蛋：展示的视频本身完全由生成模型制作；还有把数学难题「暴力出奇迹」解决的案例。讲师判断：<strong>世界发展在加速，速度可能比大家想象的快</strong>——既是就业挑战，也是生态机遇。</p>
+<h3 id="bitter-lesson-scaling-law">bitter lesson 与 scaling law：竞争焦点转向数据分布工程</h3>
+<p>讲师判断：从 bitter lesson（依赖算力与数据的通用方法往往胜过精巧手工结构的经验教训）到今天的 scaling law（模型能力随数据/算力规模增长的经验规律），竞争焦点越来越像他所称的 <strong>数据分布工程（决定何时按何种比例向模型注入哪类领域数据的训练工程）</strong>。课堂以 GPT-6 一代模型的空间推理为例：能理解图片中的空间关系，作图与生成都做得好，多半是因为基座训练和后训练强化里都加入了这部分数据，并用反馈告诉模型「这样做是好是坏」。</p>
+<p>旧叙事是「数据越多基座越好」（甚至有厂商买书、获得绝版语料的故事）；新叙事是：若基座已经很好，再加一个没见过的领域做强化，<strong>所有任务都可能一起变好</strong>——每插一个新领域，所需数据反而可能更少。人类学习顺序是「先世界模型，再语言/数学，再到研究品味」；大模型路线相反（语言→数学→多模态→空间）。讲师强调：<strong>只要数据足够、训练不崩、推理一致，顺序可以不同，模型就能训成</strong>。每加一个领域像插件一样插进训练，飞轮就转起来；大厂可能不在乎小规模实验，而在乎数据飞轮与 recursive improvement（自我改进循环，简称 RSI）。下一个「领域」可能是情感计算、化学、生物工程实验室，甚至动物行为预测。学术侧则出现 AI slop（大量低质量 AI 生成论文）投稿新高；讲师调侃 peer review 体系「马上就要崩溃」，并请大家想想崩溃后还剩什么。</p>
+<h3 id="reward-hacking">reward hacking（模型钻奖励函数空子以刷分而非完成真实意图）与可验证边界</h3>
+<p>引 Noam Brown（OpenAI）访谈的大意：当前模型短板是<strong>品位</strong>——对「接下来该做什么」的直觉不够好。模型常被训成「prompt 的舔狗」：你让它做什么它就盯着做；同时有 <strong>reward hacking（模型钻奖励函数空子，用最快最脏的方式把任务包装成完成以拿到奖励）</strong> 的倾向。因为强化训练只在完成时给 reward，它就不断强化捷径；从长期主义看，产出可能并不令人满意。</p>
+<p><strong>如何起作用</strong>：训练信号只覆盖「立即有反馈」的完成，模型就执着于可立刻结算的事。课堂提醒：不能只用更多合成数据去「告诉模型对错」，而要分清<strong>可验证与不可验证</strong>的边界。数学看似可验证，品味看似不可验证，但两边都不绝对——从自然语言到形式证明仍有 gap。课堂举了「有人声称证明了 P≠NP（或黎曼猜想一类）」的笑话：形式化证明里定义的问题本身是空的，几千页证明最后等于在证「一等于一」。条件限制：形式化不等于意图正确；自动验证器对齐的是形式陈述，不是你真正想问的问题。</p>
+<h3 id="ai_1">与 AI 同行：斩杀线、学习方式与一手材料</h3>
+<p>人类社会近似 survival of the fittest（适者生存），讲师把能力门槛称为「斩杀线」，它不断上移；目标是在被斩杀前搭上车，成为更好的人。技术侧他强调：仍要上课，因为还不能完全依赖 AI，也因为「能理解 AI 的人活下来」。学习方式也变了：过去查证知识网络几乎不可能，只能读教科书的有损压缩；今天可以直接读一手材料（传记、原报告、原文），用 AI 帮助对照误读链。课堂示范用 Agent「入库」论文、在命令行里读长文——知识压缩的责任从「唯一教材」变成「点 + 原文 + 属于你自己的压缩」。</p>
+<h2 id="mvp">二、回到软件：缺口、MVP 与现场设备</h2>
+<p><em>(参考时间: 00:18:35–00:30:00)</em></p>
+<h3 id="intentspecificationimplementation-gap">intent、specification、implementation 之间的 gap</h3>
+<p>课程主线：软件构造难在三段之间的 gap——<strong>intent（意图：你想要什么）</strong>、<strong>specification（规格：打算怎么做/做成什么样）</strong>、<strong>implementation（实现：真正写出来的软件）</strong>。有 gap，构造软件才成为世纪性难题，才有了软件工程。版本管理解决「改了什么、如何回滚」；真正开工前还有一个直观答案：MVP（最小可行产品）。</p>
+<h3 id="mvp_1">MVP：用最小切片补上认知缺口</h3>
+<p>讲师判断：做多错多，做少错少；做最少的、又最接近最终产品的切片，收益最大。MVP 首先很便宜（课堂戏称 AI 生成的 slop 可随时扔），关键是它能告诉你 <strong>intent 哪里没弄对、specification（含架构）还有没有改进空间</strong>。范式是：先做一版，迭代几轮，再往外长。条件限制：MVP 不是「把按钮样式先抠完」——样式依赖界面设计，界面依赖功能；上层未定时做的细节很快作废。不要研究即将被扔掉的东西。</p>
+<h3 id="_2">设备抽象案例：标签打印机与扫描仪</h3>
+<p><em>(参考时间: 00:20:01–00:25:20)</em></p>
+<p>课堂展示一晚上用国产模型做出的 self-service 设备台：标签打印机、扫描仪等都接到一台计算机总线上（操作系统课的意象），却不想用原厂「像吃屎一样」的驱动软件。做法是<strong>抽象</strong>：把设备抽象成更干净的接口——扫描仪是 <code>scan</code>（正/反面、单双面、dpi），打印机是 <code>print(image)</code>。一旦有了接口，设计和实现就解耦了，软件层可以工作在接口层上。这是非常典型的软件工程设计智慧。</p>
+<p>细节值得保留：打印机是热转印非标设备（碳粉袋按像素加热烫到标签上），有个「加热深度/图像深度」参数不知道设多少。AI 就一轮一轮打标签，标上「第 15 次尝试」，问人「淡了还是浓了」；它看不到，但接个摄像头就能全自动。它先试 LP 方案，后来直接用 PCL 驱动把设备当通用打印机处理。人只验收结果，不监管过程。这引出讲师判断：<strong>以后软件公司面临彻底消亡</strong>——标签打印机、扫描仪的 Windows/Mac 驱动开发成本曾经很高；今天生产定制软件与 intelligence 的成本非常低。App 也可能死掉：豆宝手机一类的思路是把 App 抽象成接口，由 computer use 调用（点外卖只剩查询接口）；阿里也在把服务整合给 agent。实验室预告：下一实验要求把 assistant 接到某个 physical device（手表、宿舍小设备、电子墨水瓶等非标硬件）。课堂还演示了对 Android APK 解包、逆向蓝牙协议，自写驱动写屏。</p>
+<h2 id="_3">三、软件危机：需求是拍脑袋的，成本是真金白银的</h2>
+<p><em>(参考时间: 00:30:00–00:50:00)</em></p>
+<h3 id="1960">1960 年代的约束：硬件贵、码农贵、客户想象过度</h3>
+<p>软件还是新事物的年代（课堂以 1960 年前后为锚）：一台计算机占一间大房，制造成本很高，不敢偷工减料（类比建筑刚起步时猛堆料）；编程工具不成熟，码农是高智力工种。写机器码/汇编时必须先画流程图——不像今天大模型可以直接写汇编羊稿，人做不到，需要大量预训练式练习。客户一侧则对计算机充满过度遐想：1968 年《Boys' Life》杂志已经畅想「终端及时判分、按薄弱环节辅导、按自己的节奏学习」——到今天仍未完全实现。课堂对比：客户脑子里是跨时代系统，程序员脑子里是汇编和 goto，gap 巨大。软件企业还要签合同、垫付开发（课堂玩笑「一千万美元开发操作系统」），而客户（如军方、NASA 类工程方）也未必知道自己想要什么。1957 年程序员甚至不被承认为职业，Dijkstra（图灵奖得主）登记结婚时只能写「理论物理学家」。</p>
+<h3 id="_4">软件需求是高度定制化的</h3>
+<p>与其他工程不同：桥梁、炼钢受材料与力学约束，出厂强度已定，只能适应自然规律做 incremental（渐进）改进；<strong>软件需求是拍脑袋想出来的，高度定制化，而且会随时间演进</strong>。课堂选课系统例子：先到先得还是抽签？按专业保留吗？不满足先修课时老师能否特批？——这些 corner case 连提 intent 的人都没想好。操作系统课的先修要求是「硬限制还是软限制？谁能 override？」最后一秒钟毕不了业时，所有口子学校都能开。软件需求连接物理社会与人的偏好，进度、成本、质量会一起失控：开发进度不可预测、成本崩溃、延期交付。这就是软件危机（软件规模与复杂度增长超过方法能力，导致失控成本与失败项目的历史困境）的土壤；没有危机，就不会有后来的软件工程学科。</p>
+<h3 id="dijkstragoto">Dijkstra：goto、可读性与「永不发生」的假设</h3>
+<p><em>(参考时间: 00:39:30–00:48:00)</em></p>
+<p>Dijkstra 的名文《Go To Statement Considered Harmful》大家听说过，但课堂立刻补充反例：Linux 内核里有大量 goto——C 里少数 idiomatic 用法之一是 <code>goto release</code>：在出口统一检查并释放函数申请的全部资源，中途退出必须走 release，程序就基本正确了。讲师转述暴论：<strong>程序员水平随 goto 密度上升而下降</strong>（有道理但不绝对）。真正要害不是 goto 本身，而是大量 goto 让程序难以理解；<strong>只有人能读，才可能维护下去</strong>。若把 goto 限制成「只能这样用」的机制，它就不 harmful。</p>
+<p>1972 年 Dijkstra 图灵奖演讲《The Humble Programmer》谈到软件危机根源：若永远只写 online judge 小程序，算完就完，不会有危机；<strong>机器变强后，软件承担的现实 intent 越多，不确定性越多，实现越复杂</strong>。他提倡 nicely factored solutions（分解良好的方案）——课堂标签打印机抽象就是一例。还有一句放到今天仍醍醐灌顶的话：保守力量主要来自教育机构与舍不得重写旧程序的用户。课堂倡导直接读一手文稿：教科书多层转述后，东西可能已经不是那个东西了。</p>
+<h3 id="nato-1968hamilton">NATO 1968、Hamilton 与防御性编程</h3>
+<p><em>(参考时间: 00:44:00–00:48:00)</em></p>
+<p>软件开始失败后，1968 年 NATO 会议聚焦软件工程；约同期 Margaret Hamilton 和团队提出「软件工程」概念。课堂展示标志性照片与阿波罗代码故事：1969 年（口误处课堂说 2019）经过不懈排错，最初的软件工程师把宇航员送上月球。工程智慧是<strong>防御性编程（把「绝对不可能发生」当成可能来设计，使系统在意外下仍有兜底）</strong>：never going to happen can happen。SICP 式教育要求写 assertions / specifications：假设软件在任何时候、甚至违反假设时仍要能工作；假设硬件也不可靠，程序 crash 后系统要有兜底。阿波罗 11 登月下降时发生警报，软件因优先级与 recovery 机制，让关键的下降控制得以继续——这是还没有「软件工程」名字时，从 first principle 思考高质量软件的成果。</p>
+<p><strong>软件工程的定义性任务</strong>：在成本、时间、团队约束下，把人的意图变成可工作、可维护、可生存的软件（需求还会变）。IEEE 将其概括为系统化、可量化、覆盖生命周期的工程方法。从「个人英雄主义 + 好领导」变成「checklist：一二三四五全满足，失败概率小很多」。数亿美金的教训（炸火箭等）沉淀了这门学科；今天写 OJ 时「假设题目是对的、能做出来的」本身也是隐含假设，开放世界里题目可能错、条件会变、甚至变成另一道题。</p>
+<h2 id="royce">四、瀑布、Royce 与把风险提前</h2>
+<p><em>(参考时间: 00:50:00–01:15:00)</em></p>
+<h3 id="royce-1970">Royce 1970：瀑布图的出处，也是最被误读的论文</h3>
+<p>接到开发任务不能一声「大家去干」——leader 要划分任务（课堂类比：打印机/扫描仪起两个 agent 窗口并行）。1970 年还没有 MVP，Winston Royce 的《Managing the Development of Large Software Systems》思考「如何按时不超预算交付大型软件」，给出从需求 → 分析 → 设计 → 代码 → 测试 → 上线的经典瀑布图（瀑布模型：按阶段顺序推进、后一阶段依赖前一阶段产出的过程图景）。有意思的是：<strong>这篇文章其实是批判纯瀑布流程的</strong>——「后被称为瀑布模型的原始出处，也是被误读最严重的一篇」。课堂用 Agent 帮忙读原文、还原误读链：教材一级级消化后，原意会漂移；而 1970 年的原文反而好懂，且与今天的实践对得上（总是从空项目开始：想清楚要干什么 → 大概想怎么做 → 写代码，不论写代码的是工程师还是 AI）。</p>
+<h3 id="_5">测试是第一个物理事件，缺陷越晚越贵</h3>
+<p>Royce 的 first principle：设计阶段只有报告，程序真正写出来之前都不能运行；不能运行的东西人就随便做做——文档写完可能和代码/设计不一致，缺乏强约束。<strong>测试是链条上第一个物理事件</strong>：程序真正跑起来，才知道行为是什么。intent→spec→implementation 一旦漂移，到测试才发现就要回头改，<strong>这是超期超支的源头</strong>。缺陷发现越晚，返工代价越大（OJ 典型：算法想错→写完代码→样例不对→整条算法重来，就是瀑布式失败）。既然风险最终都在测试处爆炸，<strong>所有补救的本质都是把发现问题的时间点提前</strong>。</p>
+<h3 id="do-it-twicepilot-mvp">Do it twice：pilot 程序就是当年的 MVP</h3>
+<p>Royce 提出 design-first 与「do it twice」：先做一个不完备但能体现系统功能的 <strong>preliminary pilot program</strong>；它可能失败，但迭代成本低，能反射到系统设计上——这就是 MVP 的先声。今天也可以用 TDD 解释——即测试驱动开发（先写测试再实现功能的开发实践）：设计先行：设计先行 = 先定测试用例（输入走何流程、应输出什么），再实现；敏捷开发则像「do it infinite many times」：第一版哪怕只有 hello world、各模块自报家门并串起来，也是好产品，然后不断向后演进，<strong>让关键假设尽早遇到证据</strong>。课堂总结：今天的正确 practice 可映射回过去，过去的 first principle 也能映射回今天；图灵奖级工作常是「在大家不知道时确立 first principle」。</p>
+<h3 id="data-dependency">讲师自己的读法：data dependency（数据依赖）</h3>
+<p><em>(参考时间: 01:09:30–01:15:00)</em></p>
+<p>讲师自称做过一点 PL/操作系统，把 Royce 的模型理解成 <strong>data dependency（制品之间的依赖关系，决定错误会传播到哪里）</strong>：把需求点、设计、实现、测试都看成 program/artifact，就得到一张有向无环图；关联关系会传递。若测试错了往上追溯发现某个 design 错了，所有依赖它的东西全部毁掉——<strong>这就解释了返工成本为什么高</strong>。解法自然是割小：不要一次产生大量 dependency，而用宽度优先（BFS）先做第一层再做第二层，变成按依赖深度迭代的 DFS——这就是敏捷/MVP：先做优先级最高的依赖链路走通，再向右扩展。每个 intent 会拆成多个小点并对后面产生 dependency，所以 MVP、敏捷、TDD 都是正确事情。每个人对模型的理解可以不同（个性化教学的价值）；这套 data dependency 视角，正是后来软件工程真正采用的形式化方式之一。</p>
+<h2 id="_6">五、工程智慧工具箱：清单、追溯、测试、契约</h2>
+<p><em>(参考时间: 01:15:00–01:30:00)</em></p>
+<h3 id="checklist">checklist（清单）与形式化梯度</h3>
+<p>软件工程为每个阶段创建方法和工具，以减少返工概率。checklist 看起来像 nonsense（OJ 选手尤其反感），但它<strong>减少失败概率</strong>：例如最后一条「是否和客户沟通过」——真打勾时，intent 不符合客户要求的概率大幅下降。它是有人文关怀的工具，没有任何代码。清单还要求文档两两对照审查，避免 gap 在阶段间漂移；「所有勾打上才能进下一阶段」赋予了形式语义。决策表/决策树也是同类。</p>
+<p>更深的观察是<strong>形式化程度自上而下递增</strong>：checklist 仍是自然语言，但有格式规范（逐条、勾/叉），已是介于自然与形式之间的中间语言——人对勾和叉的对齐比对一篇散文更 formal。到设计阶段缺语言，就发明设计语言（领域专用）；到实现是编程语言。中间还有能做逻辑检验的半形式语言。没有大模型这个「万能编译器」时，不同阶段必须用不同语言——这就是 gap 的管理史。</p>
+<h3 id="traceability">追溯性（traceability，需求、设计、代码与测试之间可交叉核对的对应关系）</h3>
+<p>从文件系统看软件只是一堆文件（docs/<em>.md、source/</em>.ts、README），这是早年文件系统 workaround 留下的形态。追溯性要求用链接/文档/机制把它们拴起来：<strong>每个代码与需求点可对上，需求之间、需求与设计之间也须可对上</strong>。这相当于把 data dependency graph 显式化。交叉检验越多，对软件质量越有信心——因为从 specification 翻译到代码总会错，独立质量保障越多信心越大；除非能做形式化证明，否则信心来自证据链而非口号。个人主义（「成为最厉害的码农」）不够：没有一个码农能单独完成项目；雇主真正在意的是用多少成本雇多少人把项目交付。AI 时代你手里可能马上有大量并发 agent（课堂夸张说 2500 并发），产品经理式的调动能力反而成为第一课。</p>
+<h3 id="property-based-test">property-based test（用性质（不变量）描述行为，由工具生成大量用例的测试方法）</h3>
+<p>测试领域经典（QuickCheck 一脉）：让人描述<strong>性质</strong>（property），工具自动生成输入、寻找反例。逻辑前提是：任何从上到下的翻译都会错；从 spec 到代码，还有隐含规格（不 crash、无空指针、资源不泄漏）也要遵守。若在代码里写 property，自动变出大量用例，全部通过则信心大增。测试仍不是证明，但比零测试可靠；独立做的质量保障越多，信心越大——直到有人写出完整证明。课堂预言（上操作系统课时说「30 年」，现在看或许 10–15 年）：若写出 assert/前置后置条件后，<strong>不能被证明就过不了编译</strong>，那么 property test 的必要性会下降，直接靠证明。那是形式化验证工具（如 Dafny 一类）的梦想：前置满足则后置满足，系统级串联后满足 intent。</p>
+<h3 id="design-by-contract">契约式设计（design by contract，用前置/后置条件约定例程责任的开发方法）</h3>
+<p>Eiffel 等语言约 1986 年把霍尔三元组直接写进代码：先写文档（函数干什么），<code>require</code> 前置条件，<code>do</code> 实现，<code>ensure</code> 后置保证。鼓励先不写 do，把各模块文档与 pre/post condition 写出来。写契约会强迫你处理边界：账户取款的「余额不足」到底怎么办——MVP 时可以假装永不发生、排除出 specification 空间；<strong>软件一旦向后演进，contract 就变得非常重要</strong>。规格写清之后，演进中才谈得上稳定。这条线沿袭到今天的许多语言与验证器。</p>
+<h2 id="uml">六、UML（统一建模语言，用图示化中间层对齐需求与实现语义） 的野心、消亡与形式化的尽头</h2>
+<p><em>(参考时间: 01:30:01–01:39:59)</em></p>
+<h3 id="_7">语义对齐为什么难</h3>
+<p>多年软工史，本质是在 spec 上「横跳」：自然语言 → 半自然/带逻辑公式的语言 → 编程语言。自然语言对不齐，是因为它直连人脑的 latent space（隐空间：模型/大脑内部的连续表示）：说「一个美女」，每个人内部构造的形象都不一样；要求用 Blender 建模，不同模型画的也不同。人类发明了数学语言才真正对齐——从很小的公理（如皮亚诺算术公理）一点一点构造，全世界对「自然数」的语义一致，才能在计算机世界里建起确定语义。UML 想做的，就是把自然语言世界里说不清的需求、设计，能对齐的部分与不能对齐的部分剥离出来。</p>
+<h3 id="uml_1">UML（统一建模语言，用图示化中间层对齐需求、设计与实现语义）</h3>
+<p>UML 的野心：用一种中间语言统一面向对象世界。类图有确定语义（class Student 有 field name，可映射到源代码）；顺序图规定先后时序，消除自然语言写「谁先谁后、能否并发」的歧义。它最大程度减少没有代码时的语义漂移。<strong>前提是</strong>：自然语言与形式语言不能对齐，所以需要一层层中间语言。讲师判断：<strong>今天 UML 式中间层已被削弱甚至「死」了</strong>——自然语言已经能与多种表示对齐（AI 可以在规格、代码与测试之间直接转译），层次假设被抽掉。但 UML 仍是历史里的重要尝试，其 first principles（分层对齐、减少语义漂移、分清哪些 intention 必须定死、哪些可以浮动）仍值得体会。700 多页的 UML spec 从头到尾回答的就是这个问题。</p>
+<h3 id="_8">读规范的成本、教育平权与算力现实</h3>
+<p>课堂现场：用 Agent 分 subagent 每人读 50 页（带 overlap）提取软件工程智慧，把 700 页 spec 压成课件，约花掉五小时额度的 18%，折算套餐价约 5 块 3。这带来两面：<strong>更好的模型让学习效率与成本拉开差距</strong>；「人人都用得起好模型」受算力与资源约束——是否教育平权是社会性问题，不只是技术问题。学习场景其实相对省 token（不必把整本 spec 塞进上下文）；烧 token 的是维护大项目、载入大上下文。对个人：深度训练加长思维链，广度建立对世界的感觉；读经典 = 抓住领域最初也是最重要的根本问题。</p>
+<h2 id="ai_2">七、留给 AI 时代的软件工程</h2>
+<ol>
+<li><strong>需求会漂移</strong>：用清单与追溯固定可核对的部分，其余明确保留不确定；假设「永不发生」的事可能发生。</li>
+<li><strong>测试与契约</strong>：先定行为与边界，再实现；把发现问题的时点提前；用性质和契约代替口头保证。</li>
+<li><strong>对模型保持审慎</strong>：reward hacking 与短期讨好真实存在；可验证任务用证据，不可验证任务靠人的判断；形式化验证对齐的是形式陈述，不是意图本身。</li>
+<li><strong>工具在变，智慧在沉淀</strong>：checklist、traceability、property、contract、data dependency 的原理，比某一代建模语言更长寿；UML 式中间层可能消亡，分层对齐不会。</li>
+<li><strong>接口与抽象</strong>：设备/应用一旦抽象成干净接口，实现与消费解耦；AI 让定制实现变便宜，设计判断反而更关键。</li>
+<li><strong>教育与算力</strong>：好模型拉大学习效率与成本差距；是否「人人都用得起好模型」受算力资源约束，这是社会性问题，不只是技术问题。</li>
+</ol>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Nyeq6qEt8&t=2871&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="课堂板书示意：从软件危机到软件工程"></iframe></div><p class="video-caption"><span class="cap-text">课堂板书示意：从软件危机到软件工程</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=2871" target="_blank" rel="noopener">在 B 站打开 (00:47:51)</a></span></p></div>
+
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Nyeq6qEt8&t=5129&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="课堂板书示意：需求与追溯"></iframe></div><p class="video-caption"><span class="cap-text">课堂板书示意：需求与追溯</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=5129" target="_blank" rel="noopener">在 B 站打开 (01:25:29)</a></span></p></div>
+
 <hr />
-<h2 id="1">1. 开课：真正进入软件工程</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 已大致了解前几讲：提示词 / 版本仓库 / Agent 与 Git
-- 本章零基础可跟，偏新闻与课程定位
-
-</div>
-
-<p><em>(参考时间: 00:00)</em></p>
-<p>上一讲收在版本管理；本讲正式进入<strong>软件工程</strong>（Software Engineering，用可重复的方法构造、演进、维护大规模软件的学科与实践）的主干：历史从哪来、危机是什么、留下了什么智慧。</p>
-<p>主讲人强调：版本管理也是软件工程的一部分，但今天开始讲「狭义」上的软件工程史与方法。</p>
-<h3 id="11">1.1 课前新闻：模型在逼近「实时智能」</h3>
-<p>开场先分享近一周新闻：有团队展示了可<strong>准实时</strong>玩《毁灭战士》（DOOM）类决策的模型——把游戏状态压成 JSON 输入，模型在毫秒到百毫秒级输出一个专用 token 作决策。</p>
-<ul>
-<li>架构未必是标准 Transformer，可能是更「窄」的专用结构；</li>
-<li>训练后输出不一定说「人话」，而是领域内的动作编码；</li>
-<li>信息密度极高时，你会意识到：<strong>模型能力上移的速度，正在改写软件能做什么</strong>。</li>
-</ul>
-<div class="video-card screenshot-card"><img src="images/shot_00_00_40.png" alt="开场新闻：准实时玩 DOOM 的模型" loading="lazy"><p class="video-caption"><span class="cap-text">开场新闻：准实时玩 DOOM 的模型</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=40" target="_blank" rel="noopener">在 B 站打开 (00:00:40)</a></span></p></div>
-
-<p>对软件工程的含义：当「实现」越来越便宜，<strong>怎么把意图说清楚、怎么验证做对了</strong>，反而更关键。</p>
-<hr />
-<h2 id="2-ai">2. 回到软件开发：AI 时代仍要讲软件工程</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 听说过 AI 能写代码、能改仓库
-- 本章零基础可跟
-
-</div>
-
-<p><em>(参考时间: 00:17:37)</em></p>
-<p>主讲人指出：即使 Agent 很强，<strong>软件工程智慧仍体现在设计与取舍里</strong>——架构还能不能改、接口稳不稳、失败路径怎么兜底。</p>
-<p>同样一句需求，不同团队做出的系统可能天差地别；差距往往不在「会不会调 API」，而在：</p>
-<ul>
-<li>如何分解问题；</li>
-<li>如何约定接口与状态；</li>
-<li>如何在硬件、依赖、人为错误都可能出错时仍让系统可用。</li>
-</ul>
-<blockquote>
-<p>曾经的软件工程不是今天这样——是在<strong>真金白银的失败</strong>里长出来的。</p>
-</blockquote>
-<hr />
-<h2 id="3">3. 从软件危机到软件工程</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 知道计算机程序是人写的、会出错即可
-- 若听过「软件危机 / 瀑布模型」更好，但非必须
-
-</div>
-
-<p><em>(参考时间: 00:39:01)</em></p>
-<h3 id="31-goto">3.1 早期困境与 goto 之争</h3>
-<p>早期软件规模上升后，项目超支、延期、难维护成为常态。Dijkstra 等人指出：随意的控制流会让程序<strong>人不可读</strong>——<code>goto</code> 滥用是典型症状。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_40_00.png" alt="经典文献与软件工程概念的诞生" loading="lazy"><p class="video-caption"><span class="cap-text">经典文献与软件工程概念的诞生</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=2400" target="_blank" rel="noopener">在 B 站打开 (00:40:00)</a></span></p></div>
-
-<ul>
-<li>「程序员水平随 goto 密度上升而下降」是带讽刺的说法，核心是：<strong>结构与可读性</strong>比炫技重要；</li>
-<li>1972 年 Dijkstra 的 <em>The Humble Programmer</em> 等文章，强调在机器变强、系统变复杂时，人必须对结构保持谦逊。</li>
-</ul>
-<p>主讲人还提到：在 AI 辅助下读这些老文献，往往比当年更容易理解——因为今天我们天天面对「不确定的复杂系统」。</p>
-<h3 id="32-nato">3.2 NATO 会议与学科诞生</h3>
-<p>约在 1968 年前后，NATO 资助的软件工程会议正式提出 <strong>software engineering</strong> 这一名称：</p>
-<ul>
-<li>意味着软件开发不能再像「手工作坊」，需要<strong>工程化</strong>的方法、流程与质量意识；</li>
-<li>与当时航天、国防等超大型软件需求直接相关。</li>
-</ul>
-<div class="video-card screenshot-card"><img src="images/shot_00_44_10.png" alt="NATO 会议与软件工程概念" loading="lazy"><p class="video-caption"><span class="cap-text">NATO 会议与软件工程概念</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=2650" target="_blank" rel="noopener">在 B 站打开 (00:44:10)</a></span></p></div>
-
-<h3 id="33-11">3.3 阿波罗 11：工程原则的活教材</h3>
-<p>登月舱下降过程中曾出现程序警报；经不懈排查与设计上的容错，任务仍成功。主讲人概括出一条第一性原则：</p>
-<blockquote>
-<p><strong>Never going to happen——也要假设它会发生，并在软件里做兜底。</strong></p>
-</blockquote>
-<p>硬件会不可靠，人会误操作，依赖会失败；好的软件系统必须把这些「以为不会发生」的事纳入设计。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_47_20.png" alt="阿波罗与软件工程的起点" loading="lazy"><p class="video-caption"><span class="cap-text">阿波罗与软件工程的起点</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=2840" target="_blank" rel="noopener">在 B 站打开 (00:47:20)</a></span></p></div>
-
-<p>这与刷 Online Judge 不同：竞赛题往往<strong>假设题目是对的</strong>；真实软件的「题目」可能本身就有错，需求会变，环境会变。</p>
-<h3 id="34">3.4 开山之作与「被误读」的瀑布模型</h3>
-<p>软件工程领域有一篇开山级综述，梳理了当时的开发方法。很多教科书从中引出<strong>瀑布模型</strong>（Waterfall：需求→设计→实现→测试→维护，大致单向阶段推进）。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_55_10.png" alt="瀑布模型在教材中的标准图示" loading="lazy"><p class="video-caption"><span class="cap-text">瀑布模型在教材中的标准图示</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=3310" target="_blank" rel="noopener">在 B 站打开 (00:55:10)</a></span></p></div>
-
-<p>主讲人指出关键历史细节：<strong>原文其实是在批判瀑布式做法的问题</strong>，后来却被简化成「标准教材流程」。这提醒我们：</p>
-<ul>
-<li>读经典要读原文语境；</li>
-<li>流程图方便教学，但真实项目很少是纯瀑布；</li>
-<li>「方法论」与「方法论如何被使用」常常是两回事。</li>
-</ul>
-<hr />
-<h2 id="4">4. 软件工程给世界带来了什么</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 读过本册第 3 章，或知道软件危机与 NATO / 瀑布的大致背景
-- 形式化方法、UML 未学过也可按故事听
-
-</div>
-
-<p><em>(参考时间: 01:15:06)</em></p>
-<h3 id="41">4.1 流程、清单与可交付</h3>
-<p>软件工程把开发从「个人手艺」变成<strong>可组织的交付</strong>：</p>
-<ul>
-<li>阶段与里程碑；</li>
-<li>评审与测试；</li>
-<li>文档与规格；</li>
-<li>团队如何协作、如何验收。</li>
-</ul>
-<p>在 AI 还不能「一句话出国民级产品」的时代，这些流程是从数亿美金级教训里蒸馏出来的。</p>
-<h3 id="42">4.2 契约：前置条件与后置条件</h3>
-<p>设计函数/模块时，可以写清：</p>
-<ul>
-<li><strong>前置条件（precondition）</strong>：调用前必须成立的假设；</li>
-<li><strong>后置条件（postcondition）</strong>：若前置满足，执行后保证什么。</li>
-</ul>
-<p>若开发时<strong>假设某些异常永远不发生</strong>，契约就更重要：它把「假设」写成可检查的形式，而不是散落在聊天记录里。</p>
-<p>主讲人提到：今天用 AI 写 MVP 时，契约（spec）甚至可能比手写代码更关键——因为你要在「生成物」与「意图」之间钉住边界。</p>
-<h3 id="43">4.3 形式化与「中间语言」的野心</h3>
-<p>历史上有人尝试用<strong>形式语言</strong>（逻辑公式、形式规格）证明系统正确；也有 UML（Unified Modeling Language）等<strong>建模语言</strong>，试图在需求、设计、代码之间架桥。</p>
-<ul>
-<li>数学语言一旦公理化对齐，推导是「绝对一致」的；</li>
-<li>但自然语言与形式语言之间永远有缝隙：说不清的需求、人与人「今天想的和明天不一样」；</li>
-<li>UML 一类中间层在实践中逐渐式微——今天主讲人甚至说「UML 已经死了」，但<strong>分层对齐的野心</strong>仍在：AI 可以帮你问、帮你查、帮你生成规格草稿。</li>
-</ul>
-<div class="video-card screenshot-card"><img src="images/shot_01_32_30.png" alt="从规格到实现：契约与建模的尝试" loading="lazy"><p class="video-caption"><span class="cap-text">从规格到实现：契约与建模的尝试</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=5550" target="_blank" rel="noopener">在 B 站打开 (01:32:30)</a></span></p></div>
-
-<h3 id="44-never-going-to-happen">4.4 Never going to happen 的现代版本</h3>
-<p>把「异常路径」显式化：</p>
-<ul>
-<li>资源不足、并发冲突、依赖超时、输入非法；</li>
-<li>断言（assert）与基于性质的测试（property-based testing）在系统无法「编译期百分之百证明」时提供另一层护栏；</li>
-<li>AI 若能证明性质更好；不能证明时，工程上仍要靠测试、监控与兜底。</li>
-</ul>
-<h3 id="45-ai">4.5 AI 时代的资源与公平问题</h3>
-<p>主讲人用 AI 拆长文档、批量提取「软件工程智慧」做演示，并指出现实问题：</p>
-<ul>
-<li>模型额度、订阅价格对学生与团队并不平等；</li>
-<li>「烧 token」做大项目对资源少的人更贵；</li>
-<li>这不只是技术问题，也是<strong>社会性问题</strong>。</li>
-</ul>
-<p>学习成本的差距会叠加：会用 Agent 与不会用的人，效率差可能很大。</p>
-<h3 id="46">4.6 可对齐与不可对齐</h3>
-<p>收束时的主题：软件工程一直在处理——</p>
-<ul>
-<li>哪些可以<strong>在语义上钉死</strong>（接口、不变量、可测性质）；</li>
-<li>哪些永远<strong>漂浮</strong>（模糊需求、人的意图变化、组织沟通）。</li>
-</ul>
-<p>工程方法的价值，是把能钉死的部分钉死，让不可对齐的部分<strong>可讨论、可迭代、可回退</strong>——而不是假装它们不存在。</p>
-<hr />
-<h2 id="_1">附录：概念补给</h2>
-<h3 id="software-engineering">软件工程（Software Engineering）</h3>
-<ul>
-<li><strong>是什么</strong>：用系统化方法构造、演进、维护软件的学科与实践。</li>
-<li><strong>课上为何出现</strong>：本讲主线；从危机与历史讲到方法与智慧。</li>
-<li><strong>和什么像</strong>：盖楼要图纸、规范、监理，不能只靠几个能工巧匠。</li>
-</ul>
-<h3 id="software-crisis">软件危机（Software Crisis）</h3>
-<ul>
-<li><strong>是什么</strong>：软件规模上升后项目失败率高、超支难维护的行业困境。</li>
-<li><strong>课上为何出现</strong>：解释「为什么会有软件工程」。</li>
-<li><strong>和什么像</strong>：手工作坊接不了摩天楼订单。</li>
-</ul>
-<h3 id="nato">NATO 软件工程会议</h3>
-<ul>
-<li><strong>是什么</strong>：1960 年代末提出 software engineering 名称的标志性会议。</li>
-<li><strong>课上为何出现</strong>：学科「诞生」的节点。</li>
-<li><strong>和什么像</strong>：行业给自己的手艺起名、立规矩。</li>
-</ul>
-<h3 id="goto">goto 与结构化编程</h3>
-<ul>
-<li><strong>是什么</strong>：限制随意跳转，用顺序/分支/循环等结构写可读程序。</li>
-<li><strong>课上为何出现</strong>：Dijkstra 等人对可维护性的经典批评。</li>
-<li><strong>和什么像</strong>：文章要有段落结构，不能想到哪写到哪。</li>
-</ul>
-<h3 id="the-humble-programmer">The Humble Programmer</h3>
-<ul>
-<li><strong>是什么</strong>：Dijkstra 1972 年前后关于程序员谦逊与复杂性的著名文章。</li>
-<li><strong>课上为何出现</strong>：机器变强时，人更要对复杂性保持敬畏。</li>
-<li><strong>和什么像</strong>：工具越强，越要清楚自己在驾驭什么。</li>
-</ul>
-<h3 id="11_1">阿波罗 11 与容错</h3>
-<ul>
-<li><strong>是什么</strong>：登月软件在警报下仍完成任务的工程案例。</li>
-<li><strong>课上为何出现</strong>：引出「never going to happen 也要兜底」。</li>
-<li><strong>和什么像</strong>：飞机有多套液压，坏一套还能飞。</li>
-</ul>
-<h3 id="waterfall">瀑布模型（Waterfall）</h3>
-<ul>
-<li><strong>是什么</strong>：需求→设计→实现→测试大致阶段推进的过程模型。</li>
-<li><strong>课上为何出现</strong>：教科书常引用；原文却有批判意味。</li>
-<li><strong>常见误解</strong>：真实项目极少是纯瀑布；模型是简化，不是现实本身。</li>
-</ul>
-<h3 id="_2">前置条件 / 后置条件（契约）</h3>
-<ul>
-<li><strong>是什么</strong>：调用前假设 / 调用后保证。</li>
-<li><strong>课上为何出现</strong>：把「假设永远不发生」写成可检查规格。</li>
-<li><strong>和什么像</strong>：租约写明「谁付水电、损坏谁赔」。</li>
-</ul>
-<h3 id="uml">UML</h3>
-<ul>
-<li><strong>是什么</strong>：曾流行的统一建模语言，用图表达类、序列、状态等。</li>
-<li><strong>课上为何出现</strong>：中间语言架桥的野心与式微。</li>
-<li><strong>和什么像</strong>：建筑效果图——有帮助，但不等于施工图与验收。</li>
-</ul>
-<h3 id="property-based-testing">Property-based Testing</h3>
-<ul>
-<li><strong>是什么</strong>：用「性质/不变量」自动生成用例做测试，而不是只手写样例。</li>
-<li><strong>课上为何出现</strong>：无法完全形式证明时的工程护栏。</li>
-<li><strong>和什么像</strong>：不只测「这道题答案是 42」，而是测「任何输入输出都非负」。</li>
-</ul>
-<h3 id="mvp">MVP（本讲语境）</h3>
-<ul>
-<li><strong>是什么</strong>：最小可用版本；在契约不清时极易做偏。</li>
-<li><strong>课上为何出现</strong>：AI 写 MVP 时更要先钉 spec。</li>
-</ul>
-<h3 id="token">Token 经济与学习公平</h3>
-<ul>
-<li><strong>是什么</strong>：按模型用量计费导致的学习/开发成本差异。</li>
-<li><strong>课上为何出现</strong>：演示 AI 批处理后讨论资源不平等。</li>
-<li><strong>和什么像</strong>：图书馆免费，但实验室机时很贵。</li>
-</ul>
-<hr />
-<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1Nyeq6qEt8</em></p>
+<p><em>本讲对应视频约 100 分钟；上文为知识压缩稿，已按阅读预算扩写原例、因果链与条件限制。完整逐句对照见 <code>transcript.corrected.txt</code>。</em></p>
       </article>
-      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</span></a><span class="pager-btn next disabled"><span class="pager-label">下一讲 →</span><span class="pager-title">已是最后一讲</span></span></nav>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">04 软件仓库管理 (2)</span></a><a class="pager-btn next" href="../%E9%9C%80%E6%B1%82%E5%92%8C%E6%9E%B6%E6%9E%84%20%281%29%20%5B06-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">需求和架构（一）</span></a></nav>
     </div>
   </div>
 </div>

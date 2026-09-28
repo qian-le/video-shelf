@@ -2,112 +2,95 @@
   "BV1Q6en6NEUo": {
     "folder": "软件仓库管理 (2) [04-Raw／26生成式软件工程／NJU]",
     "title": "软件仓库管理 (2) [04-Raw/26生成式软件工程/NJU]",
-    "display_title": "软件仓库管理（二）：从 Git 到 Agent 时代的版本控制",
+    "display_title": "04 软件仓库管理 (2)",
     "course": "26生成式软件工程",
-    "series": "NJU 生成式软件工程",
-    "author": "绿导师原谅你了（蒋炎岩）",
+    "series": "NJU",
+    "author": "NJU 软件学院",
     "lecture_number": 4,
-    "summary": "从 Git 的 merge/rebase 与 change 概念出发，讨论为 Agent 时代重新设计版本管理，并演示 Vibe Coding 从零做个人助手时的架构陷阱。",
+    "summary": "仓库管理进阶与工具",
     "tags": [
-      "版本控制",
-      "Git",
-      "Jujutsu",
-      "Agent",
-      "MVP"
+      "生成式软件工程",
+      "软件仓库管理 (2)"
     ],
     "duration": 5909,
-    "updated": "2026-09-21T16:55:04+08:00",
+    "updated": "2026-09-28T23:14:31+08:00",
     "corrected": true,
-    "corrected_html": true
+    "corrected_html": false
   },
   "BV1CQt365EzW": {
     "folder": "提示词工程 [02-Raw／26生成式软件工程／NJU]",
     "title": "提示词工程 [02-Raw/26生成式软件工程/NJU]",
-    "display_title": "提示词工程：与模型对话的方法",
+    "display_title": "02 提示词工程",
     "course": "26生成式软件工程",
-    "series": "NJU 生成式软件工程",
-    "author": "绿导师原谅你了（蒋炎岩）",
+    "series": "NJU",
+    "author": "NJU 软件学院",
     "lecture_number": 2,
-    "summary": "从提示词扩展到整段 Agent 上下文工程：讲清 system prompt/skills/工具如何构成模型可见输入，用可验证 Spec 与 Verifier 引导模型，分析思维链、注意力与上下文污染，并讨论长程任务中 reward hacking 与人的角色。",
+    "summary": "提示词工程的方法与实践",
     "tags": [
-      "提示词工程",
-      "上下文工程",
-      "Agent",
-      "思维链",
-      "Verifier",
-      "长程任务"
+      "生成式软件工程",
+      "提示词工程"
     ],
     "duration": 5905,
-    "updated": "2026-09-19T13:43:46+08:00",
+    "updated": "2026-09-28T23:14:31+08:00",
     "corrected": true,
-    "corrected_html": true
+    "corrected_html": false
   },
   "BV1kybV6DE47": {
     "folder": "软件仓库管理 [03-Raw／26生成式软件工程／NJU]",
     "title": "软件仓库管理 [03-Raw/26生成式软件工程/NJU]",
-    "display_title": "软件仓库管理：项目、文件与版本控制入门",
+    "display_title": "03 软件仓库管理",
     "course": "26生成式软件工程",
-    "series": "NJU 生成式软件工程",
-    "author": "绿导师原谅你了（蒋炎岩）",
+    "series": "NJU",
+    "author": "NJU 软件学院",
     "lecture_number": 3,
-    "summary": "从「项目是一个目录」讲起，介绍软件与版本管理的基本需求，入门 Git 的初始化、提交与最佳实践，说明冲突/blame/bisect 与对象模型，并以原子改动总结项目组织方式；相对第 04 讲更偏基础，不深挖 Jujutsu。",
+    "summary": "版本库与协作流程",
     "tags": [
-      "版本控制",
-      "Git",
-      "软件工程",
-      "best practice",
-      "commit",
-      "入门"
+      "生成式软件工程",
+      "软件仓库管理"
     ],
     "duration": 6013,
-    "updated": "2026-09-19T13:43:46+08:00",
+    "updated": "2026-09-28T23:14:31+08:00",
     "corrected": true,
-    "corrected_html": true
+    "corrected_html": false
   },
   "BV1pb8o6yE8f": {
     "folder": "欢迎来到未来 [01-Raw／26生成式软件工程／NJU]",
     "title": "欢迎来到未来 [01-Raw/26生成式软件工程/NJU]",
-    "display_title": "欢迎来到未来：生成式软件工程第一讲",
+    "display_title": "01 欢迎来到未来",
     "course": "26生成式软件工程",
-    "series": "NJU 生成式软件工程",
-    "author": "绿导师原谅你了（蒋炎岩）",
+    "series": "NJU",
+    "author": "NJU 软件学院",
     "lecture_number": 1,
-    "summary": "从计算机史上的「昂贵能力日用品化」讲起，直面 AI 时代的学生焦虑与简历同质化；介绍课程 Token/考核政策，用使用者视角解释大语言模型与 Agent，并以装机、终端、邮件、读书、浏览器填表等案例展示 skill 生态与个人知识飞轮。",
+    "summary": "AI 时代的学习与软件工程开篇",
     "tags": [
       "生成式软件工程",
-      "Agent",
-      "LLM",
-      "Vibe Coding",
-      "skill",
-      "课程导论"
+      "欢迎来到未来"
     ],
     "duration": 5999,
-    "updated": "2026-09-19T13:43:46+08:00",
+    "updated": "2026-09-28T23:14:31+08:00",
     "corrected": true,
-    "corrected_html": true
+    "corrected_html": false
   },
   "BV1Nyeq6qEt8": {
     "folder": "软件工程的来龙去脉 [05-Raw／26生成式软件工程／NJU]",
     "title": "软件工程的来龙去脉 [05-Raw/26生成式软件工程/NJU]",
-    "display_title": "软件工程的来龙去脉",
+    "display_title": "05 软件工程的来龙去脉",
     "course": "26生成式软件工程",
-    "series": "NJU 生成式软件工程",
-    "author": "绿导师原谅你了（蒋炎岩）",
+    "series": "NJU",
+    "author": "NJU 软件学院",
     "lecture_number": 5,
-    "summary": "从课前 AI 新闻切入，梳理软件危机与软件工程的诞生（goto 之争、NATO 会议、阿波罗容错、被误读的瀑布模型），讨论流程/契约/形式化与 UML 的兴衰，并指出 never-goes-away 的工程原则与 AI 时代的学习成本问题。",
+    "summary": "从 AI 新闻到软件危机、过程模型与追溯/测试/契约/UML 的工程智慧",
     "tags": [
       "软件工程",
       "软件危机",
-      "瀑布模型",
-      "Dijkstra",
-      "契约",
       "UML",
-      "NATO"
+      "测试",
+      "契约式设计"
     ],
     "duration": 5999,
-    "updated": "2026-09-21T16:55:04+08:00",
+    "updated": "2026-09-28T23:14:31+08:00",
     "corrected": true,
-    "corrected_html": true
+    "corrected_html": false
   },
   "BV12EV66bErd": {
     "folder": "26 - 文件系统实现和崩溃一致性 [2026 南京大学操作系统原理]",
@@ -736,6 +719,29 @@
     ],
     "duration": 5444,
     "updated": "2026-09-21T22:19:16+08:00",
+    "corrected": true,
+    "corrected_html": true
+  },
+  "BV1Rch76WEfQ": {
+    "folder": "需求和架构 (1) [06-Raw／26生成式软件工程／NJU]",
+    "title": "需求和架构 (1) [06-Raw/26生成式软件工程/NJU]",
+    "display_title": "需求和架构（一）",
+    "course": "26生成式软件工程",
+    "series": "NJU 生成式软件工程",
+    "author": "绿导师原谅你了（蒋炎岩）",
+    "lecture_number": 6,
+    "summary": "从 Intent→Spec→实现回顾软件工程主线，展开需求工程与拆课导致的准出规则变更案例，讨论无处不在的架构与需求变化的承载，并回到教务系统看规则与架构如何共同演进。",
+    "tags": [
+      "需求工程",
+      "架构",
+      "软件工程",
+      "业务规则",
+      "教务系统",
+      "Intent",
+      "Spec"
+    ],
+    "duration": 5810,
+    "updated": "2026-09-28T23:14:31+08:00",
     "corrected": true,
     "corrected_html": true
   }

@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>需求和架构（一）</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body > h1:first-child,
+.book-body > h1:first-child + * ,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.book-body .table-wrap, .book-body table {
+  display: block; width: 100%; overflow-x: auto;
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow: hidden;
+  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap, .mermaid {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+  display: flex; justify-content: center;
+}
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-panel {
+    position: static; max-height: none; display: none;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-panel); padding: var(--sp-4);
+  }
+  .toc-panel.open { display: block; }
+  .toc-toggle { display: block; }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* quality gate badges (local preview only) */
+.lec-quality{margin-left:.5rem;font-size:.72rem;padding:.1rem .4rem;border-radius:999px;background:var(--chip,#f4efe6);color:#0f766e;border:1px solid rgba(15,118,110,.25)}
+.quality-banner{margin:0 0 1rem;padding:.55rem .85rem;border-radius:8px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:.92rem}
+.quality-banner[data-quality="未审稿"]{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <span class="topbar-tag">SHELF · READ</span>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>26生成式软件工程</strong> · NJU 生成式软件工程 · 第 6 讲</p>
+        <h1>需求和架构（一）</h1>
+        <p class="book-summary">从 Intent→Spec→实现回顾软件工程主线，展开需求工程与拆课导致的准出规则变更案例，讨论无处不在的架构与需求变化的承载，并回到教务系统看规则与架构如何共同演进。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1Rch76WEfQ/" target="_blank" rel="noopener">BV1Rch76WEfQ</a> · 时长 1h36m · 标签：需求工程、架构、软件工程、业务规则、教务系统、Intent、Spec</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<blockquote>
+<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1Rch76WEfQ/">Bilibili · BV1Rch76WEfQ</a>（时长约 97 分钟）
+<strong>课程</strong>：南京大学《生成式软件工程》（2026）第 06 讲 · Raw 版
+<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成；口语已转为书面语；关键时间点标注 <em>(参考时间)</em>，截图卡片可跳转视频对应位置。开场约十五分钟音频质量较差，内容以可辨识部分为准。</p>
+<p><strong>读前提</strong>：架构（architecture：把系统复杂性分解、隔离的结构设计）是本讲后半主线；正文会给出机制、例子与限制。</p>
+</blockquote>
+<hr />
+<h2 id="1-intentspec">1. 引言：Intent、Spec 与会回流的错误</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道软件开发大致是「想清楚 → 写设计 → 写代码」
+- 读过本册第 05 讲（软件工程的来龙去脉）更好
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:00)</em></p>
+<p>上一讲从软件危机讲到软件工程的诞生。本讲进入两件更「日常」却更难的事：<strong>需求</strong> 与 <strong>架构</strong>。这里先建立全课两把钥匙：</p>
+<ul>
+<li><strong>数据依赖</strong>（制品之间直接或间接的依赖关系，决定错误会传播到哪里）：需求、设计、代码、测试并不是孤立文件；</li>
+<li><strong>可追踪性</strong>（需求、设计、代码与测试之间可交叉核对的对应关系）：改动时能否说清「影响了谁」。</li>
+</ul>
+<p>经典文献（Royce 等人）勾勒的路径，到今天仍然是许多团队的默认想象：</p>
+<pre><code class="language-mermaid">graph LR
+    A[&quot;Intent 意图&quot;] --&gt; B[&quot;Spec 规格&quot;]
+    B --&gt; C[&quot;Implementation 实现&quot;]
+    C --&gt; D[&quot;可运行系统&quot;]
+</code></pre>
+<p>我们希望：先有 intent，再走向 spec，最后走向 implementation，最终产出软件。但真实工程里，这三段并不是单行道，而是布满 <strong>制品之间的数据依赖（artifacts 之间直接或间接的依赖关系，决定错误会传播到哪里）</strong>。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_00_40.png" alt="Intent → Spec → Implementation 与依赖网络" loading="lazy"><p class="video-caption"><span class="cap-text">Intent → Spec → Implementation 与依赖网络</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=40" target="_blank" rel="noopener">在 B 站打开 (00:00:40)</a></span></p></div>
+
+<h3 id="11">1.1 错误会沿着依赖网络回溯</h3>
+<p>关键机制是：</p>
+<ol>
+<li>每个阶段都会产出「制品」：需求文档、设计说明、接口、代码、测试；</li>
+<li>制品之间互相引用——测试对应设计，设计对应需求；</li>
+<li><strong>后期才暴露的错误</strong>，往往会一路回推到前序的需求或设计；</li>
+<li>一旦上游要改，下游大面积受污染，重做成本急剧上升。</li>
+</ol>
+<p>也就是说：写代码写到一半发现「需求理解错了」，不是改几行字的事，而是整条 <strong>数据依赖</strong> 链上的规格、接口、用例都要跟着动。这正是软件工程强调「把 intent–spec 做对」的原因——早期便宜的决策，在依赖网络里会被放大。</p>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Rch76WEfQ&t=480&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="依赖网络：错误回溯成本"></iframe></div><p class="video-caption"><span class="cap-text">依赖网络：错误回溯成本</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=480" target="_blank" rel="noopener">在 B 站打开 (00:08:00)</a></span></p></div>
+
+<blockquote>
+<p>开场后半段音频翻车（官方章节标注「后半音频翻车」），以下以中后段完整录音为准。</p>
+</blockquote>
+<hr />
+<h2 id="2">2. 需求工程：把说不清的事说清楚</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道「用户说的」和「系统要做的」常常不一致
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:15:03)</em></p>
+<h3 id="21">2.1 可追踪性：需求说明书的骨干</h3>
+<p>需求工程（Requirements Engineering：把客户想要什么调研清楚，并写成可实现、可验收的文档）的核心不是「写一份漂亮文档」，而是建立 <strong>可追踪性（traceability：需求、设计、代码与测试之间可交叉核对的对应关系）</strong>。</p>
+<p>理想情况下：</p>
+<ul>
+<li>每个测试用例都能追溯到某条设计决策；</li>
+<li>每个代码片段都能说出「为什么存在」；</li>
+<li>要改需求时，能查清「会影响到谁」。</li>
+</ul>
+<p>课堂强调：需求说明书应使用<strong>带语义的编号 ID</strong> 来建立追踪链，而不是靠自然语言长句。例如：</p>
+<pre><code class="language-text">REQ-17  本科生准出：必须满足 A 或 (B 且 C)
+DES-4.2 规则引擎如何求值 REQ-17
+TC-11   拆课前旧路径仍可通过的验收
+</code></pre>
+<p>人脑很难对齐一长段散文；编号 + 短句 + 交叉引用，才能让「改动影响面」变成可计算的问题。</p>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Rch76WEfQ&t=1320&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="结构化需求与追踪链"></iframe></div><p class="video-caption"><span class="cap-text">结构化需求与追踪链</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=1320" target="_blank" rel="noopener">在 B 站打开 (00:22:00)</a></span></p></div>
+
+<h3 id="22">2.2 软件「不软」：细微差错也会致命</h3>
+<p>主讲人反复用一个反差：物理世界里的「软材料」可以弹回；<strong>软件是纯粹逻辑制品</strong>，容不下细微差错——少一个分支、差一个条件，行为就完全走偏。</p>
+<ul>
+<li>程序每一步在语言定义下都有确定含义（形式语义：操作在规范下的精确含义）；</li>
+<li>因此「差一点点」在软件里往往等于「全错」；</li>
+<li>极端环境下，宇宙射线可能造成 bit 翻转；数据中心也会出现 silent error（结果错误却不报错）——运行环境无法被完全预见，所以验证与兜底必须做在软件里。</li>
+</ul>
+<p>这与刷题不同：竞赛题假设题目是对的；真实软件面对的是<strong>不可完全预见的世界</strong>。</p>
+<h3 id="23">2.3 教务系统：需求为什么会爆炸</h3>
+<p>贯穿全课的范例是<strong>教务系统</strong>。它不是「一个选课表」，而是长期演进的业务系统：</p>
+<ul>
+<li>选课、调课、准出、替代课、转专业、慕课班次……不断叠加；</li>
+<li>后加功能（例如在线课程）会拉出一整条新规则；</li>
+<li>可称为<strong>史诗级需求爆炸</strong>。</li>
+</ul>
+<p>需求工作的本质，是无尽地与客户沟通，把「想要什么」想到界面控件级别：哪个按钮、什么文案、失败时提示什么。AI 可以协助从真实系统里探索、生成含调研方法、证据边界、用例与术语文档的<strong>需求说明书草稿</strong>，但「什么算满足」仍要人拍板。</p>
+<h3 id="24">2.4 案例：拆开一门离散数学</h3>
+<p>把「离散数学」拆成上、下两门课后，毕业准出规则立刻出现裂缝：</p>
+<ul>
+<li>旧规则：修完一门即可；</li>
+<li>新事实：课拆成两门；</li>
+<li>衔接问题：新旧学期学生如何认定；</li>
+<li>系统里要增加逻辑：「选修了旧课 <strong>或</strong>（新课上 <strong>且</strong> 新课下）」等。</li>
+</ul>
+<p>这说明：需求变更不是改一句文案，而是<strong>业务规则、历史数据、认定逻辑</strong>一起动；这就是技术债（早期决定带来的后续维护负担，像债务一样累积利息）最直观的形态。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_36_20.png" alt="课程拆分与准出规则裂缝" loading="lazy"><p class="video-caption"><span class="cap-text">课程拆分与准出规则裂缝</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=2180" target="_blank" rel="noopener">在 B 站打开 (00:36:20)</a></span></p></div>
+
+<h3 id="25">2.5 技术债与「没有银弹」</h3>
+<ul>
+<li>每一次 <strong>MVP</strong>（最小可行产品：优先实现最重要功能、可走完流程的切片）、每一次「先这样吧」的需求决定，都会背上技术债；</li>
+<li>决定一旦进入上下文，后续所有需求都<strong>带着历史</strong>；</li>
+<li>需求永远不可能一次说清，也<strong>不是一成不变</strong>的；</li>
+<li>软件上线后与物理世界交火，早期决策的维护成本会持续变糟——<strong>没有银弹</strong>。</li>
+</ul>
+<p>AI 时代并没有取消技术债，只是把「写代码」变便宜了；<strong>边界划清 + validation（验证）</strong> 才决定能不能信任 agent 铺开实现。因此需求、产品设计、架构这三段会成为撬动软件生产力的真正杠杆。</p>
+<p>与之配套的工程习惯是 <strong>MVP</strong>（最小可行产品：优先实现最重要功能、可走完流程的切片）：先验证边界与规则是否站得住，再铺开实现，而不是一次性生成「看起来很全」的系统。</p>
+<hr />
+<h2 id="3">3. 无处不在的架构</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道软件可以拆模块、定接口
+- 本章零基础可跟
+
+</div>
+
+<p><em>(参考时间: 00:44:28)</em></p>
+<h3 id="31">3.1 架构不是玄学：控制复杂性</h3>
+<p>谈到架构师，容易想到大框图、数据库、流式管道、应用框架。主讲人给出更朴素的定义：</p>
+<blockquote>
+<p><strong>架构（architecture）是把系统复杂性分解、隔离的结构设计，不等于框架堆叠。</strong></p>
+</blockquote>
+<p><strong>机制</strong>：复杂性不会消失，只会被搬到某一层；切分后多数变更只落在边界清晰的单元内，认知负担与协作成本才可控。</p>
+<p><strong>例子</strong>：把「选课」与「准出规则」拆开后，改学分计算不必碰登录 UI；若共用同一坨脚本，改一行规则可能牵动报表与接口。</p>
+<p><strong>限制</strong>：切得过碎会带来调用与一致性成本；架构是变更成本与协作成本的平衡，不是模块越多越好。</p>
+<p>解决需求膨胀与变化的钥匙是架构。哪怕最小的代码也有架构：变量放哪、函数边界在哪、哪些概念被分开。若未仔细分开概念就全部堆进一个数据库，极容易进入维护泥潭。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_50_00.png" alt="架构：切分与解耦" loading="lazy"><p class="video-caption"><span class="cap-text">架构：切分与解耦</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=3000" target="_blank" rel="noopener">在 B 站打开 (00:50:00)</a></span></p></div>
+
+<h3 id="32">3.2 架构是品位：汉诺塔的四条路</h3>
+<p>同一问题——<strong>非递归汉诺塔</strong>——可以映射出不同架构理解：</p>
+<ol>
+<li><strong>数学闭式</strong>：用公式直接算步数与轨迹；</li>
+<li><strong>栈模拟</strong>：用显式栈「编译」递归；</li>
+<li><strong>状态机解释</strong>：把三根柱子上的盘子布局看作状态，移动是迁移；</li>
+<li><strong>有瑕疵的实现</strong>：能跑通大部分输入，却在边界上语义不清。</li>
+</ol>
+<p>把程序看作状态机（state machine：系统在有限状态间按规则迁移）、理解操作语义与小步语义后，甚至可以较机械地翻译出非递归实现。架构能力来自<strong>跳出问题看问题</strong>与第一性原理，而不是背框架名词。</p>
+<h3 id="33-excel">3.3 中间语言：二维码 + Excel 案例</h3>
+<p>需求看起来再明确，坑仍很多。例如「在 Excel 里批量生成二维码」：</p>
+<ul>
+<li>Excel 版本演进、插件差异；</li>
+<li>硬编码单元格地址；</li>
+<li>宿主表达力不足，难验证。</li>
+</ul>
+<p>一种架构应对是引入 <strong>中间语言</strong>（夹在源与目标之间的表示，便于验证、优化和多后端输出）：</p>
+<pre><code class="language-text">业务表达式  →  表达式树（中间语言）
+                 ├─ 译到 Python：做正确性验证
+                 └─ 译到 Excel：做交付
+</code></pre>
+<p>一份中介语言、两种执行方式；需求变化时改<strong>算子翻译规则</strong>，而不是重写全部。</p>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Rch76WEfQ&t=3900&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="中间语言：表达式树与双后端"></iframe></div><p class="video-caption"><span class="cap-text">中间语言：表达式树与双后端</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=3900" target="_blank" rel="noopener">在 B 站打开 (01:05:00)</a></span></p></div>
+
+<h3 id="34">3.4 十行与两千行</h3>
+<p>有时真正的架构体现在：用很少的结构表达很多行为；有时是把复杂性关进某一层，外面仍简单。<code>getopt</code> 这类十行量级的代码里，也有可复用的架构模式（POSIX 里解析 <code>argv</code> 的经典接口）。表达力与复杂性管理是架构的两端。</p>
+<hr />
+<h2 id="4">4. 状态、当前快照与事件历史</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 知道数据库常做增删改查
+- 本章零基础可跟，会用「记账 / 流水」类比即可
+
+</div>
+
+<p><em>(参考时间: 01:12:32)</em></p>
+<p>本节对比 <strong>CRUD</strong>（增删改查：只维护当前状态快照）与 <strong>event sourcing</strong>（只追加历史事件、需要时回放或投影出当前状态），并展开机制、例子与限制。</p>
+<h3 id="41">4.1 软件是物理世界的投影</h3>
+<p>物理世界有过程、有状态；软件往往是这些过程在信息世界的投影。因此许多业务系统天然适合建成<strong>状态迁移系统</strong>。</p>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Rch76WEfQ&t=4500&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="世界状态与信息投影"></iframe></div><p class="video-caption"><span class="cap-text">世界状态与信息投影</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=4500" target="_blank" rel="noopener">在 B 站打开 (01:15:00)</a></span></p></div>
+
+<h3 id="42-crud">4.2 CRUD 的黑洞：丢了历史</h3>
+<p><strong>定义</strong>：<strong>CRUD</strong>（增删改查：只维护当前状态快照）只保留「现在是什么」。</p>
+<p><strong>机制</strong>：每次 Update 直接覆盖字段，旧值被丢弃，计算依赖（为何从 2 学分变成 3 学分）也不入库，只能靠外部日志或人脑。物理世界已经发生、但未被建模的事实会积累成<strong>无法解释的数据黑洞</strong>（例如：这门课的学分为什么算成 3？谁改的？依据哪版规则？）。</p>
+<p><strong>例子</strong>：教务若只存「当前是否已准出」，拆课前后规则版本一旦丢失，就无法向学生解释争议结论。</p>
+<p><strong>限制</strong>：CRUD 实现简单、查询快，适合无需审计的短生命周期状态；一旦要追责、回放、合规就不够用。</p>
+<h3 id="43">4.3 从历史事件生成状态</h3>
+<p>另一种替代架构是 <strong>event sourcing</strong>（只追加历史事件、需要时回放或投影出当前状态）：</p>
+<ol>
+<li>持久化<strong>事件</strong>，而不是只存最终状态；</li>
+<li>状态、操作、增量三种视图可以<strong>等价</strong>，都能回放出现状；</li>
+<li>事实尽量不可篡改；出错可回退到快照再修逻辑；</li>
+<li>性能可用快照缓存等技巧缓解；</li>
+<li>在「屎山」上改造很困难，<strong>从一开始就按事件模型设计往往更省事</strong>。</li>
+</ol>
+<pre><code class="language-mermaid">graph LR
+    E[&quot;事件流 追加&quot;] --&gt; P[&quot;投影 / 回放&quot;]
+    P --&gt; S[&quot;当前状态&quot;]
+    P --&gt; V[&quot;报表视图&quot;]
+    P --&gt; D[&quot;审计视图&quot;]
+</code></pre>
+<h3 id="44">4.4 回到教务系统</h3>
+<p>把需求与架构合在一起看教务系统：</p>
+<ul>
+<li>选课、准出、替代、拆课——全是会变的规则；</li>
+<li>规则应落在可表达、可替换的一层；</li>
+<li>若历史只留在 CRUD 当前表里，规则变更后<strong>旧账对不上</strong>；</li>
+<li>若保留事件与规则版本，才能解释「当年为何通过」。</li>
+</ul>
+<p>这也是需求变更「裂缝」会传到系统各处的原因：改的不是一句提示语，而是认定逻辑与历史解释。</p>
+<hr />
+<h2 id="5">5. 小结：为什么需求和架构是杠杆</h2>
+<div class="prereq" data-label="你需要先知道">
+
+- 建议读过本册第 1–4 章标题
+- 零基础可读作本讲小结
+
+</div>
+
+<p><em>(参考时间: 课程末段)</em></p>
+<p>AI 生成「目标明确的代码」已经很便宜。真正稀缺的是：</p>
+<ul>
+<li>边界划清（需求说到可验证）；</li>
+<li>验证与追踪（spec ↔ 实现 ↔ 测试）；</li>
+<li>架构上为变化留缝（规则层、中间语言、事件历史）。</li>
+</ul>
+<p>所以：<strong>需求、产品设计、架构</strong>才是生产力杠杆。写代码可以交给 agent；「做什么、为何做、如何在十年后仍改得动」仍要人负责。</p>
+<hr />
+<h2 id="_1">附录：概念补给</h2>
+<h3 id="_2">数据依赖</h3>
+<ul>
+<li><strong>是什么</strong>：制品（需求/设计/代码/测试）之间直接或间接的依赖关系。</li>
+<li><strong>课上为何出现</strong>：解释「后期错误为何会回溯污染上游」。</li>
+<li><strong>和什么像</strong>：多米诺骨牌：动一张牌，倒一串。</li>
+</ul>
+<h3 id="traceability">可追踪性（Traceability）</h3>
+<ul>
+<li><strong>是什么</strong>：需求、设计、代码、测试能交叉核对的对应关系。</li>
+<li><strong>课上为何出现</strong>：需求说明书的骨干；编号 ID 比长句更可追踪。</li>
+<li><strong>和什么像</strong>：论文引用链：这一句依据哪一篇。</li>
+</ul>
+<h3 id="_3">形式语义</h3>
+<ul>
+<li><strong>是什么</strong>：语言里每一步操作都有确定、精确的含义。</li>
+<li><strong>课上为何出现</strong>：解释软件为何对细微差错零容忍。</li>
+<li><strong>和什么像</strong>：数学定义：差一个符号，命题就不同。</li>
+</ul>
+<h3 id="_4">技术债</h3>
+<ul>
+<li><strong>是什么</strong>：早期决定带来的后续维护负担，会「生利息」。</li>
+<li><strong>课上为何出现</strong>：需求永远说不清且会变；拆课案例的裂缝。</li>
+<li><strong>和什么像</strong>：信用卡最低还款：今天轻松，总账更痛。</li>
+</ul>
+<h3 id="_5">需求工程</h3>
+<ul>
+<li><strong>是什么</strong>：调研客户所需，写成可实现、可验收文档的工程活动。</li>
+<li><strong>课上为何出现</strong>：本讲主干；教务系统需求爆炸的应对。</li>
+<li><strong>和什么像</strong>：装修前把插座位置写进合同。</li>
+</ul>
+<h3 id="_6">架构</h3>
+<ul>
+<li><strong>是什么</strong>：分解、隔离复杂性的结构设计。</li>
+<li><strong>课上为何出现</strong>：应对需求膨胀与变化的钥匙。</li>
+<li><strong>和什么像</strong>：承重墙与管线，不是墙纸。</li>
+</ul>
+<h3 id="_7">状态机</h3>
+<ul>
+<li><strong>是什么</strong>：系统在有限状态之间按规则迁移。</li>
+<li><strong>课上为何出现</strong>：汉诺塔多解；形式语义的直观模型。</li>
+<li><strong>和什么像</strong>：红绿灯：只有几档状态，按规则切换。</li>
+</ul>
+<h3 id="_8">中间语言</h3>
+<ul>
+<li><strong>是什么</strong>：夹在源与目标之间的表示，便于验证与多后端输出。</li>
+<li><strong>课上为何出现</strong>：Excel 二维码：一树译到 Python 验证、译到 Excel 交付。</li>
+<li><strong>和什么像</strong>：乐高说明书：一套零件图，可拼不同套装。</li>
+</ul>
+<h3 id="crud">CRUD</h3>
+<ul>
+<li><strong>是什么</strong>：增删改查，只维护当前状态快照。</li>
+<li><strong>课上为何出现</strong>：丢历史、丢因果，形成数据黑洞。</li>
+<li><strong>和什么像</strong>：只留「余额」不留「流水」。</li>
+</ul>
+<h3 id="event-sourcing">Event Sourcing</h3>
+<ul>
+<li><strong>是什么</strong>：只追加历史事件，用回放/投影得到状态。</li>
+<li><strong>课上为何出现</strong>：可解释、可回退的教务类系统。</li>
+<li><strong>和什么像</strong>：银行流水 + 按规则结账出余额。</li>
+</ul>
+<h3 id="mvp">MVP</h3>
+<ul>
+<li><strong>是什么</strong>：最小可行产品，先验证最重要路径。</li>
+<li><strong>课上为何出现</strong>：AI 时代边界与验证决定信任。</li>
+<li><strong>和什么像</strong>：先做能走通的一条街，再扩成城区。</li>
+</ul>
+<h3 id="validation">验证（Validation）</h3>
+<ul>
+<li><strong>是什么</strong>：确认做出来的东西符合真实意图与约束。</li>
+<li><strong>课上为何出现</strong>：没有它，agent 产出不可信任。</li>
+<li><strong>和什么像</strong>：装修验收：不是「墙砌完了」，而是「尺寸对、水管不漏」。</li>
+</ul>
+<hr />
+<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1Rch76WEfQ</em></p>
+<hr />
+<h2 id="6">6. 补充：需求变更裂缝如何传到系统各处</h2>
+<div class="prereq" data-label="你需要先知道">读过第 2 章即可</div>
+
+<p><strong>需求变更</strong>（业务规则或流程被修改）会在系统里留下<strong>裂缝</strong>：旧数据按旧规则产生，新数据按新规则产生，而中间状态没有历史可查。教务拆课就是这样：一部分学生按旧培养方案，一部分按新方案，认定逻辑一旦写在散落的 if 里，改一处漏十处。</p>
+<p>裂缝传递的典型路径是：</p>
+<ol>
+<li>需求文案改了，但规则实现未改；</li>
+<li>规则改了，但历史数据未迁移；</li>
+<li>测试仍断言旧行为，导致「红了就改断言」；</li>
+<li>文档停在旧版本，新人按错误假设继续开发。</li>
+</ol>
+<p>因此需求变更管理要同时覆盖：<strong>规则表达、历史数据、验收测试、文档</strong>。这正是<strong>可追踪性</strong>在变更场景下的意义——不是为了应付检查，而是为了回答「这次改动会不会砸到毕业认定」。</p>
+<p><strong>同理心</strong>（站在用户与教务老师角度理解任务）与<strong>领域知识</strong>（学分、培养方案、学期制度等专门知识）是学生做不好需求的常见原因：你若从未在窗口前处理过「插班生如何认定已修课程」，就很难写出可用的规则。需求说明书工程的目标，是把这些领域经验变成可审阅的文本，而不是留在口头传统里。</p>
+<hr />
+<h2 id="7-getopt">7. 补充：getopt——十行代码里的架构</h2>
+<div class="prereq" data-label="你需要先知道">知道命令行参数即可</div>
+
+<p>POSIX 里的 <strong>getopt</strong>（解析 argv 的经典小接口）是「最小代码也有架构」的样例：输入是 argc/argv，输出是选项与剩余参数；调用方无需理解内部如何扫描字符串。状态机式的解析、清晰的边界、可测试的输入输出——架构思维在十行量级就已经出现。</p>
+<p>这与「大框图才是架构」的误解形成对照：先把概念分开，再让它们通过窄接口协作，哪怕规模很小，也已经是在控制复杂性。</p>
+<hr />
+<h2 id="8">8. 补充：三种等价视图与持久结构</h2>
+<div class="prereq" data-label="你需要先知道">知道「流水与余额」类比即可</div>
+
+<p>在事件模型里，常可以同时维护三种等价视图：</p>
+<ol>
+<li><strong>事件日志</strong>：只追加的事实；</li>
+<li><strong>当前状态</strong>：由事件投影出的「余额」；</li>
+<li><strong>增量/差异</strong>：用于同步或报表。</li>
+</ol>
+<p>持久化数据结构（persistent data structure：更新时保留历史版本的结构）让回放与审计成为可能。若只存 CRUD 当前表，形式语义（程序每一步在语言定义下的确定含义）虽然仍成立，但「系统为何变成这样」的语义已经丢失——这就是黑洞式不一致的根源。</p>
+<hr />
+<h2 id="9">9. 补充：边界、验证与信任</h2>
+<div class="prereq" data-label="你需要先知道">读过第 5 章小结即可</div>
+
+<p>AI 生成目标明确的代码已经很便宜，但<strong>信任</strong>来自边界与验证：需求里写清输入域、失败路径与不变量；实现后用测试与人工抽查证明这些边界成立。若边界模糊，agent 只会把模糊放大成大量看似合理的代码，形成新的维护泥潭。</p>
+<p>实践上可以把「验证清单」写进需求：哪些条件必须恒成立、哪些操作可回滚、哪些历史必须可解释。这样架构上的选择（CRUD vs 事件、是否有中间语言）才有判断标准——不是追新，而是看能否支撑这些验证与变更。</p>
+<p>教务系统再次成为试金石：若准出规则可被引用编号、可被测试用例覆盖、可被历史事件解释，那么十年后改规则仍可预期；否则每一次「教务通知」都会变成通宵改库。</p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%E7%9A%84%E6%9D%A5%E9%BE%99%E5%8E%BB%E8%84%89%20%5B05-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">05 软件工程的来龙去脉</span></a><span class="pager-btn next disabled"><span class="pager-label">下一讲 →</span><span class="pager-title">已是最后一讲</span></span></nav>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // 当前章节高亮（本页阅读位置，不持久化）
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // Lightbox：键盘可操作
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lastFocus = null;
+
+    function openLb(src, alt) {
+      lastFocus = document.activeElement;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      lb.focus();
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lbImg.src = "";
+      document.body.style.overflow = "";
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", closeLb);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+    });
+
+    // Mermaid（若页面引入了 mermaid）
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+      document.querySelectorAll("pre code").forEach(function (node) {
+        var text = node.textContent.trim();
+        if (/^(graph |sequenceDiagram|gantt|pie|classDiagram|stateDiagram|mindmap)/.test(text)) {
+          var div = document.createElement("div");
+          div.className = "mermaid";
+          div.textContent = text;
+          var wrap = node.closest("pre") || node.parentNode;
+          wrap.replaceWith(div);
+        }
+      });
+      try { mermaid.run(); } catch (e) { /* ignore */ }
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

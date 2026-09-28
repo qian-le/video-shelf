@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>软件仓库管理：项目、文件与版本控制入门</title>
+<title>03 软件仓库管理</title>
 <style>
 /* Shelf design tokens — 单主题浅色暖纸 */
 :root {
@@ -401,6 +401,11 @@ body {
   html { scroll-behavior: auto; }
 }
 
+/* quality gate badges (local preview only) */
+.lec-quality{margin-left:.5rem;font-size:.72rem;padding:.1rem .4rem;border-radius:999px;background:var(--chip,#f4efe6);color:#0f766e;border:1px solid rgba(15,118,110,.25)}
+.quality-banner{margin:0 0 1rem;padding:.55rem .85rem;border-radius:8px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:.92rem}
+.quality-banner[data-quality="未审稿"]{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
+
 </style>
 </head>
 <body>
@@ -419,570 +424,102 @@ body {
     </aside>
     <div class="book-main">
       <header class="book-head">
-        <p class="course-line"><strong>26生成式软件工程</strong> · NJU 生成式软件工程 · 第 3 讲</p>
-        <h1>软件仓库管理：项目、文件与版本控制入门</h1>
-        <p class="book-summary">从「项目是一个目录」讲起，介绍软件与版本管理的基本需求，入门 Git 的初始化、提交与最佳实践，说明冲突/blame/bisect 与对象模型，并以原子改动总结项目组织方式；相对第 04 讲更偏基础，不深挖 Jujutsu。</p>
-        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1kybV6DE47/" target="_blank" rel="noopener">BV1kybV6DE47</a> · 时长 1h40m · 标签：版本控制、Git、软件工程、best practice、commit、入门</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+        <p class="course-line"><strong>26生成式软件工程</strong> · NJU · 第 3 讲</p>
+        <h1>03 软件仓库管理</h1>
+        <p class="book-summary">版本库与协作流程</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1kybV6DE47/" target="_blank" rel="noopener">BV1kybV6DE47</a> · 时长 1h40m · 标签：生成式软件工程、软件仓库管理</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
       </header>
       <article class="book-body">
-<blockquote>
-<p><strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV1kybV6DE47/">Bilibili · BV1kybV6DE47</a>（时长约 100 分钟）
-<strong>课程</strong>：南京大学《生成式软件工程》（2026）第 03 讲 · Raw 版
-<strong>整理说明</strong>：本书由视频语音转录后经 AI 重构而成，口语已转写为书面语，并修正了转录中的明显识别错误；关键时间点标注 <em>(参考时间)</em>，截图卡片可对应视频位置。</p>
-</blockquote>
-<hr />
-<h2 id="1-ai">1. 开场：AI 时代为什么还要学软件工程</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 听说过 ChatGPT 一类「和 AI 对话、让它写代码」的工具即可
-- 知道计算机专业会学操作系统、数据库等基础课
-- 本章零基础可跟
-
-</div>
-
-<p><em>(参考时间: 00:00:00)</em></p>
-<p>课程先回顾了前几讲：把 AI 整合进生活流程，把真实意图告诉它，甚至可以把反复出现的流程沉淀成 skills。与此同时，模型本身也在快速迭代——主讲人提到 GPT-6 已发布，在复杂任务上更快、更省 token，编程能力有提升，但「工程品位」仍更多掌握在有经验的工程师手里。</p>
-<h3 id="11-intent-ai">1.1 Intent 空间：为什么 AI 会「跑偏」</h3>
-<p>主讲人指出，我们常觉得 AI 做得不好，往往不是它执行力不够，而是面对了一个非常开放的 intent（意图，你真正想做成什么）空间。</p>
-<ul>
-<li>同样一句「做一个国民级应用」，不同产品经理脑中的画面完全不同；</li>
-<li>AI 无法与每个人的大脑直接对齐，只能按自己的方式漂移；</li>
-<li>新一代模型写出的代码越来越紧凑，人越来越难 review——于是大家干脆「随它去，只要能跑对」。</li>
-</ul>
-<div class="video-card screenshot-card"><img src="images/shot_00_00_40.png" alt="开场：GPT-6 与 AI 工程能力的讨论" loading="lazy"><p class="video-caption"><span class="cap-text">开场：GPT-6 与 AI 工程能力的讨论</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=40" target="_blank" rel="noopener">在 B 站打开 (00:00:40)</a></span></p></div>
-
-<p>图：主讲人开场讨论新模型进展。读者可关注：模型能力上去了，但「品位」与 Intent 对齐仍是人要做的事。</p>
-<h3 id="12">1.2 汽车类比：基础课还要不要学</h3>
-<p>有人问：AI 时代还要不要学数据库、操作系统？主讲人用汽车打了比方：</p>
-<ul>
-<li><strong>一百多年前</strong>：汽车开十几公里就可能故障，司机必须懂工作原理；</li>
-<li><strong>今天</strong>：在车库说一句「帮我开到某地」，自动驾驶就出发了——你已不必理解整条动力链。</li>
-</ul>
-<p>AI 很像「更强大的汽车」，替代的不只是腿，还有部分智力。今天的答案仍然是<strong>要学</strong>：学了才能更好地解锁 AI 的创造力。至于以后该怎么学，主讲人坦言还在探索。</p>
-<p>至少在现阶段，理解正确概念能帮你从别处借鉴知识、做出更好的东西。本讲由此正式进入<strong>软件工程</strong>：软件仓库怎么管、文件怎么组织、版本怎么记。</p>
-<hr />
-<h2 id="2">2. 项目是什么：从空目录到可交付物</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 会在电脑上新建文件夹、放几个文件
-- 见过或打开过 GitHub / Gitee 上的项目网页
-- 本章零基础可跟
-
-</div>
-
-<p><em>(参考时间: 00:09:03)</em></p>
-<p>开始 vibe coding（用自然语言驱动 AI 写代码的工作方式）或做软件工程时，第一件事往往不是从网上下载作业模板，而是<strong>先建一个目录</strong>，给它起个名字，然后往里放东西。</p>
-<h3 id="21">2.1 软件工程项目 = 一堆文件构成的可交付物</h3>
-<p>当你面对一个空目录时，怎么知道该放什么？常见路径是：</p>
-<ul>
-<li>看老师打开的工程里有哪些文件；</li>
-<li>点开同学推荐的 GitHub 链接，观察别人目录里有什么。</li>
-</ul>
-<p>于是你意识到：一个软件工程项目，就是一个目录；目录里有一堆文件；这堆文件共同构成一个<strong>可交付物</strong>（最终能变成产品的那个东西）。</p>
-<pre><code class="language-text">项目目录
-├── 意图 / 设计说明（intent）
-├── 规格与接口（spec）
-├── 源代码（implementation）
-├── 测试与文档
-└── （理想情况下）版本历史
-</code></pre>
-<div class="video-card screenshot-card"><img src="images/shot_00_09_28.png" alt="从空目录开始：项目里应有什么" loading="lazy"><p class="video-caption"><span class="cap-text">从空目录开始：项目里应有什么</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=568" target="_blank" rel="noopener">在 B 站打开 (00:09:28)</a></span></p></div>
-
-<p>图：从「建一个目录」开始谈项目。读者可关注：项目不只是代码，而是一整组相关文件。</p>
-<h3 id="22-localhost-intent">2.2 localhost 玩笑与 Intent 写清楚</h3>
-<p>主讲人讲了一个著名笑话：有人说「GPT-6 太牛了，我又做出了 killer 级产品」——结果全是 <code>http://localhost:5137</code> 上的本地页面，别人根本打不开。</p>
-<p>这背后是知识问题，也是 Intent 问题：</p>
-<ul>
-<li>开发者默认流程是先在本机跑 development server，ready 后再部署到远端；</li>
-<li>如果你在意图文档里写明「这个东西要被全世界看到」，AI 才更可能帮你部署；</li>
-<li>你不说，它就按「本地调试」这个最常见假设走。</li>
-</ul>
-<p>这些都是计算机专业课里反复出现的知识：编译、构建目录、命令行工具把 <code>hello.c</code> 变成可执行文件——它们最终都落在「目录 + 文件 + 可交付物」这个朴素模型上。</p>
-<h3 id="23">2.3 什么是软件</h3>
-<p>标准定义大致是：<strong>代码、文档等一切与该软件相关之物的集合</strong>。主讲人更愿意说：</p>
-<blockquote>
-<p>软件是人类世界的需求，在信息世界里的一个投影；今天这个投影看起来就是一个目录。</p>
-</blockquote>
-<p>没有软件，教室的投影、连升降桌都升不起来。你知道目录里该有什么——哪怕只有一个 <code>hello.c</code> 能编译出 <code>hello</code>——你就已经在做软件了。当然，这离现代软件工程的 best practice（最佳实践，前人踩坑后总结的推荐做法）还有距离。</p>
-<hr />
-<h2 id="3-u-git">3. 为什么要版本管理：从 U 盘到 Git</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 知道文件可以复制、压缩、发邮件
-- 大致听说过 GitHub，不一定用过 Git 命令
-- 本章可当作「版本控制是为了解决什么问题」的故事来读
-
-</div>
-
-<p><em>(参考时间: 00:13:45)</em></p>
-<h3 id="31-u-v1-v2">3.1 U 盘悲剧与「作业 V1 / V2」</h3>
-<p>主讲人讲了自己第一位博士生的故事：大一时去机房编程，把代码存在 U 盘里来回拷；大二 U 盘坏了，代码与启蒙时期的作业全部丢失。</p>
-<p>很长时间里，人们就是这样管理代码的：</p>
-<ul>
-<li>打压缩包发邮件交作业；</li>
-<li>复制目录：<code>作业V1</code>、<code>作业V2</code>、<code>作业最终版</code>、<code>作业最终版2</code>……</li>
-</ul>
-<p>这种方式直观，也能「找回旧文件」，但问题很快暴露：协作同步困难、历史混乱、设备一坏全没。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_14_30.png" alt="U 盘与复制目录时代的代码管理" loading="lazy"><p class="video-caption"><span class="cap-text">U 盘与复制目录时代的代码管理</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=870" target="_blank" rel="noopener">在 B 站打开 (00:14:30)</a></span></p></div>
-
-<p>图：在版本控制普及前，代码常靠 U 盘与复制目录保存。读者可关注：为什么「拷一份」不够。</p>
-<h3 id="32-git">3.2 从需求反推：你会自己发明 Git</h3>
-<p>从第一性原理出发，需求其实很清晰：</p>
+<p><em>(参考时间: 00:00:00–01:40:13)</em></p>
+<p>本讲主线是<strong>软件仓库管理</strong>：一个项目如何从「一堆文件」变成可追溯、可协作、可审计的版本库。阅读时长估算约 18 分钟（估算），不是实测；视频约 100 分钟。结构上先弄清仓库的对象与历史模型，再谈分支与合并、提交纪律，最后落到项目管理本质与 AI 时代怎么学。文中时间锚点均来自原视频，术语首次出现时给出简短解释。</p>
+<h2 id="_1">一、为什么还要学仓库管理</h2>
+<p><em>(参考时间: 00:00:00–00:09:03)</em></p>
+<p>开课前讲师先回顾：前几次课讲了把 AI 融进生活流程——把不顺心的事挡掉，只需告诉它你真实的意图，还可以把过程蒸馏成 skills，让流程更平顺。与此同时模型本身在快速进展。讲师试用了新一代 GPT：编程提升有限，有经验的软件工程师仍靠「品位」指导 AI 做得更好；模型完成任务更快、更省 token（他特意测量过），但写出来的代码越来越紧凑，人越来越难 review。他猜测这与思维链变短有关：从 GPT-5 到 5.6 再到 6，代码越写越紧，人越来越不想看。以前我们会要求「写出符合人类工程规范的代码」，现在团队甚至开始不看 AI 代码——只要结果对就随它去。</p>
+<p>另一个惊喜是空间感知。讲师一直认为 OpenAI 对 AGI 的路径是先学会数学：数学是人类世界里最难的语言，却有全球认同的推理系统——定理证明对不对，全世界都会同意。这与软件工程里 intent → specification → code 之间层层放大的 gap 正好相反：数学有全球共识，是极好的 grounding（把推理锚到可核验的事实上）。生活里的选择也可以看成投票与蕴含（做了 A 就会做 B），可对齐到离散数学的命题逻辑。</p>
+<p>空间想象则像鲁班锁、骰子展开图一类智力题：只要从简单任务开始强化学习，模型也能学会。讲师的研究组在 GPT 空间感知还很差时，已用对话生成符合规范的 3D 打印模型；新一代模型则把他们做小半年的光栅玩具（左右看是不同图案的光栅纸）「one shot」直接做出来，研究组一时不知如何应对。有人用它控制机械臂做抓取、叠衣服——注意这还是语言模型，一帧一帧问「下面要干什么」，尚未解锁提示词工程，已接近当时的最好水平。结论是：<strong>模型一定会进步</strong>，也许课上到某次就可以说「这门课不用上了」，大家去做产品。</p>
+<p>但今天仍需要学软件工程——AI 解锁的是你的执行力，而不是你对系统的理解。</p>
+<p>他用汽车作比：一百多年前汽车开十二公里就出故障，每个司机都必须懂工作原理，否则半路抛锚只能自己修；今天在车库说一句「帮我开到某地」，自动驾驶就出发了，人已经不需要知道动力如何传到机械装置——但最终它仍传到一个与百年前相似的机械装置上，只是中间过程你都不必知道。人工智能比汽车更强——它替代的是智力——但现阶段学好基础概念，才能更好地解锁 AI 的创造力。以后该怎么学，讲师说他暂时也没有答案，欢迎探讨；这是他的个人观点。理解正确的概念，还能帮你从别的领域借鉴，做出更好的东西。</p>
+<h2 id="_2">二、项目是什么，为什么需要仓库</h2>
+<p><em>(参考时间: 00:09:03–00:24:39)</em></p>
+<h3 id="_3">从建目录开始</h3>
+<p>开始做软件时，第一件事通常是<strong>建一个目录</strong>，给它起个名字（比如「我的最酷的 game」），再往里放代码、文档、配置与测试。目录里这堆文件共同构成可交付物，最后变成产品。讲师概括：软件是人类世界的需求在信息世界里的投影——目录就是这个投影的落地形态。你有一个 hello.c，能编译出可执行文件，就已经在做软件了；至于是否符合现代 best practice，是下一步的事。教室里没有软件时，连升降桌都动不了（桌腿旁的高度显示是 106 厘米）——软件无处不在。</p>
+<p>怎么知道目录里该放什么？往往是不经意间看过老师打开的工程项目，或同学发来 GitHub 链接——网页上那些文件让你形成直觉。一个本地能跑的 demo 不等于世界可访问：有个笑话是「GPT 太牛了，我做了多少 killer 产品」，它们全是 <code>http://localhost:5173</code>。若不在 intent 里写明「要被全世界人看到」，模型会把你当成开发者，先起本地开发服务器调试，ready 了才送远端。这些知识在计算机专业课里会反复出现，最终变成你项目里的文件与可交付物。从 IDE 一键编译，到大二用 GCC 把 hello.c 编成 hello 二进制，你就在做软件工程的项目了。标准定义上，软件是代码、文档等一切与软件相关的东西的集合；讲师更愿意说：它是需求的投影，今天落在一个目录里。</p>
+<h3 id="_4">为什么需要「回到上一版」</h3>
+<p>早期许多人用拷贝目录、U 盘、邮件附件来「保存版本」。讲师举自己第一个博士生的例子：2012 年入学，大一为了在机房与宿舍之间搬代码，把作业存进 U 盘（那时宿舍屏幕不便宜，机房是标准答案；如今二手小屏幕几百块就能在宿舍获得很好体验）；大二 U 盘损坏，作业和启蒙代码全部丢失。上学时交作业是打压缩包发邮件，现在是网页上传——都是管理项目的方式。真正的需求很清楚：<strong>改错了要能回去看上一版</strong>。新手误操作非常正常，「回到上一个版本看我原来怎么写的」就是版本管理（记录文件随时间的变化，并可回溯、比较、恢复的机制）的起点。</p>
+<p>今天这门课的标准答案是 git。它不只保存某一时刻的目录状态，还能<strong>保留、比较与恢复历史版本</strong>——这是软件工程里很重要的特性，后面会详细展开。有了它，分发作业用 clone，更新远端即可，不必再对每人发压缩包；配合脚本自动打包上传课程网站，甚至接近现代 CI/CD 流程。对讲师自己，有了 agent 之后更夸张：投诉信都交给 codex，做完连浏览器一起关掉，过程完全托管。GitHub 这类平台让分发代码前所未有地方便，甚至成了 AI 时代依赖管理的底层设施（各种包配置都托管在上面）。</p>
+<h3 id="_5">怎么在真实仓库里学细节</h3>
+<p>命令（init/add/提交/push）今天很容易交给 agent，真正值钱的是<strong>学习意识</strong>与对细节的注意力：</p>
 <ol>
-<li>项目是一堆文件，构成一个目录；</li>
-<li>我希望<strong>项目级的时间回溯</strong>：手滑改坏了，能回到上一个版本；</li>
-<li>我不想要十个作业目录，而想要<strong>一个目录 + 一条命令</strong>，能列出历史版本、能把当前状态切回某一版。</li>
+<li><strong>多看真实仓库</strong>：不同项目的文件集合、README 长短与信息密度差异很大。满屏 AI slop（模型批量产出的、看似合理但不是你想要的内容）的长 README，对比十年前老项目里「三个链接就走完」的短文档，品味是比出来的。可以类比城市路牌：讲师在香港找路时，凡有不确定性的路口正前方必有路牌；回到南京地铁站却常要环顾甚至走远找地图。有范例比你做得好，你就学到了；做 UI 也要站在人的角度，把人要的 ABC 一次呈现出来。有 AI 后还可以直接问「为什么这个 README 没有 slop 感」。</li>
+<li><strong>虚拟实现</strong>（virtually implement）：读论文或看方案前，先在脑中自己做一遍；一致说明已掌握，不一致再问「他为什么更好」——偶尔你还会比作者更好。这适用于任何课程，包括高等数学、计算机系统基础。</li>
+<li><strong>追问 best practice</strong>：做完一次提交就问 agent「这符合规范吗」，把两难细节（命名大小写、中英文空格）都弄清楚。每问一句，长进就多一点。课堂里老师讲授时受限于注意力，未必是最好版本；把问题带给模型，往往能得到更完整的解释。</li>
+<li><strong>细节的 bar 在提高</strong>：一旦有人学会做好细节，招聘方就会用这个标准衡量所有人；问「git merge 之后会发生什么」答不上来，和能从零构建概念的人，竞争力不同。</li>
 </ol>
-<pre><code class="language-mermaid">flowchart LR
-    A[&quot;复制目录 作业V1/V2/V3&quot;] --&gt; B[&quot;想要：一个目录 + 版本历史&quot;]
-    B --&gt; C[&quot;list 历史版本&quot;]
-    B --&gt; D[&quot;checkout 回到过去&quot;]
-    C --&gt; E[&quot;简化版版本控制&quot;]
-    D --&gt; E
-    E --&gt; F[&quot;协作：合并 / 冲突 / 远端同步&quot;]
-    F --&gt; G[&quot;完整 Git 模型&quot;]
-</code></pre>
-<p>用着用着，你会自然遇到「和室友同时改同一个文件」——于是必须发明分支、合并、冲突处理。Git 的许多概念，都可以这样从需求长出来。</p>
-<h3 id="33-svn-git-vs">3.3 SVN 与 Git：补丁链 vs 快照</h3>
-<p>在 Git 之前，许多人用过 <strong>SVN（老一代集中式版本管理，服务器上存的是改动补丁链）</strong>，操作叫 check in / check out。</p>
+<p>课堂上问「merge 之后会观察到什么」，多数人答不好——不是没用过 agent，就是没留意现场。惊人的注意力要主动练：出问题时停一秒，看清标记与两侧内容，而不是立刻让 agent 抹平。</p>
+<p>课外信息密度已经远超课堂：成熟 GitHub 项目是工程师十几年心血，甚至经历过一次崩溃后的大型重构才呈现为今天的样子。传统教学没教怎么用好这些高密度信息，但你要主动拥抱它。老师与同学的注意力训练，就是「看到任何东西之前先想我会怎么做，再比较谁更好」——比你差的可当 slop，比你好的就追问为什么。</p>
+<p>很多同学有一种「老师说的太多、只做老师让做的事」的心态，像被强化学习成「只碰指定范围」的 agent——最省时间，但学不到 best practice。愿意多点进去看仓库细节的人，会突然灵光一现：这个文档写得真好。AI 时代课外信息密度已经远超课堂，真正好的项目、符合工程规范的仓库要自己去对比、去学。面试时问「git merge 之后会发生什么」答不上来，和能从零构建概念的人，在求职市场上竞争力完全不同；一旦有人学会把细节做好，招聘方就会用这个标准衡量所有人。</p>
+<h2 id="git">三、Git 如何保存历史</h2>
+<p><em>(参考时间: 00:24:39–00:40:02, 01:03:10–01:14:00)</em></p>
+<h3 id="v1v2">从「作业 V1、V2」发明版本库</h3>
+<p>若只复制目录命名为作业 V1/V2/V3，虽直观，却难以比较与合并。更干净的想法是：只维护<strong>一个</strong>作业目录，用命令列出历史版本、把当前版本切到另一版、回到过去某版。这已经是一个简化版的版本管理工具。再往后，与室友同步、两人改同一文件时，自然要发明合并与分歧处理——这正是 git 的生长路径。讲师强调：你可以从「我知道什么、我想要什么」推出下一个概念该长什么样；这本身就是数学式推理——每一句话都和前一句有逻辑关联。OpenAI 先把数学训好再扩别的能力，也是这种「从共识出发」的思路。</p>
+<h3 id="_6">快照模型，而不是补丁链</h3>
+<p><strong>快照</strong>（某一时刻项目全部文件状态的完整记录）是 git 的核心模型。对比之下，SVN 一类系统存储的是项目的变化：最初版本之后，每次改一行存一个 patch，看起来是高效实现，但项目变大后，要回到早期版本只能一个补丁一个补丁往回退，效率被拖入泥潭。git 直接记下整棵树的状态，回溯往往只要一步。git 由 Linux 作者在 2005 年前后写出：1991–2002 年他们用「作业 V1/V2」加邮件列表发补丁的方式维护 Linux（改了 a.c 就发新版补丁，维护者合并后 release），后来又用过 CVS、BitKeeper 等工具，终于受不了之后，决定做一个绝对简单、概念正确的版本控制工具。它比我们想象的年轻：2005 年才诞生。</p>
+<h3 id="_7">三类对象</h3>
+<p>底层上，git 是一个<strong>持久化的数据结构</strong>，持久化的是目录树：</p>
 <ul>
-<li>SVN：存「变化」——每次改一行就存一个 patch（补丁）；</li>
-<li>看似高效，但项目变大后，回到早期版本可能要一环一环往回退；</li>
-<li>Git：存<strong>目录快照（snapshot，某一时刻整个项目目录的样子）</strong>，模型更干净，切换版本往往一秒钟。</li>
+<li><strong>blob</strong>（Git 中保存文件字节内容的对象）：文件内容本身；</li>
+<li><strong>tree</strong>（Git 中表示目录结构、指向子项的对象）：目录与文件名、权限、指向子项的指针；</li>
+<li><strong>commit</strong>（把当前改动保存为一条带说明的历史快照）object（提交对象）：钉住某一时刻目录树，并记录说明与父提交的对象。</li>
 </ul>
-<p>Git 的作者是 Linux 的作者 Linus Torvalds。1991–2002 年维护 Linux 时，社区曾用「作业 V1/V2 + 邮件列表发补丁」的方式，后来又试过 BitKeeper 等工具；2005 年，Linux 社区做出了 Git——比很多人想象的更年轻，设计目标是：<strong>绝对简单、好用、概念正确</strong>。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_15_17.png" alt="Git 作为今天的标准答案" loading="lazy"><p class="video-caption"><span class="cap-text">Git 作为今天的标准答案</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=917" target="_blank" rel="noopener">在 B 站打开 (00:15:17)</a></span></p></div>
+<p>改一个文件时不必复制整个项目：只需新建该文件的 blob，并复制「到根的路径」上的 tree，未改动的子树用<strong>指针</strong>指回旧对象。例如根下有 a.txt、b.txt 和子目录 d，改 b.txt 时只新建 b 的 blob 与到根的路径上的 tree，a 与 d 都用指针指回旧对象。目录本身也不会深到离谱（没有人在意千层深目录），所以哪怕仓库有百万文件，一次提交的增量也很小。<code>.git</code> 目录里那些带哈希的 objects，就是这棵不断向后生长的树。大学生从第一性原理出发，完全有可能设计出这样的结构。</p>
+<p>课堂用可视化工具对着真实仓库演示：blob 可以是空的 hello.c，也可以是可执行文件；tree 里记录权限位（如 644、755）与文件名；很小的文件解压后甚至比压缩前更长（31 字节解出 23 字节之类）——这不要紧，模型干净比压缩率更重要。还可以持续监听目录变化，用动画展示 commit 后对象树如何长出新版本：删除一个文件，右侧树立刻少一个节点；创建分支则多出 refs 下的指针文件。与 Learn Git Branching 那类模拟模型的教具不同，这是直接读真实 <code>.git</code> 里的字节，逐步解析给人看。</p>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1kybV6DE47&t=4334&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="git 对象树可视化"></iframe></div><p class="video-caption"><span class="cap-text">git 对象树可视化</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=4334" target="_blank" rel="noopener">在 B 站打开 (01:12:14)</a></span></p></div>
 
-<p>图：软件工程语境下，项目管理的标准答案是使用 Git。读者可关注：Git 不只保存目录，还保留、比较、恢复历史版本。</p>
-<h3 id="34">3.4 课堂更重要的是「学习意识」</h3>
-<p>主讲人反复强调：这门课上的具体命令不是全部，<strong>学习意识</strong>更重要。</p>
-<p>打开一个 GitHub 项目时，你有没有留意：</p>
+<h2 id="_8">四、分支与合并</h2>
+<p><em>(参考时间: 00:25:53–00:29:00, 01:10:02–01:18:00)</em></p>
+<p><strong>分支</strong>并不是整份仓库的拷贝，而是 refs 文件里的指针，指向某个提交对象。<strong>HEAD</strong>（指向当前分支的指针，决定工作区停在哪个版本）再指向分支，是「指针的指针」。合并后的历史里，一个提交可以有两个 parent——分叉再汇合，是 git 的常态。失败的尝试可以安全扔掉，成功的分支再合并进来，多条主线并行而不互相干扰。</p>
+<h3 id="_9">冲突现场：把决策信息放在问题现场</h3>
+<p><strong>冲突</strong>（多人改同一处且 Git 无法自动合并、需人工裁决的状态）发生时，文本里会有等号、尖括号、incoming 等标记，两边修改同屏出现；IDE 还会给出接受某侧的按钮。git 不会替你决定「这行到底是二还是三」——解决冲突是开发者的责任。举例：文件原来是 <code>1111</code>，一人把第二行改成 2，另一人改成 3，git 不能假装没看见直接躺下，而要把两侧和 base 一起摆出来。</p>
+<p>底层还会暂存 base/ours/theirs 三个版本（可视化工具里能看到这三个暂存文件），方便人工裁决后再产生一次新的提交，指针关系被正确保留下来——merge 提交有两个 parent，选中的 tree 正确接到结果上。面试里若被问「merge 之后会观察到什么」，值得答出细节：<strong>把决策所需信息放在问题现场</strong>——这和城市路牌是同一个第一性原理。git 设计者不能让 git 直接躺平说「冲突了我不能合并」，因为人无法知道该用二还是三；把两侧代码、标记、base 都摆到问题现场，开发者才能裁决。</p>
+<p>练习建议：遇到冲突时停一秒，看清标记与两侧内容，而不是立刻让 agent 抹平。一两次之后，你至少能说出「冲突的两边代码会显示在一起」。</p>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1kybV6DE47&t=1690&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="冲突标记与两侧修改同屏"></iframe></div><p class="video-caption"><span class="cap-text">冲突标记与两侧修改同屏</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=1690" target="_blank" rel="noopener">在 B 站打开 (00:28:10)</a></span></p></div>
+
+<h2 id="_10">五、提交纪律</h2>
+<p><em>(参考时间: 00:30:02–01:00:00, 01:20:04–01:32:00)</em></p>
+<h3 id="commit">为什么是小步 commit</h3>
+<p><strong>commit</strong>（把当前改动保存为一条带说明的历史快照）应在每次有意义改动后及时做：修一个 bug、加一个功能、调一版文档、改一处脚本。message 要<strong>描述你改了什么</strong>——读提交历史就能看出项目如何演进：修了多少 bug、加了什么需求、经历过什么重构。若一万个提交都是 “I added some cool stuff”，message 这个特性等于不存在，不如只留 V1→V2。git 存的是快照，但项目本质上还是 V1 经一次修改变到 V2；message 就是那次修改的说明。</p>
+<p>基础动作本身很短：<code>git init</code> 得到空仓库（多出隐藏的 <code>.git</code> 目录），<code>git add hello.c</code> 暂存，<code>git status</code> 看工作区，<code>git commit</code> 打出带消息的快照。真正的冰山是「什么时候 add、什么时候 commit、message 怎么写」——长期实践沉淀出的 best practice。不要把 git 用成「作业 V1/V2/V3」；那是拷贝目录的习惯，不是 git 推荐的用法。</p>
+<p><strong>为什么要及时提交</strong>？复杂项目里改得越多，错得越可能多。小项目一次两三千行或许没事；项目变复杂后，一个上万行的大提交可能一次引入多个 bug，后面修一百个都说「是 V2 的问题」，甚至修不过来、也不知道修好没有。小步提交则<strong>冤有头债有主</strong>：修复与引入可以配对，历史成为可审计的资产。做完小提交立即 push，还能在本机损坏前留下互联网备份。</p>
+<h3 id="_11">完整、自洽、能构建</h3>
+<p>提交应当是<strong>完整自洽的快照</strong>：每次提交的代码应该能够通过构建和测试。编译不过的代码进库，等于让仓库处于坏状态——人很容易想「就改一个字，先提交吧」，但工程习惯要求提交前让代码可构建。消息格式可参考 <strong>conventional commits</strong>（用类型前缀规范提交说明的约定）：类型前缀加冒号与空格，如引入功能或修复缺陷；标题用祈使句、现在时，正文说明动机。例如 <code>fix off by one in header length check</code>。commit message 通常一行标题加详细正文；有的项目还要求 scope，形成「我干了什么 + 总结 + body」的格式。英文中文之间留空格、全文风格一致这类细节，也是工程规范的一部分——不一致最让人难受。这些约定的目的，是工程师面对更大项目时保持一致性和规范，人维护起来更顺；AI 时代模型往往也按这套细节来，不会生成风格混乱的说明。</p>
+<p>空提交（无文件变更）偶尔可用于标记发布或触发 CI：比如为 V0.1 freeze 做一个 finalize 提交，把 bugfix 提交和发布标记分开。不宜滥用，不能制造大量空提交。git 甚至允许你在无任何代码变更时再打一个提交；agent 知道这个技巧，但 best practice 仍建议少用。更稳的自动化是 hook（在特定事件发生时自动执行检查的钩子）：在提交前做规则检查，不通过就不让交。hook 也用在 agent 上：完成需要输入时叮一声提醒。严肃项目里可以在 pre-commit 上挂几十条 checking rules；连规则命名用全大写还是小写这种两难，都值得多问一句——每个细节都问清，你就比别人多一层长进。</p>
+<h3 id="_12">什么不该进版本库</h3>
+<p>研究组里常见的「高血压」现场：把 dist、日志、个人编辑器配置、甚至仍有效的 API 密钥提交进库；Mac 同学还会不知不觉带上 <code>.DS_Store</code>（Finder 留下的隐藏索引文件）。编译产物（如 hello 可执行文件）也不应提交——不同环境编出的二进制可能带日期、哈希或本机指纹，放进库后几乎必然产生<strong>二进制冲突</strong>，而二进制几乎无法合并（图片同理）。用 <strong>.gitignore</strong>（声明哪些文件不纳入版本管理的清单文件）排除它们；<code>git add .</code> 虽合法，却常把点开头的隐藏临时文件一并带上。</p>
+<p>规则并非绝对：<code>package-lock.json</code>、生成的 header 这类生成物提交后反而利于别人在缺工具链时复现编译。也没有绝对的「所有 generated file 都不该提交」。git 本身不阻止你提交编译产物，但 best practice 会警告；agent 往往比人更清楚这些规则，还顺手修好并解释原因——比如丢弃空提交与编译产物两段历史，新建 main 分支重写为两个单一职责的有意义提交。导师以前有新同学进组就会「高血压」（dist/log/个人配置/API 密钥入库）；现在 AI 可以耐心检查、给出解释甚至用 emoji 缓和情绪，学生压力也小了。</p>
+<h2 id="_13">六、把历史变成工具</h2>
+<p><em>(参考时间: 00:50:00–01:00:00, 01:30:01–01:31:00)</em></p>
 <ul>
-<li>有的项目有这个文件，有的没有；</li>
-<li>有的 README 很短、链接清晰；有的是 AI 生成的超长 slop（AI 量产的、看起来像模像样却空洞或错误百出的内容）。</li>
+<li><strong>git blame</strong>：指出每一行是哪次提交、谁改的，用来定位「谁引入了这行」。</li>
+<li><strong>git bisect</strong>（在提交历史中二分查找定位引入问题的版本）：把历史看成「前缀都正常、从某点起都失败」的序列，像二分查找找第一个 1，快速锁定引入 bug 的提交。前提是手里有一个能检出 bug 的测试或检查手段。</li>
 </ul>
-<p>主讲人分享了一种学习方法——可称为 <strong>virtually implement（先在脑中虚拟实现）</strong>：</p>
-<ol>
-<li>看到问题前，先想「如果我来做，会怎么做」；</li>
-<li>再和眼前方案对比；</li>
-<li>若对方更好：问「为什么它能想到」；若你更好：惊喜，并考虑能否做成产品。</li>
-</ol>
-<p>对比城市路牌也是如此：在某些城市，每个不确定路口都有清晰指示；在另一些地方则要自己找地图。好范例本身就是教材。读论文、学高数、学系统课，都可以用同一套「先自己推、再对照」的方法。</p>
+<p>前提是历史本身干净：小步、可构建、消息可读。否则 blame 全是噪声，bisect 也无从下手。小步 commit 使修复可与引入提交配对，形成审计链——这是历史能当工具用的前提。agent 时代仍可要求「小步提交、可审计」，维护效率更高，也更省 token：不相关的文件可以不用再读。</p>
+<p>还可以把 GitHub 之类的平台能力接上：issue、评论并不在 git 对象里持久化，用 <code>gh</code> 这类命令行工具可以拉取、认领、关闭 issue；在 agent 里设一个 goal，要求小步提交、可审计提交、线性历史，长任务也能转起来。提交信息里写 <code>fix #3</code> 之类还能自动关联 issue。agent 时代这些命令甚至成为「古法手艺」——你不必背命令，但必须有概念：知道 git 能干什么，才能让 agent 按 best practice 去干。真正的风险是你分不清「我自己能干」还是「脱了 agent 就干不了」；对初学者，多一次亲手观察冲突、亲手 blame，就多一分可迁移的能力。</p>
+<h2 id="_14">七、项目管理的本质</h2>
+<p><em>(参考时间: 01:30:01–01:39:00)</em></p>
+<p>讲师判断：项目应组织成用 <strong>atomic change</strong>（一次只做一件完整小事的变更，便于审计与回滚）推进的快照序列。这句话是今天更要记住的总纲；仓库里的命令与对象，都是从这句话推出来的。</p>
+<p>原因是：<strong>项目管理的本质是人类没有办法处理一团混沌</strong>。需求多、代码多、改动堆在一波，必然改乱——古法做大作业改着改着就四处冲突，这个部分和那个部分互相踩。自然的对策是把需求分解成可理解、可审计的小任务，一小步一小步推进。这样出问题可以 bisect、可以 blame；协作冲突也容易解决——只冲突的小提交单独裁决，不冲突的部分顺利合并。管理很多快照还有一个好处：可以随时开新分支做尝试，失败就安全扔掉，成功就合并进来，多条主线并行而不互相干扰。更严肃的项目还要求 linear history：历史像线一样可追溯，对 cherry-pick 与 blame 更友好，在模型能力无限之前，这对人与 agent 维护都更省。</p>
+<h3 id="_15">架构先行</h3>
+<p>据其实践，讲师会在架构设计阶段先用单线程、智力比较高的模型把接口讨论清楚，再开多个 agent 实现。接口若设计不好，后面是无穷迭代。他把组件接口做成 pure function（纯函数：相同输入必得相同输出、不改外部状态），全局状态收敛到很小的注册表（例如光标位置等共享状态只有十几行），并要求 agent 只看接口、禁止读库实现——上下文只要几万 token 就能做出可视化 playground。架构定好后，开几个终端并行，哪里不满意再修；agent 与人协作的成本都会下降。这套做法本身也是「小步、可审计」在 AI 开发中的延伸。</p>
+<p>例子：给小学生教 Python 的极简 playground——整数与字符串互转、<code>hello * 10</code>、汉诺塔递归调试（可前进后退的动画）、方块下落的可视化，都可以 web code 出来；讲师把控架构与视觉，代码质量交给 AI。两天碎片时间就能完成一个可用的课件生成流程，甚至便宜的国产模型也能出课件。真正值钱的是你愿意花时间学细节——求职市场上「把细节做好」的 bar 会不断提高。</p>
+<h2 id="_16">八、收束：工具会变，智慧会沉淀</h2>
+<p><em>(参考时间: 01:30:15–01:40:13)</em></p>
+<p>git 的模型很简单，水面下的冰山是各种 best practice——每一条都是血和泪的教训。你可以跟模型讨论「为什么要这样写 message」，很多解释比讲师即兴讲得更完整；课堂即兴未必是最好版本，模型反而有时间把因果讲透。学习 git 不是背命令，而是把「可追溯、可审计、可协作」变成肌肉记忆。工具会变，仓库管理的智慧会沉淀。</p>
+<p>小步提交还有一个副产品：把 git 记录拆分得好，AI 维护项目时也更省 token——不相关的文件可以跳过，修改由谁引入一目了然。若再要求 linear history（历史近似一条线，禁止分叉 merge），cherry-pick 与 blame 都更友好；在「无限能力模型」到来之前，这对人和 agent 都是好约束。有人会强制整个 committer history 看起来线性：可以 merge，但尽量整理成线；代价是不完全是原生合并结构，好处是历史更易追溯。</p>
+<p>课堂最后留下一个问题：如果 agent 快了一千倍，我们还怎样管理版本控制？这留到下一讲讨论。</p>
 <hr />
-<h2 id="4-git">4. Git 入门：初始化、暂存与提交</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 知道终端 / 命令行可以敲命令
-- 理解「项目是一个目录」
-- 若完全没用过 Git，可先通读，再跟着敲一遍
-
-</div>
-
-<p><em>(参考时间: 00:24:39)</em></p>
-<p>有了 GitHub，分发代码变得空前方便——它已成 AI 时代基础设施之一（npm 等生态也托管在类似平台上）。面试时问「什么是 Git」，多数人能说「下载/分发代码」「管理目录快照」；但更值得追问的是：<strong>merge 发生冲突后你会观察到什么？</strong></p>
-<h3 id="41">4.1 冲突现场长什么样</h3>
-<p>如果老师更新了作业，而你本地已改得面目全非，如今可以让 Agent 自动修好。但作为学生，冲突时停一秒去看，收获很大：</p>
-<ul>
-<li>文件里会出现许多 <code>=======</code>、尖括号、<code>incoming</code> 一类标记；</li>
-<li><strong>冲突并不是系统自动消失</strong>，而是把责任交到你手上；</li>
-<li>Git 的设计原则类似地铁指示牌：<strong>发生事情的地方，尽量把相关信息都摆在那里</strong>；</li>
-<li>两边冲突代码会同时显示；在 IDE 里还会有 Accept Incoming Change 等按钮；</li>
-<li>你决定谁进谁出后，再创建一次 commit（提交，给项目当前状态拍一张带说明的快照）把冲突 resolve（解决）掉。</li>
-</ul>
-<p>设计者不能在冲突时直接「躺平不合并」——那对人负担太大；把双方内容与上下文摆在冲突处，是第一性原理的体现。</p>
-<h3 id="42-git-init">4.2 从零开始：git init 与基本命令</h3>
-<p>演示从空终端开始：</p>
-<pre><code class="language-bash">mkdir my-cool-game
-cd my-cool-game
-git init          # 初始化仓库，生成隐藏的 .git 目录
-# 写一个 hello.c …
-git add hello.c   # 把文件放入暂存区
-git status        # 查看工作区 / 暂存区状态
-git commit        # 提交，并写清这次改了什么
-</code></pre>
-<div class="video-card screenshot-card"><img src="images/shot_00_35_40.png" alt="git init：把目录变成仓库" loading="lazy"><p class="video-caption"><span class="cap-text">git init：把目录变成仓库</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=2140" target="_blank" rel="noopener">在 B 站打开 (00:35:40)</a></span></p></div>
-
-<p>图：<code>git init</code> 之后，项目成为被 Git 管理的仓库。读者可关注：<code>.git</code> 目录默认隐藏，却是全部历史所在。</p>
-<p>命令本身不难：clone、pull、push、add、commit 就能「用起来」。真正水面下的冰山，是大量 <strong>best practice</strong>——每一条背后往往是血和泪的教训。</p>
-<h3 id="43">4.3 学会追问：这符合最佳实践吗？</h3>
-<p>面对新鲜工具，可以养成习惯：操作完问 AI 一句——「我刚才做的符合 best practice 吗？」</p>
-<p>主讲人故意做了反面教材：提交信息写成 <code>I added some cool stuff</code>，完全看不出做了什么。AI 会指出：</p>
-<ul>
-<li>提交信息毫无信息量；</li>
-<li>应用祈使句、现在时，描述变更动机，例如 <code>fix off-by-one in header length check</code>；</li>
-<li>可参考 <strong>conventional commits（约定式提交，用固定前缀规范 commit message）</strong> 等社区规范。</li>
-</ul>
-<div class="video-card screenshot-card"><img src="images/shot_00_39_30.png" alt="AI 点评提交信息是否符合规范" loading="lazy"><p class="video-caption"><span class="cap-text">AI 点评提交信息是否符合规范</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=2370" target="_blank" rel="noopener">在 B 站打开 (00:39:30)</a></span></p></div>
-
-<p>图：让 AI 检查 commit message。读者可关注：Git 存的是快照，但项目本质是「从 V1 经修改到 V2」，message 要能讲清改了什么。</p>
-<p>Git 鼓励你在 message 里写清改动：修了多少 bug、加了什么需求、经历了什么重构——顺着 message 能读出项目的历史轨迹。若一万个提交全是 <code>I did some cool stuff</code>，message 这个特性就不该存在。</p>
-<hr />
-<h2 id="5">5. 提交的艺术：规范、忽略与钩子</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 会 git add / git commit，或至少知道提交是什么
-- 见过 `.gitignore` 这个词更好，没有也可先学
-- 理解「编译产物」vs「源代码」即可
-
-</div>
-
-<p><em>(参考时间: 00:41:00)</em></p>
-<h3 id="51-tag">5.1 空提交、Tag 与「我要发版了」</h3>
-<p>Git 通常拒绝无修改的提交，但 Agent 知道可以用 <code>--allow-empty</code> 等方式强行提交。空提交偶尔有用：</p>
-<ul>
-<li>无代码改动时触发 CI（持续集成，代码一推就自动构建/测试的流水线）；</li>
-<li>标注「为了 V0.1 freeze 所有东西」这类 finalize 语义。</li>
-</ul>
-<p>更常见的做法是打 <strong>tag（标签）</strong>，例如 <code>v0.1</code>。空提交不能滥用。</p>
-<h3 id="52">5.2 不该进仓库的东西</h3>
-<p>主讲人演示了另一种坏味道：<code>git add .</code> 把一切塞进仓库。AI 会按严重程度批评：</p>
-<ol>
-<li>提交信息毫无信息量；</li>
-<li>提交粒度与内容混杂；</li>
-<li>编译产物（如 <code>hello</code> 可执行文件）根本不应进版本库，应写入 <strong><code>.gitignore</code>（告诉 Git 哪些文件不要纳入版本库的清单）</strong>。</li>
-</ol>
-<p>原因很实际：</p>
-<ul>
-<li>每个人环境不同，编译出的二进制往往带日期、hash、本机指纹，<strong>即使是同一份源码也可能不一样</strong>；</li>
-<li>把二进制放进仓库，合并时会出现几乎无法自动合并的冲突；</li>
-<li>项目一大、协作者一多，仓库会膨胀到不可维护。</li>
-</ul>
-<p>但规则并非绝对：有些 generated file（如某些 lockfile、为方便编译而生成的 header）<strong>可以</strong>提交，让别人在缺少完整工具链时仍能构建。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_47_00.png" alt="git add . 与不该被追踪的文件" loading="lazy"><p class="video-caption"><span class="cap-text">git add . 与不该被追踪的文件</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=2820" target="_blank" rel="noopener">在 B 站打开 (00:47:00)</a></span></p></div>
-
-<p>图：常见工程事故——把编译产物、日志、个人配置（甚至 API Key）提交进仓库。读者可关注：<code>.gitignore</code> 与「什么该进版本库」。</p>
-<h3 id="53">5.3 导师的「高血压」清单</h3>
-<p>新同学进组时，研究仓库里常见问题包括：</p>
-<ul>
-<li><code>dist/</code>、<code>log/</code> 等生成目录被提交；</li>
-<li>VS Code 等个人配置、甚至写死的本机路径；</li>
-<li>仍处于 active 状态的 API Key；</li>
-<li>macOS 的 <code>.DS_Store</code>（Finder 记录「哪些子目录展开过」的索引文件，点开头所以默认隐藏，<code>git add .</code> 时容易被误收）。</li>
-</ul>
-<p>大模型出现之前，有人专门研究「Git 项目是否满足 best practice，并在违规时告警」；现在模型可以耐心检查、解释、甚至附上 emoji 安抚情绪——对学习者反而是好事：不必等到导师黑着脸批评，也能知道错在哪。</p>
-<h3 id="54-hooks">5.4 Hooks：在提交前后自动检查</h3>
-<p><strong>Hook（钩子）</strong> 是在 Git 操作某个节点自动触发的脚本，例如 <code>pre-commit</code>。Agent 工具（Claude Code、Codex 等）也支持 hook，比如「Agent 需要你输入时叮一声」。</p>
-<p>工程标准更高的项目会在 hook 里做几十条检查规则。主讲人还讨论了细节品味：规则名该全大写还是小写？功能上都对，但约定与一致性本身有价值。AI 甚至能引用 RFC，解释为什么固定标识符常用全大写。</p>
-<p>在学习 Git 的过程中，对每一个细节多问一句，长期收益极大。</p>
-<h3 id="55-commit">5.5 为什么要及时、小步 commit</h3>
-<ul>
-<li>小项目初期，一次提交两三千行或许没事；</li>
-<li>项目变复杂后，一次巨型 commit 可能 break 多处，再引入多个 fix，历史会变成「V2 引入的」一笔糊涂账；</li>
-<li><strong>小步提交</strong>则「冤有头债有主」：bug 与修复可以配对，便于审计；</li>
-<li>及时 commit 并 push，电脑物理损坏时远端仍有备份。</li>
-</ul>
-<p>AI 也很清楚这些：可以 review、revert、bisect；它甚至会建议「编译不过不要提交」——因为提交应是<strong>完整自洽的快照</strong>，坏代码会让仓库处于坏状态。</p>
-<hr />
-<h2 id="6-blame">6. 冲突、Blame 与二分：用好历史</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 知道 Git 有一串提交历史
-- 听说过「排查 bug」「是谁改坏了」这类问题
-- 二分查找若没学过，可先当「每次排除一半」来理解
-
-</div>
-
-<p><em>(参考时间: 00:52:30)</em></p>
-<p>历史不只是纪念品，而是排查工具。</p>
-<h3 id="61-git-blame">6.1 git blame：这一行是谁改的</h3>
-<p><code>git blame（查某一行代码是在哪一次提交、由谁改的）</code> 会标出文件每一行的来源提交与作者。它常被理解成「追责」，工程上更常用的是：<strong>定位引入问题的上下文</strong>，然后去读那次提交的 message 与 diff。</p>
-<div class="video-card screenshot-card"><img src="images/shot_00_52_40.png" alt="git blame：逐行追溯来源提交" loading="lazy"><p class="video-caption"><span class="cap-text">git blame：逐行追溯来源提交</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=3160" target="_blank" rel="noopener">在 B 站打开 (00:52:40)</a></span></p></div>
-
-<p>图：对源文件执行 blame 后，每行对应到具体提交。读者可关注：历史如何变成可查询的数据。</p>
-<h3 id="62-git-bisect">6.2 git bisect：对历史做二分查找</h3>
-<p>把提交历史想成一个长数组：某些提交「测试通过」，从某一刻起开始「失败」。若你有一个能检出 bug 的测试用例，就可以对整个历史做二分查找（bisect），找到<strong>第一个坏提交</strong>。</p>
-<pre><code class="language-mermaid">flowchart LR
-    A[&quot;提交序列 1..n&quot;] --&gt; B[&quot;取中间提交 checkout&quot;]
-    B --&gt; C{&quot;测试通过？&quot;}
-    C --&gt;|通过| D[&quot;坏点在后半段&quot;]
-    C --&gt;|失败| E[&quot;坏点在前半段&quot;]
-    D --&gt; B
-    E --&gt; B
-    F[&quot;定位第一个坏提交&quot;]
-</code></pre>
-<p>这正是「前缀全 0、后缀全 1 的数组里找第一个 1」。历史被拆得越清楚（小步、原子提交），bisect 越好用。</p>
-<h3 id="63-agent">6.3 交给 Agent 时也要有概念</h3>
-<p>Agent native 的一代可能不再手敲 <code>git status</code>，这像「古代手艺」。但你仍需要概念：Git 能干什么、什么时候该 commit、message 该怎么写、什么不该进仓库。</p>
-<p>否则你分不清：是你自己会，还是完全脱节、离了 Agent 就不会。课上的建议是：</p>
-<ul>
-<li>关键操作前，逐个检查文件变化；</li>
-<li>让 Agent 按 best practice 干活，同时追问它为什么这样做；</li>
-<li>把每次提交都当成可审计的完整快照。</li>
-</ul>
-<hr />
-<h2 id="7-git">7. Git 底层：对象模型与可视化</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 用过或学过 git add / commit / branch 的基本概念
-- 知道「目录树」「指针」这类词（没学过也可看图理解）
-- 数据结构课的「持久化」不是必须
-
-</div>
-
-<p><em>(参考时间: 01:03:08)</em></p>
-<p>纸面命令学完后，值得问一句：Git 真的是这样实现的吗？</p>
-<h3 id="71">7.1 持久化的目录树</h3>
-<p>Git 可以看成一种<strong>持久化数据结构</strong>：它持久化的是项目的<strong>目录树</strong>。</p>
-<p>关键直觉：创建 V2 时，<strong>不需要复制整棵树</strong>。</p>
-<ul>
-<li>假设只有 <code>b.txt</code> 变了，就为新 <code>b.txt</code> 创建新对象；</li>
-<li>从该文件到根的路径上的节点需要新版本（因为子指针变了）；</li>
-<li>未改动的子树（如 <code>a.txt</code>、目录 <code>d/</code>）用<strong>指针</strong>指回旧对象即可。</li>
-</ul>
-<pre><code class="language-text">V1:  root ──► tree ──► a.txt, b.txt(old), d/
-V2:  root' ──► tree' ──► a.txt（指针复用）
-                      ──► b.txt(new)
-                      ──► d/（指针复用）
-</code></pre>
-<p>因此即便项目有百万文件、目录并不深，每次快照也只需很小的增量。</p>
-<h3 id="72-blobtreecommit">7.2 三类对象：blob、tree、commit</h3>
-<p><code>.git</code> 目录里是带 hash 索引的 <strong>objects</strong>，主要是三类：</p>
-<table>
-<thead>
-<tr>
-<th>对象</th>
-<th>是什么</th>
-<th>作用</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>blob</strong></td>
-<td>字节序列（binary large object）</td>
-<td>存文件内容</td>
-</tr>
-<tr>
-<td><strong>tree</strong></td>
-<td>目录节点</td>
-<td>记录权限位、文件名 → blob / 子 tree</td>
-</tr>
-<tr>
-<td><strong>commit</strong></td>
-<td>提交节点</td>
-<td>指向一棵 tree，并记录父提交、作者、message</td>
-</tr>
-</tbody>
-</table>
-<p><strong>分支</strong>本质上也是一个文件（如 <code>refs/heads/A</code>），内容是一个指向某 commit 的指针；<strong>HEAD</strong> 则是指向「当前分支指针」的指针。</p>
-<div class="video-card screenshot-card"><img src="images/shot_01_06_30.png" alt="Git 对象模型：blob / tree / commit" loading="lazy"><p class="video-caption"><span class="cap-text">Git 对象模型：blob / tree / commit</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=3990" target="_blank" rel="noopener">在 B 站打开 (01:06:30)</a></span></p></div>
-
-<p>图：<code>.git</code> 中的真实对象。读者可关注：快照不是整目录复制，而是对象 + 指针构成的图。</p>
-<h3 id="73-live">7.3 可视化学习：从模拟器到 live 仓库</h3>
-<p>经典工具 Learn Git Branching 用动画模拟 status、commit、checkout 等，帮助建立心智模型。</p>
-<p>今天还可以更进一步：用 vibe coding 做一个<strong>直接读真实 <code>.git</code></strong> 的可视化工具——不是模拟，而是解析磁盘上的 object，展示 blob 的字节与解压内容、tree 的 mode（如 644 / 755）与指针、commit 的双亲。</p>
-<div class="video-card screenshot-card"><img src="images/shot_01_09_00.png" alt="用可视化工具观察真实 Git 仓库" loading="lazy"><p class="video-caption"><span class="cap-text">用可视化工具观察真实 Git 仓库</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=4140" target="_blank" rel="noopener">在 B 站打开 (01:09:00)</a></span></p></div>
-
-<p>图：可视化 Git 工作原理。读者可关注：分支是指针，冲突时 Git 会保留 base/ours/theirs 等多份现场。</p>
-<p>现场还演示了：</p>
-<ul>
-<li>创建分支后，<code>refs</code> 文件与树结构如何变化；</li>
-<li>merge conflict 时，Git 悄悄保留多个版本；</li>
-<li>resolve 之后产生<strong>两个 parent</strong> 的 merge commit，指针关系被正确保留。</li>
-</ul>
-<p>用 AI 做出这类工具本身也是极好的学习：边生成、边对照对象模型，知识会爆炸式增长。</p>
-<hr />
-<h2 id="8-agent-git">8. 用 Agent 学 Git：从规范到项目组织</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 知道可以用自然语言让 AI 写代码、做可视化
-- 读过本册第 4–5 章关于 commit 规范的内容更好
-- 架构经验不足也可先听流程
-
-</div>
-
-<p><em>(参考时间: 01:18:14)</em></p>
-<p>主讲人展示了更多「AI 直出」的教具：给小朋友用的极简 Python 环境、汉诺塔与递归可视化、排序动画、类似 3D 打印的积木世界等。代码质量可以是 slop，但<strong>架构</strong>值得把关。</p>
-<h3 id="81">8.1 为什么细节仍然值钱</h3>
-<p>求职市场上，「把细节做好」的 bar 会不断提高：一旦有人学会了，招聘方就会用同一标准衡量所有人。</p>
-<ul>
-<li>问研究生「git merge 之后会发生什么」，若毫无概念；</li>
-<li>对比另一位同学：在 AI 辅助下，每门专业课都真正消化概念、能从零构建——</li>
-</ul>
-<p>两者的竞争力显然不同。上课「耽误学习」的现象部分存在：课外信息密度已超过课堂；成熟的 GitHub 项目往往是工程师十几年心血，包含重构与教训。传统教学很少教「怎么用好这些高密度信息」。</p>
-<h3 id="82-conventional-commits">8.2 Conventional Commits 与一致性</h3>
-<p>社区已有 <strong>conventional commits</strong> 等短规范，例如提交前缀：</p>
-<pre><code class="language-text">feat: 新增功能
-fix: 修复缺陷
-docs: 只改文档
-</code></pre>
-<p>常见形式还包括 scope 与正文：<code>type(scope): summary</code> + 空行 + body。文档排版上，中英文之间的空格等约定看似琐碎，却关乎<strong>一致性</strong>——工程细节是为人在更大项目中维护而存在的。</p>
-<p>AI 也会漂移：前面 message 全是英文「一行 + 详细解释」，后面开始中英混杂。你可以用 Agent 帮你守住约定。</p>
-<h3 id="83-github-cli-agent">8.3 GitHub CLI 与 Agent 长任务</h3>
-<p>项目托管在 GitHub / GitLab 上时，Agent 常尝试调用 <code>gh</code> / <code>glab</code> 一类 CLI。因为 Git 管的是代码快照，而 <strong>issue、评论</strong> 等并不随 Git 做持久化，需要平台 API。</p>
-<p>装好 <code>gh</code> 后，可以在 Agent 里设定长任务目标，并要求：</p>
-<ul>
-<li>小步提交、可审计的提交；</li>
-<li>明确的分支规则与（可选）线性历史；</li>
-<li>遵循团队协作文档（如 <code>AGENTS.md</code> / 协作规则：何时禁止调用视觉模型、何时用旁路浏览器看结果等）。</li>
-</ul>
-<div class="video-card screenshot-card"><img src="images/shot_01_32_40.png" alt="Agent 按协作规则进行小步提交" loading="lazy"><p class="video-caption"><span class="cap-text">Agent 按协作规则进行小步提交</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=5560" target="_blank" rel="noopener">在 B 站打开 (01:32:40)</a></span></p></div>
-
-<p>图：Agent 长任务下的提交历史。读者可关注：大量可审计的小提交，以及人对规则的把控。</p>
-<h3 id="84-agent">8.4 先设计架构，再开多个 Agent</h3>
-<p>主讲人的项目管理经验：</p>
-<ol>
-<li><strong>架构设计阶段用单线程</strong>，找智力较强的模型充分讨论——设计不好，后面是无穷迭代；</li>
-<li>把组件接口定好：例如可视化中的 trace 设为程序的 pure function（纯函数，同样输入永远同样输出、无副作用），全局状态集中注册，核心共享状态只有十几行；</li>
-<li>要求 Agent <strong>只看接口、禁止看库函数实现</strong>，token 极省；</li>
-<li>架构定稿后，再开多个 terminal 上 Agent，哪里不满意就指出，肉眼看着产物逐步变好。</li>
-</ol>
-<div class="video-card screenshot-card"><img src="images/shot_01_37_30.png" alt="先定接口与状态，再并行让 Agent 实现" loading="lazy"><p class="video-caption"><span class="cap-text">先定接口与状态，再并行让 Agent 实现</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=5850" target="_blank" rel="noopener">在 B 站打开 (01:37:30)</a></span></p></div>
-
-<p>图：多组件 playground 的架构把控。读者可关注：接口与共享状态先收敛，实现才能交给 Agent 并行。</p>
-<hr />
-<h2 id="9">9. 总结：用原子改动推进软件项目</h2>
-<div class="prereq" data-label="你需要先知道">
-
-- 建议至少浏览过本册第 2–6 章标题
-- 零基础也可读作全书小结
-
-</div>
-
-<p><em>(参考时间: 01:33:30)</em></p>
-<p>主讲人总结：这门课表面在讲 Git，本质在讲软件工程与 best practice。今天要记住的一句话是：</p>
-<blockquote>
-<p>把项目组织成用 <strong>atomic change（原子改动，一次只做一件事、可独立理解与审计的修改）</strong> 推进的快照序列。</p>
-</blockquote>
-<h3 id="91">9.1 从这句话推出一切</h3>
-<ul>
-<li>管理很多小快照，才能随时开分支做尝试：失败则安全丢弃，成功则合并进来；</li>
-<li>可以并行推进多条主线，以合并方式完成而不互相干扰；</li>
-<li>人类无法一次处理一团混沌——需求要分解成可理解、可审计的小任务；</li>
-<li>出问题可以 bisect、blame；冲突也更容易解决（不冲突的小步仍可合并）。</li>
-</ul>
-<p>做大作业时若「古法」同时改多处，改着改着就乱；小步原子提交则让历史可追责、可回滚、可审计。</p>
-<h3 id="92-linear-history">9.2 Linear history 与工具链</h3>
-<p>更严肃的项目常要求 <strong>linear history（线性历史，提交像一条直线，而不是分叉又合并的网）</strong>：</p>
-<ul>
-<li>merge 可以产生双亲 commit，世界可以反复分叉合并；</li>
-<li>但 AI 时代 resolve / rebase 都更容易，许多团队强行保持线性；</li>
-<li>线性历史更易追溯，对 cherry-pick（挑拣某次提交）与 blame 更友好；</li>
-<li>记录拆分得好，AI 维护项目也更省 token。</li>
-</ul>
-<h3 id="93">9.3 下一讲预告</h3>
-<p>如果 Agent 快了一千倍，我们还怎样做版本控制？这是下一讲的议题（更偏 Agent 时代的版本模型与 Jujutsu 等）。本讲请先把「人用的」仓库管理概念建立起来：项目是文件集合，版本靠快照与原子改动推进，工具是 Git，规范靠 best practice 与持续追问。</p>
-<p>经典课程里的概念会在生成式软件工程中反复出现：快照、提交、分支、合并、忽略规则、可审计的历史。学它们仍然有用——它们是你带着 AI 做判断时的底气。</p>
-<hr />
-<hr />
-<h2 id="_1">附录：概念补给</h2>
-<p>给可能「只听过、没深究」的同学：每条尽量先说人话，再扣回本讲。</p>
-<h3 id="_2">版本管理 / 版本控制</h3>
-<ul>
-<li><strong>是什么</strong>：记录文件随时间怎么变，便于回退、对比、多人协作。</li>
-<li><strong>课上为何出现</strong>：整讲主线；从 U 盘、复制目录、SVN 讲到 Git。</li>
-<li><strong>和什么像</strong>：游戏存档、网盘历史版本。</li>
-</ul>
-<h3 id="repository">仓库（Repository）</h3>
-<ul>
-<li><strong>是什么</strong>：项目连同其版本历史一起存放的地方；本地往往是含 <code>.git</code> 的目录，远端则是 GitHub 上的副本。</li>
-<li><strong>课上为何出现</strong>：<code>git init</code> 之后，空目录才成为「可回溯的项目」。</li>
-<li><strong>和什么像</strong>：不仅存现在的照片，还存整本相册的时间线。</li>
-</ul>
-<h3 id="snapshot">快照（Snapshot）</h3>
-<ul>
-<li><strong>是什么</strong>：某一时刻整个项目目录的样子；Git 用对象 + 指针高效保存，而非每次全量复制。</li>
-<li><strong>课上为何出现</strong>：Git 与 SVN「补丁链」的关键差异；也是对象模型的出发点。</li>
-<li><strong>常见误解</strong>：不是把整个文件夹拷贝 N 份，未改动子树会被指针复用。</li>
-</ul>
-<h3 id="commit-commit-message">Commit（提交）与 Commit Message</h3>
-<ul>
-<li><strong>是什么</strong>：提交是一次带说明的快照；message 用人类语言写清这次改了什么、为什么。</li>
-<li><strong>课上为何出现</strong>：最佳实践的核心；<code>I added some cool stuff</code> 被当作反面教材。</li>
-<li><strong>和什么像</strong>：存档时写一行「今天打过了哪关」，而不是只有存档编号。</li>
-</ul>
-<h3 id="staging-area-index">暂存区（Staging Area / Index）</h3>
-<ul>
-<li><strong>是什么</strong>：<code>git add</code> 之后、<code>commit</code> 之前，决定「下一次快照里有哪些改动」的中间区。</li>
-<li><strong>课上为何出现</strong>：命令演示里 status / add / commit 的关键一环。</li>
-<li><strong>和什么像</strong>：寄快递前先把要寄的东西摊在桌上挑一遍。</li>
-</ul>
-<h3 id="gitignore"><code>.gitignore</code></h3>
-<ul>
-<li><strong>是什么</strong>：一份清单，告诉 Git 哪些路径不要纳入版本库（日志、构建产物、个人配置等）。</li>
-<li><strong>课上为何出现</strong>：<code>git add .</code> 事故与「高血压」清单的解法。</li>
-<li><strong>常见误解</strong>：不是「删除文件」，而是「从一开始就不追踪」。</li>
-</ul>
-<h3 id="merge-conflict">Merge（合并）与 Conflict（冲突）</h3>
-<ul>
-<li><strong>是什么</strong>：merge 把两条开发线接到一起；两边改了同一处且无法自动决定时产生冲突。</li>
-<li><strong>课上为何出现</strong>：面试追问「冲突后你会看到什么」；现场展示标记与 resolve。</li>
-<li><strong>和什么像</strong>：两个人改同一份 Word 文档，修订痕迹叠在一起，要人工定稿。</li>
-</ul>
-<h3 id="svn">SVN</h3>
-<ul>
-<li><strong>是什么</strong>：上一代集中式版本管理，服务器上主要存「改动补丁链」，客户端 check in / check out。</li>
-<li><strong>课上为何出现</strong>：说明 Git 为何选择「快照模型」——回溯更干净。</li>
-<li><strong>和什么像</strong>：只寄「增补页」的档案室 vs 每次寄「完整一页」的相册。</li>
-</ul>
-<h3 id="git-blob-tree-commit">Git 对象：blob / tree / commit</h3>
-<ul>
-<li><strong>是什么</strong>：blob 存文件内容；tree 存目录结构与指针；commit 指向一棵 tree 并记录父提交与说明。</li>
-<li><strong>课上为何出现</strong>：解释「大项目为何快照仍很小」以及可视化演示。</li>
-<li><strong>和什么像</strong>：blob=照片文件，tree=相册目录页，commit=带日期与备注的封面。</li>
-</ul>
-<h3 id="branch-head">Branch（分支）与 HEAD</h3>
-<ul>
-<li><strong>是什么</strong>：分支是指向某个 commit 的指针；HEAD 是指向「你当前在哪个分支」的指针。</li>
-<li><strong>课上为何出现</strong>：可视化里 <code>refs/heads/*</code> 的真实含义。</li>
-<li><strong>和什么像</strong>：书签（分支）夹在某一页；HEAD 是「你现在正拿着哪个书签」。</li>
-</ul>
-<h3 id="git-blame">git blame</h3>
-<ul>
-<li><strong>是什么</strong>：查看文件每一行分别由哪次提交、哪位作者引入。</li>
-<li><strong>课上为何出现</strong>：把历史当排查工具，而不只是追责工具。</li>
-<li><strong>和什么像</strong>：作业批改时标出「这句是谁写的、哪天写的」。</li>
-</ul>
-<h3 id="git-bisect">git bisect</h3>
-<ul>
-<li><strong>是什么</strong>：对提交历史做二分查找，用测试结果定位「第一个坏提交」。</li>
-<li><strong>课上为何出现</strong>：小步提交的直接收益——历史可被二分。</li>
-<li><strong>和什么像</strong>：猜数字游戏：每次排除一半可能性。</li>
-</ul>
-<h3 id="best-practice">Best Practice（最佳实践）</h3>
-<ul>
-<li><strong>是什么</strong>：社区在真实项目中踩坑后形成的推荐做法（小步提交、清晰 message、忽略产物等）。</li>
-<li><strong>课上为何出现</strong>：本讲明示「表面讲 Git，实际讲 best practice」。</li>
-<li><strong>和什么像</strong>：交通规则——不是法律考试重点，但上路必须知道。</li>
-</ul>
-<h3 id="conventional-commits">Conventional Commits</h3>
-<ul>
-<li><strong>是什么</strong>：约定式提交规范，用 <code>feat:</code> / <code>fix:</code> 等前缀 + 可选 scope 统一 message 格式。</li>
-<li><strong>课上为何出现</strong>：AI 与团队协作时，格式一致才利于工具解析与人读历史。</li>
-<li><strong>和什么像</strong>：邮件标题统一写「【请假】【报销】」，方便检索与分拣。</li>
-</ul>
-<h3 id="hook">Hook（钩子）</h3>
-<ul>
-<li><strong>是什么</strong>：在 Git 或 Agent 工具的特定事件点自动执行的脚本（如 pre-commit 做检查）。</li>
-<li><strong>课上为何出现</strong>：工程标准更高时的自动门禁；也可给 Agent 配提示音。</li>
-<li><strong>和什么像</strong>：门禁闸机：刷卡（commit）前先自动查一遍证件。</li>
-</ul>
-<h3 id="atomic-change">Atomic Change（原子改动）</h3>
-<ul>
-<li><strong>是什么</strong>：一次提交只做一件可独立理解、测试、回滚的事。</li>
-<li><strong>课上为何出现</strong>：全讲总结句——项目应被组织成由原子改动推进的快照序列。</li>
-<li><strong>和什么像</strong>：乐高按「一块一块」说明书步骤拼，而不是把整袋零件倒进模具。</li>
-</ul>
-<h3 id="linear-history">Linear History（线性历史）</h3>
-<ul>
-<li><strong>是什么</strong>：提交记录近似一条直线，少用（或整理掉）分叉合并形成的网状结构。</li>
-<li><strong>课上为何出现</strong>：严肃项目与 AI 维护场景下的常见要求；利于追溯与 blame。</li>
-<li><strong>常见误解</strong>：不是「禁止开分支」，而是主线历史尽量保持线性可读。</li>
-</ul>
-<h3 id="intent-spec">Intent（意图）与 Spec（规格）</h3>
-<ul>
-<li><strong>是什么</strong>：Intent=你想真正解决什么；Spec=做成什么样、接口与选型怎么定。</li>
-<li><strong>课上为何出现</strong>：localhost 玩笑说明「不说清楚 Intent，AI 会按默认假设走」。</li>
-<li><strong>和什么像</strong>：先说「我要去火车站」（Intent），再定「地铁还是打车、几点走」（Spec）。</li>
-</ul>
-<h3 id="localhost">localhost</h3>
-<ul>
-<li><strong>是什么</strong>：指「本机」的网络地址（常为 127.0.0.1）；<code>localhost:5137</code> 上的服务只有你自己能访问。</li>
-<li><strong>课上为何出现</strong>：AI 默认本地调试，不部署别人就打不开。</li>
-<li><strong>和什么像</strong>：在自家厨房做了一桌菜——邻居闻不到，除非你端出去。</li>
-</ul>
-<p><em>书架 Shelf 流水线生成 · 内容衍生自 B 站公开课程视频 BV1kybV6DE47</em></p>
+<p><em>本讲对应视频约 100 分钟；上文为知识压缩稿，阅读时长估算。完整逐句对照见 <code>transcript.corrected.txt</code>。</em></p>
       </article>
-      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%20%5B02-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">提示词工程：与模型对话的方法</span></a><a class="pager-btn next" href="../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">软件仓库管理（二）：从 Git 到 Agent 时代的版本控制</span></a></nav>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%20%5B02-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">02 提示词工程</span></a><a class="pager-btn next" href="../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">04 软件仓库管理 (2)</span></a></nav>
     </div>
   </div>
 </div>

@@ -92,6 +92,23 @@ body {
 }
 .back-link:hover { text-decoration: underline; }
 .back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-right {
+  display: flex; align-items: center; gap: var(--sp-3);
+}
+.font-resizer {
+  display: inline-flex; align-items: center;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-ctl); padding: 1px 3px; gap: 2px;
+}
+.btn-font {
+  background: transparent; border: 0; color: var(--muted);
+  font-family: var(--font-ui); font-size: 11.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 4px; cursor: pointer;
+  line-height: 1.4;
+}
+.btn-font:hover { color: var(--ink); background: var(--code-bg); }
+.btn-font:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 .topbar-tag {
   font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
   color: var(--faint);
@@ -225,9 +242,9 @@ body {
   color: var(--ink);
 }
 .book-body > *:first-child { margin-top: 0; }
-/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body img { max-width: 100%; height: auto; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供；禁止使用 + * 避免误伤正文导语 */
 .book-body > h1:first-child,
-.book-body > h1:first-child + * ,
 .book-body > .md-toc-skip { display: none; }
 .book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
 .book-body > h1 + p,
@@ -314,19 +331,72 @@ body {
   padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
 }
 .book-body pre {
+  position: relative;
   margin: var(--sp-4) 0; padding: var(--sp-4);
   background: var(--code-bg); border: 1px solid var(--line);
   border-radius: var(--r-media); overflow-x: auto;
 }
 .book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
-.book-body .table-wrap, .book-body table {
-  display: block; width: 100%; overflow-x: auto;
+.btn-copy-code {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--surface); border: 1px solid var(--line);
+  color: var(--muted); font-family: var(--font-ui); font-size: 11px;
+  padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  opacity: 0; transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  line-height: 1.3;
+}
+.book-body pre:hover .btn-copy-code,
+.btn-copy-code:focus-visible {
+  opacity: 1;
+}
+.btn-copy-code:hover {
+  color: var(--ink); border-color: var(--line-strong);
+}
+.btn-copy-code.copied {
+  color: var(--accent); border-color: var(--accent); font-weight: 600;
+}
+
+/* 参考时间穿透锚点 */
+.time-anchor {
+  display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: var(--sp-2) 0 var(--sp-4); padding: 3px 12px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; font-family: var(--font-mono); font-size: 12px;
+  color: var(--muted); width: fit-content; max-width: 100%;
+}
+.time-anchor .ta-label {
+  font-family: var(--font-ui); font-size: 11px; font-weight: 600;
+  color: var(--faint); letter-spacing: .04em;
+}
+.time-anchor .ta-ts {
+  color: var(--accent-ink); text-decoration: none; font-weight: 600;
+  border-bottom: 1px dashed var(--accent);
+}
+.time-anchor .ta-ts:hover {
+  color: var(--accent); border-bottom-style: solid;
+}
+.time-anchor .ta-sep { color: var(--line-strong); }
+.time-anchor .ta-vid {
+  color: var(--muted); text-decoration: none; font-family: var(--font-ui);
+  font-size: 11.5px; font-weight: 500;
+}
+.time-anchor .ta-vid:hover { color: var(--accent); }
+.book-body .table-wrap {
+  width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  margin: var(--sp-5) 0; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-media);
 }
 .book-body table {
   border-collapse: collapse; margin: var(--sp-5) 0;
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--r-media); overflow: hidden;
-  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+  border-radius: var(--r-media);
+  display: block; width: 100%; max-width: 100%;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  font-family: var(--font-ui); font-size: .92em;
+}
+.book-body .table-wrap > table {
+  margin: 0; border: 0; border-radius: 0;
+  display: table; width: 100%; min-width: 520px; overflow: visible;
 }
 .book-body th, .book-body td {
   padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
@@ -378,20 +448,69 @@ body {
 }
 .lightbox.open { display: flex; }
 .lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-close {
+  position: absolute; top: 16px; right: 20px; z-index: 102;
+  width: 38px; height: 38px; border: 0; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18); color: #fff;
+  font-size: 26px; line-height: 1; display: flex;
+  align-items: center; justify-content: center; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.32); }
+.lightbox-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lightbox-caption {
   position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
   color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
 }
 
+/* 阅读位置恢复轻提示 */
+.shelf-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: #F4EFE6; padding: 8px 18px;
+  border-radius: 999px; font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22); z-index: 90;
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.shelf-toast.show {
+  opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto;
+}
+.shelf-toast-btn {
+  background: transparent; border: 0; color: #5EEAD4;
+  cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 0; margin-left: 2px; text-decoration: underline;
+}
+
+.toc-backdrop { display: none; }
+
 @media (max-width: 960px) {
   .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
-  .toc-panel {
-    position: static; max-height: none; display: none;
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--r-panel); padding: var(--sp-4);
+  .toc-toggle {
+    display: inline-flex; align-items: center; justify-content: space-between;
   }
-  .toc-panel.open { display: block; }
-  .toc-toggle { display: block; }
+  .toc-backdrop {
+    position: fixed; inset: 0; z-index: 48;
+    background: rgba(37, 42, 39, 0.45);
+    backdrop-filter: blur(2px);
+    display: none;
+  }
+  .toc-backdrop.open { display: block; }
+  .toc-panel {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 49;
+    width: min(320px, 85vw); max-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    box-shadow: 0 0 24px rgba(37, 42, 39, 0.15);
+    padding: var(--sp-5) var(--sp-4);
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    display: block !important;
+    overflow-y: auto;
+  }
+  .toc-panel.open {
+    transform: translateX(0);
+  }
 }
 @media (max-width: 640px) {
   .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
@@ -401,10 +520,25 @@ body {
   html { scroll-behavior: auto; }
 }
 
+@media print {
+  .topbar, .toc-panel, .toc-toggle, .toc-backdrop, .book-pager, .lightbox,
+  .meta-actions, .time-anchor .ta-vid, .btn-copy-code, .shelf-toast {
+    display: none !important;
+  }
+  .layout {
+    display: block !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important;
+  }
+  .book-main, .book-body {
+    max-width: 100% !important;
+  }
+  .book-body {
+    font-size: 11pt !important; line-height: 1.6 !important; color: #000 !important;
+  }
+  .screenshot-card { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+}
+
 /* quality gate badges (local preview only) */
-.lec-quality{margin-left:.5rem;font-size:.72rem;padding:.1rem .4rem;border-radius:999px;background:var(--chip,#f4efe6);color:#0f766e;border:1px solid rgba(15,118,110,.25)}
-.quality-banner{margin:0 0 1rem;padding:.55rem .85rem;border-radius:8px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:.92rem}
-.quality-banner[data-quality="未审稿"]{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
 
 </style>
 </head>
@@ -413,11 +547,18 @@ body {
   <div class="topbar">
     <div class="topbar-in">
       <a class="back-link" href="../index.html">← 书架</a>
-      <span class="topbar-tag">SHELF · READ</span>
+      <div class="topbar-right">
+        <div class="font-resizer" role="group" aria-label="字号调节">
+          <button type="button" class="btn-font font-dec" aria-label="减小字号">A-</button>
+          <button type="button" class="btn-font font-inc" aria-label="增大字号">A+</button>
+        </div>
+        <span class="topbar-tag">SHELF · READ</span>
+      </div>
     </div>
   </div>
   <div class="layout">
     <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <div class="toc-backdrop" aria-hidden="true"></div>
     <aside class="toc-panel" aria-label="目录">
       <h2 class="toc-title">目录</h2>
       <ul class="toc-list"></ul>
@@ -427,43 +568,41 @@ body {
         <p class="course-line"><strong>26生成式软件工程</strong> · NJU · 第 3 讲</p>
         <h1>03 软件仓库管理</h1>
         <p class="book-summary">版本库与协作流程</p>
-        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1kybV6DE47/" target="_blank" rel="noopener">BV1kybV6DE47</a> · 时长 1h40m · 标签：生成式软件工程、软件仓库管理</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1kybV6DE47/" target="_blank" rel="noopener">BV1kybV6DE47</a> · 视频时长 1h40m · 预计阅读约 15.0 分钟（约 5,988 个阅读单位） · 标签：生成式软件工程、软件仓库管理</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
       </header>
       <article class="book-body">
-<p><em>(参考时间: 00:00:00–01:40:13)</em></p>
+<p>﻿# 03 软件仓库管理</p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-00-00" title="在字幕对照页定位此段">00:00:00–01:40:13</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1kybV6DE47/?t=0" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>本讲主线是<strong>软件仓库管理</strong>：一个项目如何从「一堆文件」变成可追溯、可协作、可审计的版本库。阅读时长估算约 18 分钟（估算），不是实测；视频约 100 分钟。结构上先弄清仓库的对象与历史模型，再谈分支与合并、提交纪律，最后落到项目管理本质与 AI 时代怎么学。文中时间锚点均来自原视频，术语首次出现时给出简短解释。</p>
 <h2 id="_1">一、为什么还要学仓库管理</h2>
-<p><em>(参考时间: 00:00:00–00:09:03)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-00-00" title="在字幕对照页定位此段">00:00:00–00:09:03</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1kybV6DE47/?t=0" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>开课前讲师先回顾：前几次课讲了把 AI 融进生活流程——把不顺心的事挡掉，只需告诉它你真实的意图，还可以把过程蒸馏成 skills，让流程更平顺。与此同时模型本身在快速进展。讲师试用了新一代 GPT：编程提升有限，有经验的软件工程师仍靠「品位」指导 AI 做得更好；模型完成任务更快、更省 token（他特意测量过），但写出来的代码越来越紧凑，人越来越难 review。他猜测这与思维链变短有关：从 GPT-5 到 5.6 再到 6，代码越写越紧，人越来越不想看。以前我们会要求「写出符合人类工程规范的代码」，现在团队甚至开始不看 AI 代码——只要结果对就随它去。</p>
 <p>另一个惊喜是空间感知。讲师一直认为 OpenAI 对 AGI 的路径是先学会数学：数学是人类世界里最难的语言，却有全球认同的推理系统——定理证明对不对，全世界都会同意。这与软件工程里 intent → specification → code 之间层层放大的 gap 正好相反：数学有全球共识，是极好的 grounding（把推理锚到可核验的事实上）。生活里的选择也可以看成投票与蕴含（做了 A 就会做 B），可对齐到离散数学的命题逻辑。</p>
 <p>空间想象则像鲁班锁、骰子展开图一类智力题：只要从简单任务开始强化学习，模型也能学会。讲师的研究组在 GPT 空间感知还很差时，已用对话生成符合规范的 3D 打印模型；新一代模型则把他们做小半年的光栅玩具（左右看是不同图案的光栅纸）「one shot」直接做出来，研究组一时不知如何应对。有人用它控制机械臂做抓取、叠衣服——注意这还是语言模型，一帧一帧问「下面要干什么」，尚未解锁提示词工程，已接近当时的最好水平。结论是：<strong>模型一定会进步</strong>，也许课上到某次就可以说「这门课不用上了」，大家去做产品。</p>
 <p>但今天仍需要学软件工程——AI 解锁的是你的执行力，而不是你对系统的理解。</p>
 <p>他用汽车作比：一百多年前汽车开十二公里就出故障，每个司机都必须懂工作原理，否则半路抛锚只能自己修；今天在车库说一句「帮我开到某地」，自动驾驶就出发了，人已经不需要知道动力如何传到机械装置——但最终它仍传到一个与百年前相似的机械装置上，只是中间过程你都不必知道。人工智能比汽车更强——它替代的是智力——但现阶段学好基础概念，才能更好地解锁 AI 的创造力。以后该怎么学，讲师说他暂时也没有答案，欢迎探讨；这是他的个人观点。理解正确的概念，还能帮你从别的领域借鉴，做出更好的东西。</p>
 <h2 id="_2">二、项目是什么，为什么需要仓库</h2>
-<p><em>(参考时间: 00:09:03–00:24:39)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-09-03" title="在字幕对照页定位此段">00:09:03–00:24:39</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1kybV6DE47/?t=543" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="_3">从建目录开始</h3>
 <p>开始做软件时，第一件事通常是<strong>建一个目录</strong>，给它起个名字（比如「我的最酷的 game」），再往里放代码、文档、配置与测试。目录里这堆文件共同构成可交付物，最后变成产品。讲师概括：软件是人类世界的需求在信息世界里的投影——目录就是这个投影的落地形态。你有一个 hello.c，能编译出可执行文件，就已经在做软件了；至于是否符合现代 best practice，是下一步的事。教室里没有软件时，连升降桌都动不了（桌腿旁的高度显示是 106 厘米）——软件无处不在。</p>
-<p>怎么知道目录里该放什么？往往是不经意间看过老师打开的工程项目，或同学发来 GitHub 链接——网页上那些文件让你形成直觉。一个本地能跑的 demo 不等于世界可访问：有个笑话是「GPT 太牛了，我做了多少 killer 产品」，它们全是 <code>http://localhost:5173</code>。若不在 intent 里写明「要被全世界人看到」，模型会把你当成开发者，先起本地开发服务器调试，ready 了才送远端。这些知识在计算机专业课里会反复出现，最终变成你项目里的文件与可交付物。从 IDE 一键编译，到大二用 GCC 把 hello.c 编成 hello 二进制，你就在做软件工程的项目了。标准定义上，软件是代码、文档等一切与软件相关的东西的集合；讲师更愿意说：它是需求的投影，今天落在一个目录里。</p>
+<p>怎么知道目录里该放什么？往往是不经意间看过老师打开的工程项目，或同学发来 GitHub 链接——网页上那些文件让你形成直觉。一个本地能跑的 demo 不等于世界可访问：有个笑话是「GPT 太牛了，我做了多少 killer 产品」，它们全是 <code>http://localhost:5137</code>。若不在 intent 里写明「要被全世界人看到」，模型会把你当成开发者，先起本地开发服务器调试，ready 了才送远端。这些知识在计算机专业课里会反复出现，最终变成你项目里的文件与可交付物。从 IDE 一键编译，到大二用 GCC 把 hello.c 编成 hello 二进制，你就在做软件工程的项目了。标准定义上，软件是代码、文档等一切与软件相关的东西的集合；讲师更愿意说：它是需求的投影，今天落在一个目录里。</p>
 <h3 id="_4">为什么需要「回到上一版」</h3>
 <p>早期许多人用拷贝目录、U 盘、邮件附件来「保存版本」。讲师举自己第一个博士生的例子：2012 年入学，大一为了在机房与宿舍之间搬代码，把作业存进 U 盘（那时宿舍屏幕不便宜，机房是标准答案；如今二手小屏幕几百块就能在宿舍获得很好体验）；大二 U 盘损坏，作业和启蒙代码全部丢失。上学时交作业是打压缩包发邮件，现在是网页上传——都是管理项目的方式。真正的需求很清楚：<strong>改错了要能回去看上一版</strong>。新手误操作非常正常，「回到上一个版本看我原来怎么写的」就是版本管理（记录文件随时间的变化，并可回溯、比较、恢复的机制）的起点。</p>
 <p>今天这门课的标准答案是 git。它不只保存某一时刻的目录状态，还能<strong>保留、比较与恢复历史版本</strong>——这是软件工程里很重要的特性，后面会详细展开。有了它，分发作业用 clone，更新远端即可，不必再对每人发压缩包；配合脚本自动打包上传课程网站，甚至接近现代 CI/CD 流程。对讲师自己，有了 agent 之后更夸张：投诉信都交给 codex，做完连浏览器一起关掉，过程完全托管。GitHub 这类平台让分发代码前所未有地方便，甚至成了 AI 时代依赖管理的底层设施（各种包配置都托管在上面）。</p>
 <h3 id="_5">怎么在真实仓库里学细节</h3>
-<p>命令（init/add/提交/push）今天很容易交给 agent，真正值钱的是<strong>学习意识</strong>与对细节的注意力：</p>
-<ol>
-<li><strong>多看真实仓库</strong>：不同项目的文件集合、README 长短与信息密度差异很大。满屏 AI slop（模型批量产出的、看似合理但不是你想要的内容）的长 README，对比十年前老项目里「三个链接就走完」的短文档，品味是比出来的。可以类比城市路牌：讲师在香港找路时，凡有不确定性的路口正前方必有路牌；回到南京地铁站却常要环顾甚至走远找地图。有范例比你做得好，你就学到了；做 UI 也要站在人的角度，把人要的 ABC 一次呈现出来。有 AI 后还可以直接问「为什么这个 README 没有 slop 感」。</li>
-<li><strong>虚拟实现</strong>（virtually implement）：读论文或看方案前，先在脑中自己做一遍；一致说明已掌握，不一致再问「他为什么更好」——偶尔你还会比作者更好。这适用于任何课程，包括高等数学、计算机系统基础。</li>
-<li><strong>追问 best practice</strong>：做完一次提交就问 agent「这符合规范吗」，把两难细节（命名大小写、中英文空格）都弄清楚。每问一句，长进就多一点。课堂里老师讲授时受限于注意力，未必是最好版本；把问题带给模型，往往能得到更完整的解释。</li>
-<li><strong>细节的 bar 在提高</strong>：一旦有人学会做好细节，招聘方就会用这个标准衡量所有人；问「git merge 之后会发生什么」答不上来，和能从零构建概念的人，竞争力不同。</li>
-</ol>
-<p>课堂上问「merge 之后会观察到什么」，多数人答不好——不是没用过 agent，就是没留意现场。惊人的注意力要主动练：出问题时停一秒，看清标记与两侧内容，而不是立刻让 agent 抹平。</p>
-<p>课外信息密度已经远超课堂：成熟 GitHub 项目是工程师十几年心血，甚至经历过一次崩溃后的大型重构才呈现为今天的样子。传统教学没教怎么用好这些高密度信息，但你要主动拥抱它。老师与同学的注意力训练，就是「看到任何东西之前先想我会怎么做，再比较谁更好」——比你差的可当 slop，比你好的就追问为什么。</p>
-<p>很多同学有一种「老师说的太多、只做老师让做的事」的心态，像被强化学习成「只碰指定范围」的 agent——最省时间，但学不到 best practice。愿意多点进去看仓库细节的人，会突然灵光一现：这个文档写得真好。AI 时代课外信息密度已经远超课堂，真正好的项目、符合工程规范的仓库要自己去对比、去学。面试时问「git merge 之后会发生什么」答不上来，和能从零构建概念的人，在求职市场上竞争力完全不同；一旦有人学会把细节做好，招聘方就会用这个标准衡量所有人。</p>
+<p>命令（init/add/提交/push）可以交给 agent，讲师更强调在使用中主动观察。不同项目的文件、README 长短和信息密度各不相同；他用城市路牌作比：在香港，路口前会提示下一步方向；回到南京地铁站，找出口时有时得环顾或走到远处看地图。看过更好的范例，才知道 README 或 UI 怎样用更少的信息让人找到所需内容；有 AI 后还可以追问，好的项目为什么没有「AI slop」感。</p>
+<p>他称另一种学习方法为 <strong>virtually implement（虚拟实现）</strong>：读论文或看方案之前，先在脑中自己把问题做一遍，再与作者方案比较。若对方更精巧，就追问原因并把它变成自己的知识；偶尔自己的方案更好，也会带来正反馈。这种办法也适用于高等数学、计算机系统基础等课程。</p>
+<p>讲师认为，课外信息密度已远高于课堂：成熟仓库可能凝结了工程师十几年的实践，经历过重构才成为今天的样子。学习者不应只按任务清单完成作业；他把这种「老师让做什么就只做什么」比作只执行指令的 agent，建议多点进项目看看文件、文档和细节。先想自己会怎样解决，再比较现成方案；讲师还判断，求职市场对工程细节的要求会不断提高。面试中能否解释 <code>git merge</code> <strong>冲突</strong>（多人改同一处且 Git 无法自动合并、需人工裁决的状态）后会看到什么，也是工程细节差异的例子。</p>
 <h2 id="git">三、Git 如何保存历史</h2>
-<p><em>(参考时间: 00:24:39–00:40:02, 01:03:10–01:14:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-24-39" title="在字幕对照页定位此段">00:24:39–00:40:02, 01:03:10–01:14:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1kybV6DE47/?t=1479" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="v1v2">从「作业 V1、V2」发明版本库</h3>
 <p>若只复制目录命名为作业 V1/V2/V3，虽直观，却难以比较与合并。更干净的想法是：只维护<strong>一个</strong>作业目录，用命令列出历史版本、把当前版本切到另一版、回到过去某版。这已经是一个简化版的版本管理工具。再往后，与室友同步、两人改同一文件时，自然要发明合并与分歧处理——这正是 git 的生长路径。讲师强调：你可以从「我知道什么、我想要什么」推出下一个概念该长什么样；这本身就是数学式推理——每一句话都和前一句有逻辑关联。OpenAI 先把数学训好再扩别的能力，也是这种「从共识出发」的思路。</p>
 <h3 id="_6">快照模型，而不是补丁链</h3>
-<p><strong>快照</strong>（某一时刻项目全部文件状态的完整记录）是 git 的核心模型。对比之下，SVN 一类系统存储的是项目的变化：最初版本之后，每次改一行存一个 patch，看起来是高效实现，但项目变大后，要回到早期版本只能一个补丁一个补丁往回退，效率被拖入泥潭。git 直接记下整棵树的状态，回溯往往只要一步。git 由 Linux 作者在 2005 年前后写出：1991–2002 年他们用「作业 V1/V2」加邮件列表发补丁的方式维护 Linux（改了 a.c 就发新版补丁，维护者合并后 release），后来又用过 CVS、BitKeeper 等工具，终于受不了之后，决定做一个绝对简单、概念正确的版本控制工具。它比我们想象的年轻：2005 年才诞生。</p>
+<p><strong>快照</strong>（某一时刻项目全部文件状态的完整记录）是课堂解释 Git 的核心模型。讲师用逐次保存补丁的方式作对比：在这种模型里，回到较早状态需要沿变化逐步还原；快照模型则把「回到某一版」作为直接操作来理解。这里是课堂上的概念对比，不代表所有 SVN 与 Git 版本的实际存储实现都如此。讲师还回顾 Linux 的维护方式：1991–2002 年通过邮件列表发送补丁，后来使用过其他工具；课堂画面列出 2002 年 BitKeeper、2005 年 Git。Git 由 Linux 作者 Linus Torvalds 在 2005 年创建，讲师称其模型更简单、概念更干净。</p>
 <h3 id="_7">三类对象</h3>
 <p>底层上，git 是一个<strong>持久化的数据结构</strong>，持久化的是目录树：</p>
 <ul>
@@ -472,32 +611,34 @@ body {
 <li><strong>commit</strong>（把当前改动保存为一条带说明的历史快照）object（提交对象）：钉住某一时刻目录树，并记录说明与父提交的对象。</li>
 </ul>
 <p>改一个文件时不必复制整个项目：只需新建该文件的 blob，并复制「到根的路径」上的 tree，未改动的子树用<strong>指针</strong>指回旧对象。例如根下有 a.txt、b.txt 和子目录 d，改 b.txt 时只新建 b 的 blob 与到根的路径上的 tree，a 与 d 都用指针指回旧对象。目录本身也不会深到离谱（没有人在意千层深目录），所以哪怕仓库有百万文件，一次提交的增量也很小。<code>.git</code> 目录里那些带哈希的 objects，就是这棵不断向后生长的树。大学生从第一性原理出发，完全有可能设计出这样的结构。</p>
-<p>课堂用可视化工具对着真实仓库演示：blob 可以是空的 hello.c，也可以是可执行文件；tree 里记录权限位（如 644、755）与文件名；很小的文件解压后甚至比压缩前更长（31 字节解出 23 字节之类）——这不要紧，模型干净比压缩率更重要。还可以持续监听目录变化，用动画展示 commit 后对象树如何长出新版本：删除一个文件，右侧树立刻少一个节点；创建分支则多出 refs 下的指针文件。与 Learn Git Branching 那类模拟模型的教具不同，这是直接读真实 <code>.git</code> 里的字节，逐步解析给人看。</p>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1kybV6DE47&t=4334&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="git 对象树可视化"></iframe></div><p class="video-caption"><span class="cap-text">git 对象树可视化</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=4334" target="_blank" rel="noopener">在 B 站打开 (01:12:14)</a></span></p></div>
+<p>课堂用可视化工具对着真实仓库演示：blob 可以是空的 hello.c，也可以是可执行文件；tree 里记录权限位（如 644、755）与文件名；很小的文件<strong>压缩反而浪费</strong>：存盘约 31 字节，解出的内容只有 23 字节（另有 52 字节解出 43 字节的类似情况）——这不要紧，对象模型干净比压缩率更重要。还可以持续监听目录变化，用动画展示 commit 后对象树如何长出新版本：删除一个文件，右侧树立刻少一个节点；创建分支则多出 refs 下的指针文件。与 Learn Git Branching 那类模拟模型的教具不同，这是直接读真实 <code>.git</code> 里的字节，逐步解析给人看。</p>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1kybV6DE47&t=4334&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="git 对象树可视化"></iframe></div><p class="video-caption"><span class="cap-text">git 对象树可视化</span><span class="cap-time"><a href="transcript.corrected.html#t-01-12-14" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=4334" target="_blank" rel="noopener">在 B 站打开 (01:12:14)</a></span></p></div>
 
 <h2 id="_8">四、分支与合并</h2>
-<p><em>(参考时间: 00:25:53–00:29:00, 01:10:02–01:18:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-25-53" title="在字幕对照页定位此段">00:25:53–00:29:00, 01:10:02–01:18:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1kybV6DE47/?t=1553" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p><strong>分支</strong>并不是整份仓库的拷贝，而是 refs 文件里的指针，指向某个提交对象。<strong>HEAD</strong>（指向当前分支的指针，决定工作区停在哪个版本）再指向分支，是「指针的指针」。合并后的历史里，一个提交可以有两个 parent——分叉再汇合，是 git 的常态。失败的尝试可以安全扔掉，成功的分支再合并进来，多条主线并行而不互相干扰。</p>
-<h3 id="_9">冲突现场：把决策信息放在问题现场</h3>
-<p><strong>冲突</strong>（多人改同一处且 Git 无法自动合并、需人工裁决的状态）发生时，文本里会有等号、尖括号、incoming 等标记，两边修改同屏出现；IDE 还会给出接受某侧的按钮。git 不会替你决定「这行到底是二还是三」——解决冲突是开发者的责任。举例：文件原来是 <code>1111</code>，一人把第二行改成 2，另一人改成 3，git 不能假装没看见直接躺下，而要把两侧和 base 一起摆出来。</p>
-<p>底层还会暂存 base/ours/theirs 三个版本（可视化工具里能看到这三个暂存文件），方便人工裁决后再产生一次新的提交，指针关系被正确保留下来——merge 提交有两个 parent，选中的 tree 正确接到结果上。面试里若被问「merge 之后会观察到什么」，值得答出细节：<strong>把决策所需信息放在问题现场</strong>——这和城市路牌是同一个第一性原理。git 设计者不能让 git 直接躺平说「冲突了我不能合并」，因为人无法知道该用二还是三；把两侧代码、标记、base 都摆到问题现场，开发者才能裁决。</p>
-<p>练习建议：遇到冲突时停一秒，看清标记与两侧内容，而不是立刻让 agent 抹平。一两次之后，你至少能说出「冲突的两边代码会显示在一起」。</p>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1kybV6DE47&t=1690&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="冲突标记与两侧修改同屏"></iframe></div><p class="video-caption"><span class="cap-text">冲突标记与两侧修改同屏</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=1690" target="_blank" rel="noopener">在 B 站打开 (00:28:10)</a></span></p></div>
+<h3 id="_9">把决策信息放在问题现场</h3>
+<p><strong>冲突</strong>发生时，文本里会有等号、尖括号、incoming 等标记，两边修改同屏出现；IDE 还会给出接受某侧的按钮。git 不会替你决定「这行到底是二还是三」——解决冲突是开发者的责任。举例：文件原来是 <code>1111</code>，一人把第二行改成 2，另一人改成 3，git 不能假装没看见直接躺下，而要把两侧和 base 一起摆出来。</p>
+<p>冲突路径在 index 中还会有 base、ours、theirs 三个阶段，便于人工裁决；解决后再形成新的提交，merge commit 可有两个 parent。讲师用「把决策所需信息放在问题现场」解释冲突标记的作用，也建议遇到冲突时先看清两侧内容，再决定是否交给 agent 处理。</p>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1kybV6DE47&t=1690&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="冲突标记与两侧修改同屏"></iframe></div><p class="video-caption"><span class="cap-text">冲突标记与两侧修改同屏</span><span class="cap-time"><a href="transcript.corrected.html#t-00-28-10" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1kybV6DE47/?t=1690" target="_blank" rel="noopener">在 B 站打开 (00:28:10)</a></span></p></div>
 
 <h2 id="_10">五、提交纪律</h2>
-<p><em>(参考时间: 00:30:02–01:00:00, 01:20:04–01:32:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-30-02" title="在字幕对照页定位此段">00:30:02–01:00:00, 01:20:04–01:32:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1kybV6DE47/?t=1802" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="commit">为什么是小步 commit</h3>
 <p><strong>commit</strong>（把当前改动保存为一条带说明的历史快照）应在每次有意义改动后及时做：修一个 bug、加一个功能、调一版文档、改一处脚本。message 要<strong>描述你改了什么</strong>——读提交历史就能看出项目如何演进：修了多少 bug、加了什么需求、经历过什么重构。若一万个提交都是 “I added some cool stuff”，message 这个特性等于不存在，不如只留 V1→V2。git 存的是快照，但项目本质上还是 V1 经一次修改变到 V2；message 就是那次修改的说明。</p>
 <p>基础动作本身很短：<code>git init</code> 得到空仓库（多出隐藏的 <code>.git</code> 目录），<code>git add hello.c</code> 暂存，<code>git status</code> 看工作区，<code>git commit</code> 打出带消息的快照。真正的冰山是「什么时候 add、什么时候 commit、message 怎么写」——长期实践沉淀出的 best practice。不要把 git 用成「作业 V1/V2/V3」；那是拷贝目录的习惯，不是 git 推荐的用法。</p>
 <p><strong>为什么要及时提交</strong>？复杂项目里改得越多，错得越可能多。小项目一次两三千行或许没事；项目变复杂后，一个上万行的大提交可能一次引入多个 bug，后面修一百个都说「是 V2 的问题」，甚至修不过来、也不知道修好没有。小步提交则<strong>冤有头债有主</strong>：修复与引入可以配对，历史成为可审计的资产。做完小提交立即 push，还能在本机损坏前留下互联网备份。</p>
 <h3 id="_11">完整、自洽、能构建</h3>
-<p>提交应当是<strong>完整自洽的快照</strong>：每次提交的代码应该能够通过构建和测试。编译不过的代码进库，等于让仓库处于坏状态——人很容易想「就改一个字，先提交吧」，但工程习惯要求提交前让代码可构建。消息格式可参考 <strong>conventional commits</strong>（用类型前缀规范提交说明的约定）：类型前缀加冒号与空格，如引入功能或修复缺陷；标题用祈使句、现在时，正文说明动机。例如 <code>fix off by one in header length check</code>。commit message 通常一行标题加详细正文；有的项目还要求 scope，形成「我干了什么 + 总结 + body」的格式。英文中文之间留空格、全文风格一致这类细节，也是工程规范的一部分——不一致最让人难受。这些约定的目的，是工程师面对更大项目时保持一致性和规范，人维护起来更顺；AI 时代模型往往也按这套细节来，不会生成风格混乱的说明。</p>
+<p>提交应当是<strong>完整自洽的快照</strong>：每次提交的代码应该能够通过构建和测试。编译不过的代码进库，等于让仓库处于坏状态——人很容易想「就改一个字，先提交吧」，但工程习惯要求提交前让代码可构建。消息格式可参考 <strong>conventional commits</strong>（用类型前缀规范提交说明的约定）：课堂展示的例子用类型前缀、冒号与空格，如 <code>fix off by one in header length check</code>；讲师还转述模型给出的建议，包括用祈使句、现在时描述变更，并让标题和正文有清楚层次。具体约定可随项目而异，重点是消息可读、风格一致。讲师也指出，模型生成的提交说明仍可能中英混杂或随意发挥，工程细节需要人留意。</p>
 <p>空提交（无文件变更）偶尔可用于标记发布或触发 CI：比如为 V0.1 freeze 做一个 finalize 提交，把 bugfix 提交和发布标记分开。不宜滥用，不能制造大量空提交。git 甚至允许你在无任何代码变更时再打一个提交；agent 知道这个技巧，但 best practice 仍建议少用。更稳的自动化是 hook（在特定事件发生时自动执行检查的钩子）：在提交前做规则检查，不通过就不让交。hook 也用在 agent 上：完成需要输入时叮一声提醒。严肃项目里可以在 pre-commit 上挂几十条 checking rules；连规则命名用全大写还是小写这种两难，都值得多问一句——每个细节都问清，你就比别人多一层长进。</p>
 <h3 id="_12">什么不该进版本库</h3>
-<p>研究组里常见的「高血压」现场：把 dist、日志、个人编辑器配置、甚至仍有效的 API 密钥提交进库；Mac 同学还会不知不觉带上 <code>.DS_Store</code>（Finder 留下的隐藏索引文件）。编译产物（如 hello 可执行文件）也不应提交——不同环境编出的二进制可能带日期、哈希或本机指纹，放进库后几乎必然产生<strong>二进制冲突</strong>，而二进制几乎无法合并（图片同理）。用 <strong>.gitignore</strong>（声明哪些文件不纳入版本管理的清单文件）排除它们；<code>git add .</code> 虽合法，却常把点开头的隐藏临时文件一并带上。</p>
-<p>规则并非绝对：<code>package-lock.json</code>、生成的 header 这类生成物提交后反而利于别人在缺工具链时复现编译。也没有绝对的「所有 generated file 都不该提交」。git 本身不阻止你提交编译产物，但 best practice 会警告；agent 往往比人更清楚这些规则，还顺手修好并解释原因——比如丢弃空提交与编译产物两段历史，新建 main 分支重写为两个单一职责的有意义提交。导师以前有新同学进组就会「高血压」（dist/log/个人配置/API 密钥入库）；现在 AI 可以耐心检查、给出解释甚至用 emoji 缓和情绪，学生压力也小了。</p>
+<p>研究组里常见的「高血压」现场：把 dist、日志、个人编辑器配置、甚至仍有效的 API 密钥提交进库；Mac 同学还会不知不觉带上 <code>.DS_Store</code>（Finder 留下的隐藏索引文件）。编译产物（如 hello 可执行文件）通常不应提交：不同环境编出的二进制可能带日期、哈希或本机指纹，产生难以合并的<strong>二进制冲突</strong>；图片等二进制内容也不便像文本那样合并。用 <strong>.gitignore</strong>（声明哪些文件不纳入版本管理的清单文件）排除它们；<code>git add .</code> 虽合法，却常把点开头的隐藏临时文件一并带上。</p>
+<p>规则并非绝对：<code>package-lock.json</code>、生成的 header 这类生成物提交后反而利于别人在缺工具链时复现编译。也没有绝对的「所有 generated file 都不该提交」。git 本身不阻止你提交这些文件。课堂演示中的 agent 检查了空提交、编译产物和提交信息，并建议将历史整理成两个有意义、单一职责的提交。导师还举例说，新同学常把 dist、日志、个人配置或 API 密钥带入仓库；AI 可以先做检查和解释，减少导师逐项纠正的压力。</p>
 <h2 id="_13">六、把历史变成工具</h2>
-<p><em>(参考时间: 00:50:00–01:00:00, 01:30:01–01:31:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-50-00" title="在字幕对照页定位此段">00:50:00–01:03:05, 01:31:10–01:33:21</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1kybV6DE47/?t=3000" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <ul>
 <li><strong>git blame</strong>：指出每一行是哪次提交、谁改的，用来定位「谁引入了这行」。</li>
 <li><strong>git bisect</strong>（在提交历史中二分查找定位引入问题的版本）：把历史看成「前缀都正常、从某点起都失败」的序列，像二分查找找第一个 1，快速锁定引入 bug 的提交。前提是手里有一个能检出 bug 的测试或检查手段。</li>
@@ -505,19 +646,19 @@ body {
 <p>前提是历史本身干净：小步、可构建、消息可读。否则 blame 全是噪声，bisect 也无从下手。小步 commit 使修复可与引入提交配对，形成审计链——这是历史能当工具用的前提。agent 时代仍可要求「小步提交、可审计」，维护效率更高，也更省 token：不相关的文件可以不用再读。</p>
 <p>还可以把 GitHub 之类的平台能力接上：issue、评论并不在 git 对象里持久化，用 <code>gh</code> 这类命令行工具可以拉取、认领、关闭 issue；在 agent 里设一个 goal，要求小步提交、可审计提交、线性历史，长任务也能转起来。提交信息里写 <code>fix #3</code> 之类还能自动关联 issue。agent 时代这些命令甚至成为「古法手艺」——你不必背命令，但必须有概念：知道 git 能干什么，才能让 agent 按 best practice 去干。真正的风险是你分不清「我自己能干」还是「脱了 agent 就干不了」；对初学者，多一次亲手观察冲突、亲手 blame，就多一分可迁移的能力。</p>
 <h2 id="_14">七、项目管理的本质</h2>
-<p><em>(参考时间: 01:30:01–01:39:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-20-04" title="在字幕对照页定位此段">01:20:04–01:26:29, 01:33:27–01:39:58</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1kybV6DE47/?t=4804" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>讲师判断：项目应组织成用 <strong>atomic change</strong>（一次只做一件完整小事的变更，便于审计与回滚）推进的快照序列。这句话是今天更要记住的总纲；仓库里的命令与对象，都是从这句话推出来的。</p>
 <p>原因是：<strong>项目管理的本质是人类没有办法处理一团混沌</strong>。需求多、代码多、改动堆在一波，必然改乱——古法做大作业改着改着就四处冲突，这个部分和那个部分互相踩。自然的对策是把需求分解成可理解、可审计的小任务，一小步一小步推进。这样出问题可以 bisect、可以 blame；协作冲突也容易解决——只冲突的小提交单独裁决，不冲突的部分顺利合并。管理很多快照还有一个好处：可以随时开新分支做尝试，失败就安全扔掉，成功就合并进来，多条主线并行而不互相干扰。更严肃的项目还要求 linear history：历史像线一样可追溯，对 cherry-pick 与 blame 更友好，在模型能力无限之前，这对人与 agent 维护都更省。</p>
 <h3 id="_15">架构先行</h3>
 <p>据其实践，讲师会在架构设计阶段先用单线程、智力比较高的模型把接口讨论清楚，再开多个 agent 实现。接口若设计不好，后面是无穷迭代。他把组件接口做成 pure function（纯函数：相同输入必得相同输出、不改外部状态），全局状态收敛到很小的注册表（例如光标位置等共享状态只有十几行），并要求 agent 只看接口、禁止读库实现——上下文只要几万 token 就能做出可视化 playground。架构定好后，开几个终端并行，哪里不满意再修；agent 与人协作的成本都会下降。这套做法本身也是「小步、可审计」在 AI 开发中的延伸。</p>
 <p>例子：给小学生教 Python 的极简 playground——整数与字符串互转、<code>hello * 10</code>、汉诺塔递归调试（可前进后退的动画）、方块下落的可视化，都可以 web code 出来；讲师把控架构与视觉，代码质量交给 AI。两天碎片时间就能完成一个可用的课件生成流程，甚至便宜的国产模型也能出课件。真正值钱的是你愿意花时间学细节——求职市场上「把细节做好」的 bar 会不断提高。</p>
-<h2 id="_16">八、收束：工具会变，智慧会沉淀</h2>
-<p><em>(参考时间: 01:30:15–01:40:13)</em></p>
-<p>git 的模型很简单，水面下的冰山是各种 best practice——每一条都是血和泪的教训。你可以跟模型讨论「为什么要这样写 message」，很多解释比讲师即兴讲得更完整；课堂即兴未必是最好版本，模型反而有时间把因果讲透。学习 git 不是背命令，而是把「可追溯、可审计、可协作」变成肌肉记忆。工具会变，仓库管理的智慧会沉淀。</p>
-<p>小步提交还有一个副产品：把 git 记录拆分得好，AI 维护项目时也更省 token——不相关的文件可以跳过，修改由谁引入一目了然。若再要求 linear history（历史近似一条线，禁止分叉 merge），cherry-pick 与 blame 都更友好；在「无限能力模型」到来之前，这对人和 agent 都是好约束。有人会强制整个 committer history 看起来线性：可以 merge，但尽量整理成线；代价是不完全是原生合并结构，好处是历史更易追溯。</p>
-<p>课堂最后留下一个问题：如果 agent 快了一千倍，我们还怎样管理版本控制？这留到下一讲讨论。</p>
+<h2 id="_16">八、结尾留问</h2>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-40-00" title="在字幕对照页定位此段">01:40:00–01:40:13</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1kybV6DE47/?t=6000" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>课堂最后留下一个未回答的问题：「如果 agent 快了一千倍，我们还怎样管理版本控制？」讲师说下一节课再讨论；本讲没有给出答案。</p>
 <hr />
-<p><em>本讲对应视频约 100 分钟；上文为知识压缩稿，阅读时长估算。完整逐句对照见 <code>transcript.corrected.txt</code>。</em></p>
+<p><em>本讲对应视频约 100 分钟；正文为可独立阅读的忠实书稿（保留关键实体、定义、因果、案例与限制；去掉口语与重复），阅读时长估算。完整逐句对照见 <code>transcript.corrected.txt</code>。</em></p>
       </article>
       <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%20%5B02-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">02 提示词工程</span></a><a class="pager-btn next" href="../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%282%29%20%5B04-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">04 软件仓库管理 (2)</span></a></nav>
     </div>
@@ -532,11 +673,11 @@ body {
   }
 
   ready(function () {
-    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
     var body = document.querySelector(".book-body");
     var panel = document.querySelector(".toc-panel");
     var list = document.querySelector(".toc-list");
     var toggle = document.querySelector(".toc-toggle");
+    var backdrop = document.querySelector(".toc-backdrop");
     var mainH1 = document.querySelector(".book-head h1");
 
     if (body && mainH1) {
@@ -577,15 +718,33 @@ body {
       list.appendChild(frag);
     }
 
+    // 移动端侧边抽屉式目录
+    function closeDrawer() {
+      if (panel) panel.classList.remove("open");
+      if (backdrop) backdrop.classList.remove("open");
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
+    }
     if (toggle && panel) {
       toggle.addEventListener("click", function () {
         var open = panel.classList.toggle("open");
+        if (backdrop) backdrop.classList.toggle("open", open);
         toggle.setAttribute("aria-expanded", open ? "true" : "false");
       });
     }
+    if (backdrop) {
+      backdrop.addEventListener("click", closeDrawer);
+    }
+    if (list) {
+      list.addEventListener("click", function (e) {
+        if (e.target && e.target.tagName === "A" && window.innerWidth <= 960) {
+          closeDrawer();
+        }
+      });
+    }
 
-    // 当前章节高亮（本页阅读位置，不持久化）
+    // 当前章节高亮与非侵入式目录自动跟随
     var links = list ? list.querySelectorAll("a[data-target]") : [];
+    var lastActiveLink = null;
     function setActive() {
       if (!links.length) return;
       var current = null;
@@ -595,12 +754,120 @@ body {
         var top = el.getBoundingClientRect().top;
         if (top <= 80) current = a;
       });
+      if (!current && links.length) current = links[0];
       links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+
+      // 仅在当前章节改变且目录项超出容器时，微调目录面板 scrollTop，不干扰正文滚动
+      if (current && current !== lastActiveLink && panel && window.innerWidth > 960) {
+        lastActiveLink = current;
+        var pRect = panel.getBoundingClientRect();
+        var cRect = current.getBoundingClientRect();
+        if (cRect.top < pRect.top + 24 || cRect.bottom > pRect.bottom - 24) {
+          var targetTop = panel.scrollTop + (cRect.top - pRect.top) - (panel.clientHeight / 2 - cRect.height / 2);
+          panel.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+        }
+      }
     }
     window.addEventListener("scroll", setActive, { passive: true });
     setActive();
 
-    // Lightbox：键盘可操作
+    // 字号微调 (A- / A+)
+    var fontDec = document.querySelector(".font-dec");
+    var fontInc = document.querySelector(".font-inc");
+    var currentFontSize = 18;
+    try {
+      var savedFont = localStorage.getItem("shelf_font_size");
+      if (savedFont) {
+        currentFontSize = parseInt(savedFont, 10) || 18;
+        document.documentElement.style.setProperty("--text-body", currentFontSize + "px");
+      }
+    } catch (e) {}
+
+    function setFontSize(val) {
+      currentFontSize = Math.max(15, Math.min(22, val));
+      document.documentElement.style.setProperty("--text-body", currentFontSize + "px");
+      try { localStorage.setItem("shelf_font_size", currentFontSize); } catch (e) {}
+    }
+    if (fontDec) fontDec.addEventListener("click", function () { setFontSize(currentFontSize - 1); });
+    if (fontInc) fontInc.addEventListener("click", function () { setFontSize(currentFontSize + 1); });
+
+    // 代码块一键复制
+    document.querySelectorAll(".book-body pre").forEach(function (pre) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-copy-code";
+      btn.textContent = "复制";
+      btn.setAttribute("aria-label", "复制代码");
+      btn.addEventListener("click", function () {
+        var code = pre.querySelector("code");
+        var text = (code ? code.textContent : pre.textContent) || "";
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            btn.textContent = "已复制 ✓";
+            btn.classList.add("copied");
+            setTimeout(function () {
+              btn.textContent = "复制";
+              btn.classList.remove("copied");
+            }, 1800);
+          });
+        }
+      });
+      pre.appendChild(btn);
+    });
+
+    // 记忆阅读位置与静默恢复
+    var storageKey = "shelf_pos_" + window.location.pathname;
+    var saveTimer = null;
+    window.addEventListener("scroll", function () {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        if (scrollY > 120) {
+          try { localStorage.setItem(storageKey, scrollY); } catch (e) {}
+        } else {
+          try { localStorage.removeItem(storageKey); } catch (e) {}
+        }
+      }, 250);
+    }, { passive: true });
+
+    function showToast(msg) {
+      var toast = document.getElementById("shelf-toast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "shelf-toast";
+        toast.className = "shelf-toast";
+        toast.setAttribute("role", "status");
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = htmlEscape(msg) + ' <button type="button" class="shelf-toast-btn" id="toast-to-top">回到顶部</button>';
+      toast.classList.add("show");
+      var toTop = toast.querySelector("#toast-to-top");
+      if (toTop) {
+        toTop.addEventListener("click", function () {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          toast.classList.remove("show");
+        });
+      }
+      setTimeout(function () { toast.classList.remove("show"); }, 3800);
+    }
+    function htmlEscape(s) {
+      return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    try {
+      var savedPos = localStorage.getItem(storageKey);
+      if (savedPos && !window.location.hash) {
+        var pos = parseInt(savedPos, 10);
+        if (pos > 160) {
+          setTimeout(function () {
+            window.scrollTo({ top: pos, behavior: "instant" });
+            showToast("已恢复上次阅读位置");
+          }, 60);
+        }
+      }
+    } catch (e) {}
+
+    // Lightbox：显式关闭按钮与键盘焦点管理
     var lb = document.getElementById("lightbox");
     if (!lb) {
       lb = document.createElement("div");
@@ -608,11 +875,14 @@ body {
       lb.className = "lightbox";
       lb.setAttribute("role", "dialog");
       lb.setAttribute("aria-modal", "true");
-      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      lb.setAttribute("aria-label", "图片预览");
+      lb.setAttribute("tabindex", "-1");
+      lb.innerHTML = '<button type="button" class="lightbox-close" aria-label="关闭预览">&times;</button><img alt=""><div class="lightbox-caption"></div>';
       document.body.appendChild(lb);
     }
     var lbImg = lb.querySelector("img");
     var lbCap = lb.querySelector(".lightbox-caption");
+    var lbClose = lb.querySelector(".lightbox-close");
     var lastFocus = null;
 
     function openLb(src, alt) {
@@ -622,13 +892,20 @@ body {
       lbCap.textContent = alt || "";
       lb.classList.add("open");
       document.body.style.overflow = "hidden";
-      lb.focus();
+      if (lbClose) lbClose.focus();
+      else lb.focus();
     }
     function closeLb() {
       lb.classList.remove("open");
       lbImg.src = "";
       document.body.style.overflow = "";
       if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    if (lbClose) {
+      lbClose.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeLb();
+      });
     }
     document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
       img.setAttribute("tabindex", "0");
@@ -641,9 +918,17 @@ body {
         }
       });
     });
-    lb.addEventListener("click", closeLb);
+    lb.addEventListener("click", function (e) {
+      if (e.target === lb || e.target === lbClose) closeLb();
+    });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+      if (e.key === "Escape") {
+        if (lb.classList.contains("open")) closeLb();
+        closeDrawer();
+      } else if (e.key === "Tab" && lb.classList.contains("open")) {
+        e.preventDefault();
+        if (lbClose) lbClose.focus();
+      }
     });
 
     // Mermaid（若页面引入了 mermaid）

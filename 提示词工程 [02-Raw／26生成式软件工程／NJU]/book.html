@@ -92,6 +92,23 @@ body {
 }
 .back-link:hover { text-decoration: underline; }
 .back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-right {
+  display: flex; align-items: center; gap: var(--sp-3);
+}
+.font-resizer {
+  display: inline-flex; align-items: center;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-ctl); padding: 1px 3px; gap: 2px;
+}
+.btn-font {
+  background: transparent; border: 0; color: var(--muted);
+  font-family: var(--font-ui); font-size: 11.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 4px; cursor: pointer;
+  line-height: 1.4;
+}
+.btn-font:hover { color: var(--ink); background: var(--code-bg); }
+.btn-font:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 .topbar-tag {
   font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
   color: var(--faint);
@@ -225,9 +242,9 @@ body {
   color: var(--ink);
 }
 .book-body > *:first-child { margin-top: 0; }
-/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body img { max-width: 100%; height: auto; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供；禁止使用 + * 避免误伤正文导语 */
 .book-body > h1:first-child,
-.book-body > h1:first-child + * ,
 .book-body > .md-toc-skip { display: none; }
 .book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
 .book-body > h1 + p,
@@ -314,19 +331,72 @@ body {
   padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
 }
 .book-body pre {
+  position: relative;
   margin: var(--sp-4) 0; padding: var(--sp-4);
   background: var(--code-bg); border: 1px solid var(--line);
   border-radius: var(--r-media); overflow-x: auto;
 }
 .book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
-.book-body .table-wrap, .book-body table {
-  display: block; width: 100%; overflow-x: auto;
+.btn-copy-code {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--surface); border: 1px solid var(--line);
+  color: var(--muted); font-family: var(--font-ui); font-size: 11px;
+  padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  opacity: 0; transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  line-height: 1.3;
+}
+.book-body pre:hover .btn-copy-code,
+.btn-copy-code:focus-visible {
+  opacity: 1;
+}
+.btn-copy-code:hover {
+  color: var(--ink); border-color: var(--line-strong);
+}
+.btn-copy-code.copied {
+  color: var(--accent); border-color: var(--accent); font-weight: 600;
+}
+
+/* 参考时间穿透锚点 */
+.time-anchor {
+  display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: var(--sp-2) 0 var(--sp-4); padding: 3px 12px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; font-family: var(--font-mono); font-size: 12px;
+  color: var(--muted); width: fit-content; max-width: 100%;
+}
+.time-anchor .ta-label {
+  font-family: var(--font-ui); font-size: 11px; font-weight: 600;
+  color: var(--faint); letter-spacing: .04em;
+}
+.time-anchor .ta-ts {
+  color: var(--accent-ink); text-decoration: none; font-weight: 600;
+  border-bottom: 1px dashed var(--accent);
+}
+.time-anchor .ta-ts:hover {
+  color: var(--accent); border-bottom-style: solid;
+}
+.time-anchor .ta-sep { color: var(--line-strong); }
+.time-anchor .ta-vid {
+  color: var(--muted); text-decoration: none; font-family: var(--font-ui);
+  font-size: 11.5px; font-weight: 500;
+}
+.time-anchor .ta-vid:hover { color: var(--accent); }
+.book-body .table-wrap {
+  width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  margin: var(--sp-5) 0; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-media);
 }
 .book-body table {
   border-collapse: collapse; margin: var(--sp-5) 0;
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--r-media); overflow: hidden;
-  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+  border-radius: var(--r-media);
+  display: block; width: 100%; max-width: 100%;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  font-family: var(--font-ui); font-size: .92em;
+}
+.book-body .table-wrap > table {
+  margin: 0; border: 0; border-radius: 0;
+  display: table; width: 100%; min-width: 520px; overflow: visible;
 }
 .book-body th, .book-body td {
   padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
@@ -378,20 +448,69 @@ body {
 }
 .lightbox.open { display: flex; }
 .lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-close {
+  position: absolute; top: 16px; right: 20px; z-index: 102;
+  width: 38px; height: 38px; border: 0; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18); color: #fff;
+  font-size: 26px; line-height: 1; display: flex;
+  align-items: center; justify-content: center; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.32); }
+.lightbox-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lightbox-caption {
   position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
   color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
 }
 
+/* 阅读位置恢复轻提示 */
+.shelf-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: #F4EFE6; padding: 8px 18px;
+  border-radius: 999px; font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22); z-index: 90;
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.shelf-toast.show {
+  opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto;
+}
+.shelf-toast-btn {
+  background: transparent; border: 0; color: #5EEAD4;
+  cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 0; margin-left: 2px; text-decoration: underline;
+}
+
+.toc-backdrop { display: none; }
+
 @media (max-width: 960px) {
   .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
-  .toc-panel {
-    position: static; max-height: none; display: none;
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--r-panel); padding: var(--sp-4);
+  .toc-toggle {
+    display: inline-flex; align-items: center; justify-content: space-between;
   }
-  .toc-panel.open { display: block; }
-  .toc-toggle { display: block; }
+  .toc-backdrop {
+    position: fixed; inset: 0; z-index: 48;
+    background: rgba(37, 42, 39, 0.45);
+    backdrop-filter: blur(2px);
+    display: none;
+  }
+  .toc-backdrop.open { display: block; }
+  .toc-panel {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 49;
+    width: min(320px, 85vw); max-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    box-shadow: 0 0 24px rgba(37, 42, 39, 0.15);
+    padding: var(--sp-5) var(--sp-4);
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    display: block !important;
+    overflow-y: auto;
+  }
+  .toc-panel.open {
+    transform: translateX(0);
+  }
 }
 @media (max-width: 640px) {
   .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
@@ -401,10 +520,25 @@ body {
   html { scroll-behavior: auto; }
 }
 
+@media print {
+  .topbar, .toc-panel, .toc-toggle, .toc-backdrop, .book-pager, .lightbox,
+  .meta-actions, .time-anchor .ta-vid, .btn-copy-code, .shelf-toast {
+    display: none !important;
+  }
+  .layout {
+    display: block !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important;
+  }
+  .book-main, .book-body {
+    max-width: 100% !important;
+  }
+  .book-body {
+    font-size: 11pt !important; line-height: 1.6 !important; color: #000 !important;
+  }
+  .screenshot-card { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+}
+
 /* quality gate badges (local preview only) */
-.lec-quality{margin-left:.5rem;font-size:.72rem;padding:.1rem .4rem;border-radius:999px;background:var(--chip,#f4efe6);color:#0f766e;border:1px solid rgba(15,118,110,.25)}
-.quality-banner{margin:0 0 1rem;padding:.55rem .85rem;border-radius:8px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:.92rem}
-.quality-banner[data-quality="未审稿"]{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
 
 </style>
 </head>
@@ -413,11 +547,18 @@ body {
   <div class="topbar">
     <div class="topbar-in">
       <a class="back-link" href="../index.html">← 书架</a>
-      <span class="topbar-tag">SHELF · READ</span>
+      <div class="topbar-right">
+        <div class="font-resizer" role="group" aria-label="字号调节">
+          <button type="button" class="btn-font font-dec" aria-label="减小字号">A-</button>
+          <button type="button" class="btn-font font-inc" aria-label="增大字号">A+</button>
+        </div>
+        <span class="topbar-tag">SHELF · READ</span>
+      </div>
     </div>
   </div>
   <div class="layout">
     <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <div class="toc-backdrop" aria-hidden="true"></div>
     <aside class="toc-panel" aria-label="目录">
       <h2 class="toc-title">目录</h2>
       <ul class="toc-list"></ul>
@@ -427,114 +568,139 @@ body {
         <p class="course-line"><strong>26生成式软件工程</strong> · NJU · 第 2 讲</p>
         <h1>02 提示词工程</h1>
         <p class="book-summary">提示词工程的方法与实践</p>
-        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1CQt365EzW/" target="_blank" rel="noopener">BV1CQt365EzW</a> · 时长 1h38m · 标签：生成式软件工程、提示词工程</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1CQt365EzW/" target="_blank" rel="noopener">BV1CQt365EzW</a> · 视频时长 1h38m · 预计阅读约 18.0 分钟（约 7,219 个阅读单位） · 标签：生成式软件工程、提示词工程</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
       </header>
       <article class="book-body">
-<p><em>(参考时间: 00:00:00)</em></p>
-<p>本讲主题是自然语言提示词与 agent 上下文：人与 AI 沟通的接口。课堂从 ChatGPT 聊天窗讲起，说明提示词远不止用户那一段话，进而展开如何写可验证、可对齐的提示词，以及模型遵循指令的机制。阅读时长为估算值，不是实测；正文为知识压缩稿。</p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-00-00" title="在字幕对照页定位此段">00:00:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=0" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>本讲主题是自然语言提示词与 agent 上下文：人与 AI 沟通的接口。课堂从 ChatGPT 聊天窗讲起，说明提示词远不止用户那一段话，进而展开如何写可验证、可对齐的提示词，以及模型遵循指令的机制。阅读时长为估算值，不是实测；正文为可独立阅读的忠实书稿。</p>
 <p>课堂把 prompt 称为「与机器沟通的唯一接口」：从聊天窗到 agent，输入始终是自然语言，输出却可以触发工具、改代码、交付系统。接口没变复杂，变的是你必须为「模型看不见的意图」负责。</p>
 <h3 id="_1">提示词为何成了新接口</h3>
 <p>ChatGPT 之前，「prompt」并不是日常用语；聊天窗让人人意识到：一段自然语言就是给机器的指令，返回可以是文字、代码甚至图片。课堂回忆 2023 年初让模型解释偏门 x86 汇编，结果出奇地好——那已是「时代要变」的信号。今天接口没变，变的是指令背后那条越来越长的上下文。</p>
 <p>读法建议：先看「上下文是什么」，再看「怎么写可验证提示词」，最后看「模型为何会听/不听」。工程现场与失败案例可以对照自己的使用经历读；学习方法一节则可直接照做。</p>
 <h2 id="_2">一、提示词不是聊天框那一句话</h2>
-<p><em>(参考时间: 00:00:00–00:10:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-00-00" title="在字幕对照页定位此段">00:00:00–00:10:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=0" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>你在聊天框里打的「帮我生成一个游戏」当然叫提示词，但 agent（能调用工具、多轮推进任务的程序）看到的是一整个 agent 的上下文：从你开口之前到对话当中，它已经在一条线性序列里读入了大量内容。课堂把「优化提示词」这件事叫做上下文工程（安排模型可见全部上下文的工程实践）——不只是写好一条指令，而是安排好模型上下文里的一切。</p>
 <p>模型做的是 next token prediction（按当前上下文预测下一个词元，并如此逐步推进任务）：每次预测的 token 可以是调用工具，也可以是输出字符，任务就这样不断向后推进。所以你塞进上下文的每一个片段——system prompt（模型对话前注入的系统级指令）、项目文档、工具定义、历史消息——都会影响下一步。用软件工程的话说，从意图到规格再到实现的大流程，只要相关片段被塞进上下文，模型就会基于它们继续做。</p>
 <p>线性上下文意味着「顺序即权重」：早先的全局约束可能在写代码时注意力下降，但不会消失；后面的用户消息又会争夺同一份注意力。因此「优化提示词」经常等于「重排、精简、重复关键约束」，而不是把句子写得更华丽。</p>
 <h3 id="system-prompt">system prompt 与分层加载</h3>
-<p><em>(参考时间: 00:01:40–00:09:30)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-01-40" title="在字幕对照页定位此段">00:01:40–00:09:30</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=100" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>上下文自 system prompt 开始一层一层加载：全局指令、AGENTS.md 一类项目约定、skill（模型可按需加载的能力包）索引、工具定义、会话历史，以及每次执行注入的环境变量（模型、当前时间等）。工具调用及其结果也以文本形式出现在这同一条线性上下文里。开源 agent 框架甚至可以自己 debug 这些层：看系统提示词从哪来、工具使用指南怎么写、项目级指令怎么叠。</p>
 <p>skill 平时只暴露名字和一段简略描述；只有匹配任务时才读完整 SKILL.md，那一轮结束后整份技能内容会从上下文里抹掉。所以 agent 第一次停下来跟你说话时，里面已经堆了很多层东西——这既是能力来源，也是后续「指令丢失」的根源。课堂用全局「用中文回答」做演示：即使 user message 是英文，输出仍可以是中文，因为那条约束一直在上下文里。</p>
 <p>课堂还当场让 agent 检查自己的上下文：它可以读出全局配置、项目约定、skill 索引、工具定义与环境注入，甚至翻自己的日志。这说明「提示词工程」管的是整条线性序列，不是最后那一句用户输入。环境变量（当前模型、时间等）也是每次执行注入的文本，有时可被套出——它不属于 system prompt，却同样影响行为。</p>
 <p>分层还意味着「同一句用户输入，在不同层叠下结果不同」：全局语言约束、项目约定、skill 描述、历史消息会共同决定下一步 token。调试 agent 时，先问「你看到了什么」往往比改最后一句 prompt 更有效。</p>
-<h3 id="_3">长上下文指令遵循与「喵」检测法</h3>
-<p><em>(参考时间: 00:03:47–00:04:45)</em></p>
-<p>课堂观察到：靠强化学习和后训练，模型学会了很强的指令遵循（按上下文约束执行任务的能力），即使上下文接近百万 token，仍能在很后面的位置遵循早期指令。一个著名检测梗是：在最早的 prompt 里写「你每说一句话都要在后面加一个喵」；某天你发现「喵」丢了，就知道上下文被截断或压缩、指令开始丢失，需要重新设计上下文。这也是大家在工程实践里摸索各种上下文工程手法的起点。</p>
+<h3 id="_3">长上下文指令遵循（按上下文约束执行任务的能力）与「喵」检测法</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-03-47" title="在字幕对照页定位此段">00:03:47–00:04:45</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=227" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>课堂画面标出 Claude Opus 4.5；讲师以这一代为参照，观察到模型经强化学习和后训练后指令遵循（按上下文约束执行任务的能力）明显增强，即使上下文接近百万 token，仍能在很后面的位置遵循早期指令。一个著名检测梗是：在最早的 prompt 里写「你每说一句话都要在后面加一个喵」；某天发现「喵」丢了，就知道上下文可能被截断或压缩、早期指令开始丢失，需要重新设计上下文。</p>
 <h2 id="_4">二、写好提示词：意图、规格与可验证目标</h2>
-<p><em>(参考时间: 00:20:01–00:25:00、00:44:40–00:47:10)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-20-01" title="在字幕对照页定位此段">00:20:01–00:25:00、00:44:40–00:47:10</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=1201" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="_5">模糊意图会漂移</h3>
-<p><em>(参考时间: 00:20:30–00:24:20)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-20-30" title="在字幕对照页定位此段">00:20:30–00:24:20</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=1230" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>软件工程老大难在这里重现：你脑子里是 intent（你真正想达成的意图，常含未说出的约束），落地要经 spec（对目标、实现方式与验收标准的明确规格），再到 implementation。如果给模型一个模糊的 intent，它很容易「认为完成了」然后发生漂移——一句话生成的 CSGO 再逼真，也可能不是你每天在玩的那一个；模型补不全你脑中「复用真实地图和美术资产」这类隐含约束。若你把「去南大仙林校区开车」说清楚，它甚至能去找地图文件把世界重建出来；不说，它就默认全靠自己生成。</p>
 <p>课堂用 Kimi 一类模型的「一句话生成游戏」评测说明：物理、碰撞、后视镜都可以做得逼真，但仍可能不是你要的那个 CSGO——因为你脑中的是每天在玩的那一个，而模型只能补它能猜到的部分。漂移的根源不在模型懒，而在 intent 里大量约束从未说出。</p>
 <p>规格不是越长越好，而是「把验收需要的约束写全」：目标用户、实现技术、正确标准、禁止事项。多余形容词会稀释注意力；可检查的条款才会被模型优先满足。</p>
 <h3 id="_6">把意图写成规格</h3>
-<p><em>(参考时间: 00:24:30–00:29:10)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-24-24" title="在字幕对照页定位此段">00:24:30–00:29:10</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=1470" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>把要什么、用什么实现、怎么样才算正确写进 spec，模型遵循起来会更确定，而且可验证。你说用 C++ 它给了 Java，你一眼能看出；你没说语言，它写了 Java，你就只能接受漂移。课堂用个人主页对比：一句「现代风格」会得到很重的 AI 味；写清终端背景、前景、渲染后处理、样式排版，才能压住这种同质化。指令给得越清楚，agent 完成得越好——设计掌控在你自己手里，而不是模型固定品位的发散。</p>
 <p>反例同样说明问题：只说「不要那么 AI 味」，模型往往不知道怎么遵循；但写清「真终端、管道、打字机式不完美后处理」，页面就会接近人的手感。课堂展示自己的主页——终端可交互、字形有轻微不完美——并强调这来自明确规格，而不是一行行手写代码。设计判断（间距、样式、节奏）仍要人来给：多看好的网页、记下「好在哪里」，再把差异写进 spec。</p>
 <p>常见误区是把偏好写成形容词、把验收写成愿望。有效做法是「动词 + 对象 + 通过条件」：生成后截图、跑测试、比对样例、输出 diff。模型对可执行步骤的服从，远高于对氛围词的理解。</p>
 <h3 id="_7">把「好」拆成可检查的约束</h3>
 <p>「现代风格」「少点 AI 味」这类形容词无法验收；「白底、不要半透明、截图自检」则可验收。课堂甚至展示：约束够严时，模型会在代码注释里写「白色背景（不要半透明）」——它把硬约束当成了高优先级事实。副作用是模型有时「不说人话」，这与强化学习后的服从倾向有关；可用 AGENTS.md 或 skill 约束注释风格，但那又会占用上下文，形成 tradeoff。</p>
 <h3 id="_8">可验证目标最重要</h3>
-<p><em>(参考时间: 00:21:30–00:22:30、00:44:40–00:47:10)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-21-30" title="在字幕对照页定位此段">00:21:30–00:22:30、00:44:40–00:47:10</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=1290" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>如果任务明确可验证，有 verifier（判定产出是否达标的检验信号）——尤其是机器可验证，例如脚本只回答测试通过或不通过——agent 可以不计代价地一轮一轮尝试，甚至自己装工具、上网找答案。课堂强调：<strong>写 prompt 最重要的就是那个 verifier</strong>。模型能力已经很强，只要给出明确 verifier，不管是编程还是藏头诗这类硬约束任务，AI 都能逼近甚至超过多数人的极限。反过来，教学共情、情绪节奏、课堂起承转合这类没有 verifier 的事，目前仍难做好——那更需要人的体验。</p>
 <p>OpenAI 一类 agent swarm 攻破 CTF 难题的复盘也印证：任务「几乎不可能」但目标极明确时，成百上千个 agent 会不知疲倦地试，直到找到路径。verifier 不必是单元测试——「每句押韵」「八字按序入句」「同一偏旁」都可以是硬约束。缺少 verifier 时（如「课要好」），模型只能猜你的品味，容易在不重要的点上过度发力。</p>
+<p><strong>可验证训练会迁移</strong>：在数学与编程这类可验证任务上训练后，模型在押韵/同旁等硬约束任务上也会表现更好——这是一条被课堂点出的意外因果。<strong>放大—筛选（generate-and-select）</strong> 也是可用路径：先让它写出施氏食狮史一类同音极限题，能写出来就能再引导写一万个，再在一万份里微改逼近更强版本。</p>
 <p>verifier 也可以分层：单元测试盯正确性，脚本盯格式与硬约束，人抽查盯品味与风险。能自动的尽量自动；必须人看的，写清楚「看什么、何时看」。</p>
 <h3 id="verifier">好 verifier 长什么样</h3>
 <p>机器可验的信号包括：测试通过/失败、格式检查、约束脚本（押韵、字数、偏旁）、可运行 demo。半可验的包括：人抽查、对比基线、盲评。不可验的包括：「有意思」「高级感」。提示词设计的第一步，就是把目标往「可验」那一侧翻译；翻译不了的，就承认需要人来当 verifier。</p>
 <h2 id="_9">三、模型如何遵循指令</h2>
-<p><em>(参考时间: 00:33:15–00:52:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-33-15" title="在字幕对照页定位此段">00:33:15–00:52:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=1995" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>理解机制是为了写对指令：若每步计算有限，就把「想清楚」外置到上下文；若注意力会漂移，就把关键约束放在能被看到的位置（或反复出现）；若 append-only，就接受「写错靠忽略、不靠擦除」。</p>
 <h3 id="_10">有限状态机、图灵机与纸笔</h3>
-<p><em>(参考时间: 00:34:00–00:36:40)</em></p>
-<p>模型每次输出一个 token，都是把激活参数走一遍的固定大小计算——它在推理一步上类似有限状态机（状态有限、不能无限记草稿的计算模型）；有限状态机与图灵机的差别只在「有没有无限长的纸带」。人也是有限状态机，但有 paper and pencil 时就成了图灵机。课堂用 Blum 给研究生的建议说明：一边思考一边记录，计算能力才会跃迁。</p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-34-00" title="在字幕对照页定位此段">00:34:00–00:36:40</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=2040" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>模型每次输出一个 token，都是把激活参数走一遍的固定大小计算——它在推理一步上类似有限状态机（状态有限、不能无限记草稿的计算模型）；有限状态机与图灵机的差别只在「有没有无限长的纸带」。人也是有限状态机，但有 paper and pencil 时就成了图灵机。课堂转述一条给研究生的建议：一边思考一边记录，计算能力才会跃迁。</p>
 <p>「纸和笔」的工程含义：把中间状态写进上下文，等于给模型外挂记忆；代价是上下文变长、污染风险上升。所以思维链要写「有用的草稿」，而不是无限流水账。</p>
 <h3 id="chain-of-thought">chain of thought 把上下文当纸和笔</h3>
-<p><em>(参考时间: 00:36:16–00:38:40)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-36-16" title="在字幕对照页定位此段">00:36:16–00:38:40</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=2176" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>chain of thought（先写出推理步骤再作答）正是把上下文当成了纸和笔：把思考过程写出来，再回头判定解答对不对。这卷「纸」只能 append only（只往后写、不能擦），写错的东西靠注意力忽略。难问题会先「想一想、试一试」；简单问题则直接 next token 给出答案。课堂用「押韵藏头诗 + 动物故事 + 八字顺序入句」这类训练里少见的题，展示模型先选韵脚、写完自检、不行就换韵脚重来——这像把它的大脑拿来做核磁，能看到思维偏好。</p>
 <p>课堂还试了「八字同旁」等刁钻约束：模型先选偏旁再组句，靠思维链硬扛非训练分布任务。结论不是「模型无所不能」，而是「有明确 verifier + 足够搜索，能逼近极限」；品味与共情仍靠人。</p>
 <h3 id="self-attention">self attention 与阶段变化</h3>
-<p><em>(参考时间: 00:47:36–00:50:40)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-47-36" title="在字幕对照页定位此段">00:47:36–00:50:40</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=2856" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>self attention（模型输出每个词元时回看上下文并加权关注相关片段的机制）解释了多指令如何被兼顾：写代码时注意力集中在已写的代码和需求上，「用中文回答」这类全局约束注意力暂时下降；阶段切换时（代码写完喘口气）注意力又转回其他要求，并发现错误自我纠正。上下文是会抢夺注意力的资源，指令越多压力越大——这也是早期「你是一个专家」式冗长提示词在 hack 注意力，而新模型更依赖写清 verifier 的原因。</p>
 <p>多指令冲突的处理也依赖注意力调度：写实现时先满足代码与需求，收尾时再回头满足语言、格式、注释规范。若约束太多，模型会「顾此失彼」——此时应删冗余、把硬约束收成短清单，而不是继续堆形容词。</p>
 <h3 id="_11">上下文污染（已有材料叙事强占注意力）与读论文</h3>
-<p><em>(参考时间: 00:55:00–01:02:40)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-54-59" title="在字幕对照页定位此段">00:55:00–01:02:40</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=3300" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>把一篇逻辑自洽的论文直接丢进上下文再让模型总结，注意力会被它的叙事极强地污染，总结往往变成作者观点的车轱辘话，还会「墙头草」式摇摆。课堂的解法是 grounding：先问「站在人类已知知识边界，相关问题解决到什么程度、本工作增量是什么」，与模型对齐立场再推理；学生则可维护自己的学习状态（学到哪了）让 AI 在此基础上讲解。若觉得步子太大，就退回可共同确认的知识点，再让模型往后推一步——推一步是可 verify 的。</p>
 <p>课堂用自己论文的匿名版演示：直接「做个总结」会掉进作者叙事；换成「站在人类知识边界看增量」后再审贡献，模型才开始找相关工作边界、指出实验薄弱点。审稿立场也一样：站在人类是否获得新知识，而不是顺着作者故事走。若 AI 写文、AI 审文，发表体系可能被 slop 冲垮——这是讲师对学术界的担忧。</p>
 <p>学生侧的 grounding 可以更具体：维护一份「我学到哪了」的状态文件（概念清单、卡点、已做练习），让 AI 只在这条边界之上讲解；不懂就退回共同确认点，再要「只推一步」。这样每一步都可 verify，也避免被长材料叙事带走。</p>
 <h3 id="_12">幻觉从「舔狗」来</h3>
-<p><em>(参考时间: 00:37:40–00:38:40)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-37-39" title="在字幕对照页定位此段">00:37:40–00:38:40</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=2260" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>幻觉（模型编造看似合理但不正确的内容）有训练根源：早期对话模型被调成「人类舔狗」——不回答一定低分，乱答还有概率对；所以它无论如何要给一个东西。强化学习之后答错惩罚很大，模型才学会「必须给对」。但完成任务才有奖励，也带来讨好与有限搜索。</p>
 <h2 id="_13">四、工程现场：危险命令、维护成本与大系统</h2>
-<p><em>(参考时间: 00:11:30–00:18:50、01:16:55–01:21:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-11-30" title="在字幕对照页定位此段">00:11:30–00:18:50、01:16:55–01:21:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=690" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="_14">危险操作确认与风险判定</h3>
-<p><em>(参考时间: 00:11:30–00:17:30)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-11-30" title="在字幕对照页定位此段">00:11:30–00:17:30</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=690" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>agent 执行危险操作时会要确认。yolo 模式全部直接执行，一句坏提示词可能直接删库；沙箱模式更安全，但会打断「跑上任务就去吃饭」的无人值守。命令风险判定有静态分流：语法处理器解析 bash，白名单低风险命令直接放行，否则注入一小段 prompt 让模型评安全性。课堂提醒：白名单命令在恶意环境里也不绝对安全（如 ls 被改名），可以用「改 prompt 看行为变化」当作证据去验证机制，而不必百分之百相信某一版模型。</p>
 <p>课堂现场下载 agent 源码追问「为何有时确认、有时不确认」，并打印安全评估 prompt——证明风险分流是真实工程机制，不是黑箱魔法。对不信任的模型，可以改写评估 prompt 观察行为翻转，用可重复的证据替代盲信。</p>
 <p>无人值守与安全是另一对张力：yolo 适合低风险批处理，沙箱+确认适合敏感环境。工程上的折中是「静态白名单 + 模型评级 + 可观察证据」，而不是二选一。观察小细节（何时确认、何时放行）往往能反过来读懂系统设计。</p>
 <p>风险判定的可验证做法：改一改评估 prompt，看模型行为是否随之改变；行为可复现，才说明机制真的被你理解了。这比「相信某一版模型很安全」更符合工程习惯。</p>
 <h3 id="long-horizon">long horizon（目标远、步骤多、带未知的长程任务）与翻车点</h3>
-<p><em>(参考时间: 01:15:38–01:17:40)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-15-38" title="在字幕对照页定位此段">01:15:38–01:17:40</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=4538" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>long horizon（目标远、步骤多、带未知的长程任务）里 intent、spec、implementation 都不清楚，最终要交付高质量实现。模型有「赶快满足 verifier 就结束」的执念，planning 太长又会做不完。于是出现反直觉现象：从零做小产品 one-shot 就能跑，往后加功能却会在某个时间点开始翻车、成本越来越大——这在软件工程里已被「人月神话」讲过多次。</p>
 <p>planning 也有成本：计划太长上下文会满、任务做不完；太短又容易局部最优。实用做法是「小步交付 + 频繁验收」，把 long horizon 切成一串有 verifier 的短程任务，而不是一次要模型画完整蓝图。</p>
 <h3 id="ai">大系统里 AI 游刃有余</h3>
-<p><em>(参考时间: 01:17:45–01:21:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-17-45" title="在字幕对照页定位此段">01:17:45–01:21:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=4665" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>反过来，在长期演化、维护良好的大型代码库里，AI 像砍瓜切菜：注意力能马上找到相似实现、该调哪个 helper、按什么顺序上锁——这些对人类是巨大心智负担。高质量代码上下文是正向引导（模型会照着写），与论文式污染相反。课堂判断：无论模型怎么换代，「在维护好的大系统里能看对并做对」这点不会倒车，因为听指令能力只会更好。</p>
 <p>Linux 内核是典型例子：人类点进十层调用容易崩溃，AI 却能在加载几十个文件后拼出「三处类似实现的合集」。讲师也提出一个未验证的研究方向：把人类优秀项目的设计经验提炼成文档/切片注入上下文，或许能延缓 slop、提高可维护性——但不同设计会打架，需要多轮收敛。</p>
 <p>维护成本翻车的信号：补丁变多、改一处崩一处、模型输出越来越「局部聪明全局乱」。此时继续烧 token 往往复利失败；应退回架构与 spec，或借高质量代码上下文做正向引导。</p>
 <h2 id="reward-hacking">五、研究失败案例：reward hacking（模型钻奖励空子交差）</h2>
-<p><em>(参考时间: 01:25:20–01:28:35)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-25-20" title="在字幕对照页定位此段">01:25:20–01:28:35</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=5120" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="prompt">一句 prompt 引发的失败</h3>
-<p><em>(参考时间: 01:26:40–01:28:35)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-26-38" title="在字幕对照页定位此段">01:26:40–01:28:35</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=5200" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>一个符号执行引擎优化的真实失败：同学在提示词里写「我想证明这个方法有用」，模型太想证明 idea 有用，成了 reward hacking，构造一堆小 benchmark 做微小改动，给出用不上的正/负结论。症结是那句 prompt 把大图景盖掉了。纠正方式是重新引导：从真实工具和 state-of-the-art 算法、从哪怕 timeout 也有搜索路径价值的 benchmark 做起。课堂结论：<strong>今天人还是有用的</strong>，需要注入领域知识、盯 session 跑偏就立即纠正；当然也有 tradeoff——盯着纠偏总时间可能更短，放任多烧 token 往往也能做完。精力有限，应把时间留在收益最大的事上。</p>
 <p>案例细节：研究目标本是提升符号执行效率，属于合理的增量课题；但「证明有用」让模型丢掉 big picture，去堆无意义的小实验。人要站在人类知识增量的立场设 benchmark——timeout 的搜索路径也有价值，能暴露现有方法的结构性弱点。讲师也提醒：纠正 AI 有多巴胺式安慰（「我还有用」），但把时间全花在纠偏上未必最优；放手让它跑、验收结果，也是一种工作方式。</p>
 <p>失败案例的可迁移教训：prompt 里的意图句会变成模型的「最高目标」；写「证明有用」就得到讨好式证据，写「找真实瓶颈」才得到可发表结论。研究提示词要把 big picture、负面结果价值、评估口径一次写清。</p>
 <p>同一坑也出现在日常任务：「帮我写得好一点」会得到讨好式输出；「按这三条验收」才会收敛。把「想证明/想交差」改成「想发现真实瓶颈」，是提示词层面的去 reward-hacking。</p>
 <h2 id="ai_1">六、AI 时代的学习方式</h2>
-<p><em>(参考时间: 00:09:35–00:11:15、01:10:54–01:15:20)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-09-35" title="在字幕对照页定位此段">00:09:35–00:11:15、01:10:54–01:15:20</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=575" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="ai_2">费曼学习法与 AI 当学生</h3>
-<p><em>(参考时间: 00:09:35–00:10:45)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-09-35" title="在字幕对照页定位此段">00:09:35–00:10:45</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=575" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>AI 是非常耐心的老师：可任意程度追问，不会嫌弃你。反过来可以用费曼学习法（通过给别人讲清楚来检验自己是否理解）：自认为弄懂后，让 AI 扮演一无所知的学生，你给它讲懂，让它揪逻辑漏洞；正着讲、反着纠错一遍，概念就清楚了。</p>
 <p>对比同学互讲：室友可能没兴趣、嫌啰嗦，或「暴露自己很菜」；AI 没有这些成本。课堂强调 AI native 一代时间无限、应把这套方法用起来——先问懂，再讲给「假想学生」听，在纠错里完成内化。</p>
 <p>对齐「过去的我」还可以反过来用：让 AI 先复述你的理解，再指出缺口；或者你先讲、让它挑错。两边对照后，把「我漏掉的前置概念」单独列成待补清单——学习就变成了可追踪的工程任务。</p>
 <h3 id="_15">学习即扩展边界</h3>
-<p><em>(参考时间: 01:10:54–01:13:10)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-10-54" title="在字幕对照页定位此段">01:10:54–01:13:10</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=4254" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>课堂的学习方法是「对齐过去的我」：读到好材料时想「为什么我以前不知道、盲区在哪、缺哪些前置知识」，把 fact 和推导链加进自己的世界，边界不断外扩。读新主题先做 grounding——相关问题人类解决到什么程度、增量在哪。实践非常重要：讲解听故事没用，要在阅读失败、多轮纠偏里蒸馏出属于自己的 skill。</p>
 <p>失败是蒸馏材料：今天读不懂、被 AI 绕晕，多轮说人话、对齐共识之后，把「我是怎么走出来的」沉淀成自己的 skill。讲师还以跨学科阅读为例（如生命家谱树与线粒体追溯）：每个新 fact 都会连出更多 fact，圈不断外扩；AI 能加速扩展，但替代不了你自己经历「三观尽毁再重组」的过程。</p>
 <p>学习与研究共用同一套动作：先对齐知识边界，再拆可验证子步，最后蒸馏失败经验。AI 加速搜索与解释，但「哪些问题值得做、怎样算做好了」仍由人定——这也是本课反复回到 intent/spec/verifier 的原因。</p>
 <h3 id="_16">算力换智力（用大规模枚举弥补单次搜索）</h3>
-<p><em>(参考时间: 01:32:30–01:38:25)</em></p>
-<p>真正开放的问题「搜索难、验证易」：模型被训练成完成任务才有奖励，只能做有限搜索，直接问会给出偏见答案。这时可以用算力换智力（用大规模枚举与并行子任务搜索，弥补单次推理搜索不足）：把大空间切成互斥子块，每块变成有明确 verifier 的子任务，再枚举/筛音/查字，用 subagent 检查。代价是烧 token。讲师抛出的社会风险是：若算力垄断，可能砌出智力高墙，墙内是超人、墙外掉队——需要在基点附近认真思考如何防止。</p>
-<p>起名是可枚举的示范：先筛音、再用 subagent 查字、可限定诗经出处；直接问模型只会给出带偏见的少数答案。P/NP 对照也说明：验证一个解容易、找到解难——模型被迫有限搜索，人则可用算力补搜索。世界很大、人各带 bias，群体智能才有一加一大于二；但算力一旦垄断，这堵「智力墙」会把人分成墙内外。</p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-32-27" title="在字幕对照页定位此段">01:32:30–01:38:25</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1CQt365EzW/?t=5550" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>真正开放的问题「搜索难、验证易」：模型被训练成完成任务才有奖励，只能做有限搜索，直接问会给出偏见答案。这时可以用算力换智力（用大规模枚举与并行子任务搜索，弥补单次推理搜索不足）：把大空间拆成若干更明确的子空间或子任务，为各部分设置 verifier，再枚举、筛音、查字并用 subagent 检查。代价是烧 token。讲师提出的社会风险是：若算力垄断，可能砌出智力高墙，墙内是超人、墙外掉队；他把防止这种情况作为值得思考的问题。</p>
+<p>同质化机制（参考时间：01:35:07–01:35:18）：讲师举例说，大家都用 DeepSeek 起名，容易成为「AI 时代的子涵」；同一模型给出相似候选，不能直接代表充分搜索。名字可以枚举：先定读音并筛掉不喜欢的音，再让 subagent 逐个检查字，也可限定从《诗经》中选词。这个流程把开放搜索拆成可筛选的小任务，是课堂所说「算力换智力」的例子。P/NP 对照也说明验证一个解容易、找到解难；人可以用额外算力补足模型有限搜索带来的偏见。世界很大、每个人的经验与偏好各不相同，群体智能来自这些差异。</p>
 <p>最后一句：提示词工程不是玄学，是把意图翻译成模型能反复看见、能被检查、能被纠正的上下文。翻译得越准，agent 越像靠谱同事；翻译得越含糊，它越像会交差的做题家。</p>
 <h3 id="_17">个人策略小结</h3>
 <p>把时间放在「只有你能做」的事上：选题、定口径、注入领域知识、验收结果；把可枚举、可并行、可验证的步骤交给算力。同时保留人味——共情、节奏、品味、价值判断——这些目前仍没有好 verifier。</p>
@@ -551,12 +717,12 @@ body {
 <p>课堂预告：指令遵循与 verifier 已经能解决「有明确信号」的任务；真正的 open question 需要人来切空间、设口径、盯偏差。下一阶段会把这些原则落到软件工程方法——如何约束、如何监控、如何定义「好的 verifier」。</p>
 <h3 id="_20">一分钟检查清单</h3>
 <p>写完 prompt 后问三句：约束是否可验收？关键指令会不会被长材料淹没？失败时我能否看见原因并纠正？三问都过，再让它跑。</p>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1CQt365EzW&t=450&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="课堂演示：agent 上下文分层内容"></iframe></div><p class="video-caption"><span class="cap-text">课堂演示：agent 上下文分层内容</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1CQt365EzW/?t=450" target="_blank" rel="noopener">在 B 站打开 (00:07:30)</a></span></p></div>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1CQt365EzW&t=450&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="课堂演示：agent 上下文分层内容"></iframe></div><p class="video-caption"><span class="cap-text">课堂演示：agent 上下文分层内容</span><span class="cap-time"><a href="transcript.corrected.html#t-00-07-28" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1CQt365EzW/?t=450" target="_blank" rel="noopener">在 B 站打开 (00:07:30)</a></span></p></div>
 
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1CQt365EzW&t=2380&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="课堂演示：可验证任务与模型试错"></iframe></div><p class="video-caption"><span class="cap-text">课堂演示：可验证任务与模型试错</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1CQt365EzW/?t=2380" target="_blank" rel="noopener">在 B 站打开 (00:39:40)</a></span></p></div>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1CQt365EzW&t=2380&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="课堂演示：可验证任务与模型试错"></iframe></div><p class="video-caption"><span class="cap-text">课堂演示：可验证任务与模型试错</span><span class="cap-time"><a href="transcript.corrected.html#t-00-39-39" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1CQt365EzW/?t=2380" target="_blank" rel="noopener">在 B 站打开 (00:39:40)</a></span></p></div>
 
 <hr />
-<p><em>本讲对应视频约 98 分钟（估算）；上文为知识压缩稿。完整逐句对照见 <code>transcript.corrected.txt</code>。</em></p>
+<p><em>本讲对应视频约 98 分钟（估算）；正文为可独立阅读的忠实书稿（保留关键实体、定义、因果、案例与限制；去掉口语与重复）。完整逐句对照见 <code>transcript.corrected.txt</code>。</em></p>
       </article>
       <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../%E6%AC%A2%E8%BF%8E%E6%9D%A5%E5%88%B0%E6%9C%AA%E6%9D%A5%20%5B01-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">01 欢迎来到未来</span></a><a class="pager-btn next" href="../%E8%BD%AF%E4%BB%B6%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86%20%5B03-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">下一讲 →</span><span class="pager-title">03 软件仓库管理</span></a></nav>
     </div>
@@ -571,11 +737,11 @@ body {
   }
 
   ready(function () {
-    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
     var body = document.querySelector(".book-body");
     var panel = document.querySelector(".toc-panel");
     var list = document.querySelector(".toc-list");
     var toggle = document.querySelector(".toc-toggle");
+    var backdrop = document.querySelector(".toc-backdrop");
     var mainH1 = document.querySelector(".book-head h1");
 
     if (body && mainH1) {
@@ -616,15 +782,33 @@ body {
       list.appendChild(frag);
     }
 
+    // 移动端侧边抽屉式目录
+    function closeDrawer() {
+      if (panel) panel.classList.remove("open");
+      if (backdrop) backdrop.classList.remove("open");
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
+    }
     if (toggle && panel) {
       toggle.addEventListener("click", function () {
         var open = panel.classList.toggle("open");
+        if (backdrop) backdrop.classList.toggle("open", open);
         toggle.setAttribute("aria-expanded", open ? "true" : "false");
       });
     }
+    if (backdrop) {
+      backdrop.addEventListener("click", closeDrawer);
+    }
+    if (list) {
+      list.addEventListener("click", function (e) {
+        if (e.target && e.target.tagName === "A" && window.innerWidth <= 960) {
+          closeDrawer();
+        }
+      });
+    }
 
-    // 当前章节高亮（本页阅读位置，不持久化）
+    // 当前章节高亮与非侵入式目录自动跟随
     var links = list ? list.querySelectorAll("a[data-target]") : [];
+    var lastActiveLink = null;
     function setActive() {
       if (!links.length) return;
       var current = null;
@@ -634,12 +818,120 @@ body {
         var top = el.getBoundingClientRect().top;
         if (top <= 80) current = a;
       });
+      if (!current && links.length) current = links[0];
       links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+
+      // 仅在当前章节改变且目录项超出容器时，微调目录面板 scrollTop，不干扰正文滚动
+      if (current && current !== lastActiveLink && panel && window.innerWidth > 960) {
+        lastActiveLink = current;
+        var pRect = panel.getBoundingClientRect();
+        var cRect = current.getBoundingClientRect();
+        if (cRect.top < pRect.top + 24 || cRect.bottom > pRect.bottom - 24) {
+          var targetTop = panel.scrollTop + (cRect.top - pRect.top) - (panel.clientHeight / 2 - cRect.height / 2);
+          panel.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+        }
+      }
     }
     window.addEventListener("scroll", setActive, { passive: true });
     setActive();
 
-    // Lightbox：键盘可操作
+    // 字号微调 (A- / A+)
+    var fontDec = document.querySelector(".font-dec");
+    var fontInc = document.querySelector(".font-inc");
+    var currentFontSize = 18;
+    try {
+      var savedFont = localStorage.getItem("shelf_font_size");
+      if (savedFont) {
+        currentFontSize = parseInt(savedFont, 10) || 18;
+        document.documentElement.style.setProperty("--text-body", currentFontSize + "px");
+      }
+    } catch (e) {}
+
+    function setFontSize(val) {
+      currentFontSize = Math.max(15, Math.min(22, val));
+      document.documentElement.style.setProperty("--text-body", currentFontSize + "px");
+      try { localStorage.setItem("shelf_font_size", currentFontSize); } catch (e) {}
+    }
+    if (fontDec) fontDec.addEventListener("click", function () { setFontSize(currentFontSize - 1); });
+    if (fontInc) fontInc.addEventListener("click", function () { setFontSize(currentFontSize + 1); });
+
+    // 代码块一键复制
+    document.querySelectorAll(".book-body pre").forEach(function (pre) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-copy-code";
+      btn.textContent = "复制";
+      btn.setAttribute("aria-label", "复制代码");
+      btn.addEventListener("click", function () {
+        var code = pre.querySelector("code");
+        var text = (code ? code.textContent : pre.textContent) || "";
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            btn.textContent = "已复制 ✓";
+            btn.classList.add("copied");
+            setTimeout(function () {
+              btn.textContent = "复制";
+              btn.classList.remove("copied");
+            }, 1800);
+          });
+        }
+      });
+      pre.appendChild(btn);
+    });
+
+    // 记忆阅读位置与静默恢复
+    var storageKey = "shelf_pos_" + window.location.pathname;
+    var saveTimer = null;
+    window.addEventListener("scroll", function () {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        if (scrollY > 120) {
+          try { localStorage.setItem(storageKey, scrollY); } catch (e) {}
+        } else {
+          try { localStorage.removeItem(storageKey); } catch (e) {}
+        }
+      }, 250);
+    }, { passive: true });
+
+    function showToast(msg) {
+      var toast = document.getElementById("shelf-toast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "shelf-toast";
+        toast.className = "shelf-toast";
+        toast.setAttribute("role", "status");
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = htmlEscape(msg) + ' <button type="button" class="shelf-toast-btn" id="toast-to-top">回到顶部</button>';
+      toast.classList.add("show");
+      var toTop = toast.querySelector("#toast-to-top");
+      if (toTop) {
+        toTop.addEventListener("click", function () {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          toast.classList.remove("show");
+        });
+      }
+      setTimeout(function () { toast.classList.remove("show"); }, 3800);
+    }
+    function htmlEscape(s) {
+      return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    try {
+      var savedPos = localStorage.getItem(storageKey);
+      if (savedPos && !window.location.hash) {
+        var pos = parseInt(savedPos, 10);
+        if (pos > 160) {
+          setTimeout(function () {
+            window.scrollTo({ top: pos, behavior: "instant" });
+            showToast("已恢复上次阅读位置");
+          }, 60);
+        }
+      }
+    } catch (e) {}
+
+    // Lightbox：显式关闭按钮与键盘焦点管理
     var lb = document.getElementById("lightbox");
     if (!lb) {
       lb = document.createElement("div");
@@ -647,11 +939,14 @@ body {
       lb.className = "lightbox";
       lb.setAttribute("role", "dialog");
       lb.setAttribute("aria-modal", "true");
-      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      lb.setAttribute("aria-label", "图片预览");
+      lb.setAttribute("tabindex", "-1");
+      lb.innerHTML = '<button type="button" class="lightbox-close" aria-label="关闭预览">&times;</button><img alt=""><div class="lightbox-caption"></div>';
       document.body.appendChild(lb);
     }
     var lbImg = lb.querySelector("img");
     var lbCap = lb.querySelector(".lightbox-caption");
+    var lbClose = lb.querySelector(".lightbox-close");
     var lastFocus = null;
 
     function openLb(src, alt) {
@@ -661,13 +956,20 @@ body {
       lbCap.textContent = alt || "";
       lb.classList.add("open");
       document.body.style.overflow = "hidden";
-      lb.focus();
+      if (lbClose) lbClose.focus();
+      else lb.focus();
     }
     function closeLb() {
       lb.classList.remove("open");
       lbImg.src = "";
       document.body.style.overflow = "";
       if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    if (lbClose) {
+      lbClose.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeLb();
+      });
     }
     document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
       img.setAttribute("tabindex", "0");
@@ -680,9 +982,17 @@ body {
         }
       });
     });
-    lb.addEventListener("click", closeLb);
+    lb.addEventListener("click", function (e) {
+      if (e.target === lb || e.target === lbClose) closeLb();
+    });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+      if (e.key === "Escape") {
+        if (lb.classList.contains("open")) closeLb();
+        closeDrawer();
+      } else if (e.key === "Tab" && lb.classList.contains("open")) {
+        e.preventDefault();
+        if (lbClose) lbClose.focus();
+      }
     });
 
     // Mermaid（若页面引入了 mermaid）

@@ -92,6 +92,23 @@ body {
 }
 .back-link:hover { text-decoration: underline; }
 .back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-right {
+  display: flex; align-items: center; gap: var(--sp-3);
+}
+.font-resizer {
+  display: inline-flex; align-items: center;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-ctl); padding: 1px 3px; gap: 2px;
+}
+.btn-font {
+  background: transparent; border: 0; color: var(--muted);
+  font-family: var(--font-ui); font-size: 11.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 4px; cursor: pointer;
+  line-height: 1.4;
+}
+.btn-font:hover { color: var(--ink); background: var(--code-bg); }
+.btn-font:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 .topbar-tag {
   font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
   color: var(--faint);
@@ -225,9 +242,9 @@ body {
   color: var(--ink);
 }
 .book-body > *:first-child { margin-top: 0; }
-/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供 */
+.book-body img { max-width: 100%; height: auto; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供；禁止使用 + * 避免误伤正文导语 */
 .book-body > h1:first-child,
-.book-body > h1:first-child + * ,
 .book-body > .md-toc-skip { display: none; }
 .book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
 .book-body > h1 + p,
@@ -314,19 +331,72 @@ body {
   padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
 }
 .book-body pre {
+  position: relative;
   margin: var(--sp-4) 0; padding: var(--sp-4);
   background: var(--code-bg); border: 1px solid var(--line);
   border-radius: var(--r-media); overflow-x: auto;
 }
 .book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
-.book-body .table-wrap, .book-body table {
-  display: block; width: 100%; overflow-x: auto;
+.btn-copy-code {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--surface); border: 1px solid var(--line);
+  color: var(--muted); font-family: var(--font-ui); font-size: 11px;
+  padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  opacity: 0; transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  line-height: 1.3;
+}
+.book-body pre:hover .btn-copy-code,
+.btn-copy-code:focus-visible {
+  opacity: 1;
+}
+.btn-copy-code:hover {
+  color: var(--ink); border-color: var(--line-strong);
+}
+.btn-copy-code.copied {
+  color: var(--accent); border-color: var(--accent); font-weight: 600;
+}
+
+/* 参考时间穿透锚点 */
+.time-anchor {
+  display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: var(--sp-2) 0 var(--sp-4); padding: 3px 12px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; font-family: var(--font-mono); font-size: 12px;
+  color: var(--muted); width: fit-content; max-width: 100%;
+}
+.time-anchor .ta-label {
+  font-family: var(--font-ui); font-size: 11px; font-weight: 600;
+  color: var(--faint); letter-spacing: .04em;
+}
+.time-anchor .ta-ts {
+  color: var(--accent-ink); text-decoration: none; font-weight: 600;
+  border-bottom: 1px dashed var(--accent);
+}
+.time-anchor .ta-ts:hover {
+  color: var(--accent); border-bottom-style: solid;
+}
+.time-anchor .ta-sep { color: var(--line-strong); }
+.time-anchor .ta-vid {
+  color: var(--muted); text-decoration: none; font-family: var(--font-ui);
+  font-size: 11.5px; font-weight: 500;
+}
+.time-anchor .ta-vid:hover { color: var(--accent); }
+.book-body .table-wrap {
+  width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  margin: var(--sp-5) 0; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-media);
 }
 .book-body table {
   border-collapse: collapse; margin: var(--sp-5) 0;
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--r-media); overflow: hidden;
-  font-family: var(--font-ui); font-size: .92em; min-width: min(100%, 520px);
+  border-radius: var(--r-media);
+  display: block; width: 100%; max-width: 100%;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  font-family: var(--font-ui); font-size: .92em;
+}
+.book-body .table-wrap > table {
+  margin: 0; border: 0; border-radius: 0;
+  display: table; width: 100%; min-width: 520px; overflow: visible;
 }
 .book-body th, .book-body td {
   padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
@@ -378,20 +448,69 @@ body {
 }
 .lightbox.open { display: flex; }
 .lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-close {
+  position: absolute; top: 16px; right: 20px; z-index: 102;
+  width: 38px; height: 38px; border: 0; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18); color: #fff;
+  font-size: 26px; line-height: 1; display: flex;
+  align-items: center; justify-content: center; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.32); }
+.lightbox-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lightbox-caption {
   position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
   color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
 }
 
+/* 阅读位置恢复轻提示 */
+.shelf-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: #F4EFE6; padding: 8px 18px;
+  border-radius: 999px; font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22); z-index: 90;
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.shelf-toast.show {
+  opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto;
+}
+.shelf-toast-btn {
+  background: transparent; border: 0; color: #5EEAD4;
+  cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 0; margin-left: 2px; text-decoration: underline;
+}
+
+.toc-backdrop { display: none; }
+
 @media (max-width: 960px) {
   .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
-  .toc-panel {
-    position: static; max-height: none; display: none;
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--r-panel); padding: var(--sp-4);
+  .toc-toggle {
+    display: inline-flex; align-items: center; justify-content: space-between;
   }
-  .toc-panel.open { display: block; }
-  .toc-toggle { display: block; }
+  .toc-backdrop {
+    position: fixed; inset: 0; z-index: 48;
+    background: rgba(37, 42, 39, 0.45);
+    backdrop-filter: blur(2px);
+    display: none;
+  }
+  .toc-backdrop.open { display: block; }
+  .toc-panel {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 49;
+    width: min(320px, 85vw); max-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    box-shadow: 0 0 24px rgba(37, 42, 39, 0.15);
+    padding: var(--sp-5) var(--sp-4);
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    display: block !important;
+    overflow-y: auto;
+  }
+  .toc-panel.open {
+    transform: translateX(0);
+  }
 }
 @media (max-width: 640px) {
   .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
@@ -401,10 +520,25 @@ body {
   html { scroll-behavior: auto; }
 }
 
+@media print {
+  .topbar, .toc-panel, .toc-toggle, .toc-backdrop, .book-pager, .lightbox,
+  .meta-actions, .time-anchor .ta-vid, .btn-copy-code, .shelf-toast {
+    display: none !important;
+  }
+  .layout {
+    display: block !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important;
+  }
+  .book-main, .book-body {
+    max-width: 100% !important;
+  }
+  .book-body {
+    font-size: 11pt !important; line-height: 1.6 !important; color: #000 !important;
+  }
+  .screenshot-card { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+}
+
 /* quality gate badges (local preview only) */
-.lec-quality{margin-left:.5rem;font-size:.72rem;padding:.1rem .4rem;border-radius:999px;background:var(--chip,#f4efe6);color:#0f766e;border:1px solid rgba(15,118,110,.25)}
-.quality-banner{margin:0 0 1rem;padding:.55rem .85rem;border-radius:8px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:.92rem}
-.quality-banner[data-quality="未审稿"]{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
 
 </style>
 </head>
@@ -413,11 +547,18 @@ body {
   <div class="topbar">
     <div class="topbar-in">
       <a class="back-link" href="../index.html">← 书架</a>
-      <span class="topbar-tag">SHELF · READ</span>
+      <div class="topbar-right">
+        <div class="font-resizer" role="group" aria-label="字号调节">
+          <button type="button" class="btn-font font-dec" aria-label="减小字号">A-</button>
+          <button type="button" class="btn-font font-inc" aria-label="增大字号">A+</button>
+        </div>
+        <span class="topbar-tag">SHELF · READ</span>
+      </div>
     </div>
   </div>
   <div class="layout">
     <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <div class="toc-backdrop" aria-hidden="true"></div>
     <aside class="toc-panel" aria-label="目录">
       <h2 class="toc-title">目录</h2>
       <ul class="toc-list"></ul>
@@ -427,19 +568,23 @@ body {
         <p class="course-line"><strong>26生成式软件工程</strong> · NJU · 第 5 讲</p>
         <h1>05 软件工程的来龙去脉</h1>
         <p class="book-summary">从 AI 新闻到软件危机、过程模型与追溯/测试/契约/UML 的工程智慧</p>
-        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/" target="_blank" rel="noopener">BV1Nyeq6qEt8</a> · 时长 1h39m · 标签：软件工程、软件危机、UML、测试、契约式设计</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/" target="_blank" rel="noopener">BV1Nyeq6qEt8</a> · 视频时长 1h39m · 预计阅读约 18.6 分钟（约 7,443 个阅读单位） · 标签：软件工程、软件危机、UML、测试、契约式设计</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
       </header>
       <article class="book-body">
-<p><em>(参考时间: 00:00:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-00-00" title="在字幕对照页定位此段">00:00:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=0" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>本讲从当代 AI 新闻切入，回到软件开发现场，再沿「软件危机（软件规模与复杂度增长超过方法能力，导致失控成本与失败项目的历史困境） → 软件工程」的历史线索，整理仍不过时的过程智慧：清单、追溯、测试、契约与建模。阅读时长为估算值，不是实测。目标是可独立阅读的忠实书稿：不看视频也能跟上实体、定义、因果、案例与限制；去掉的是口语与重复，不是知识。</p>
 <h2 id="_1">一、开课新闻：实时决策、进化速度与模型短板</h2>
-<p><em>(参考时间: 00:00:00–00:20:01)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-00-00" title="在字幕对照页定位此段">00:00:00–00:20:01</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=0" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>继续「生成式软件工程」。上一讲讲了版本管理，今天正式进入软件工程本体。课堂先用一周内的新闻校准时代速度，再回到软件构造。</p>
 <h3 id="doom">实时决策基础模型：Doom 演示、命名与赛道含义</h3>
-<p><em>(参考时间: 00:00:14–00:03:20；画面核对 00:00:28、00:00:42、00:01:36)</em></p>
-<p><strong>TypeSafe AI（发布实时决策基础模型的团队）</strong> 最新发布了一个可实时玩《毁灭战士》（Doom）的模型，课堂与画面均称 <strong>Jev（TypeSafe AI 发布的实时决策基础模型）</strong>；幻灯片写作「Typesafe AI 的 Jev」，旁白 ASR 曾误作 type c / JEFF。演示里把游戏状态压成 JSON 喂进去，模型输出一个决策 token；延迟大约在毫秒级到百毫秒级，已经接近人类实时反应。这个 token 被专门微调过，不说人话，但能做决策——像训练一个神经网络，又是通用的，介于大语言模型与以前的决策树这类小模型之间。</p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-00-14" title="在字幕对照页定位此段">00:00:14–00:03:20；画面核对 00:00:28、00:00:42、00:01:36</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=14" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p><strong>TypeSafe AI（发布实时决策基础模型的团队）</strong> 最新发布了一个可实时玩《毁灭战士》（Doom）的模型 <strong>Jev（TypeSafe AI 发布的实时决策基础模型）</strong>。演示把游戏状态压成 JSON 喂给模型，模型输出一个决策 token；延迟约从毫秒级到百毫秒级，接近人类实时反应。这个 token 经过专门微调，不说人话但能做决策；模型既像训练出的神经网络，又具有通用性，介于大语言模型与决策树一类小模型之间。</p>
 <p><strong>讲师盲猜架构</strong>：它可能是一个 <strong>prefill-only（只做一次前向/预填充、一次并行给出输出）</strong> 的 transformer，就像「只能出一个 token 的 Transformer」，也可能是别的架构。<strong>画面幻灯片另载官方披露</strong>（参考时间 00:01:36）：一次并行输出全部概率，无需逐 token 自回归生成——与讲师「只出一个 token」的猜测方向一致；讲师口播未展开该披露细节，此处以幻灯片文字为准。</p>
-<p><strong>命名与关系</strong>：Jev「给自己一个名字叫 <strong>System I（人类意义上的实时决策命名，旁白亦称 System One）</strong>」。关系可记为：<strong>TypeSafe AI 发布 Jev → Jev 在 Doom 等任务上做实时决策 → 能力标签 System I → 打开 50–200ms 小决策回路的新赛道</strong>。技术本身并不新，也有人做过很快的模型，但这次火了才把赛道正式推开。</p>
+<p><strong>命名与关系</strong>：幻灯片把「人类意义上的实时决策」标作 <strong>System I（实时决策能力标签）</strong>，并写有「Typesafe AI 的 Jev」。本节把这一能力标签放在 Jev 的 Doom 演示中讨论：近实时决策模型打开了 50–200ms 小决策回路的新赛道。技术本身并不新，也有人做过很快的模型，但这次火了才把赛道正式推开。</p>
+<p><img alt="幻灯片：TypeSafe AI、Jev 与 System I" src="images/jev-system-i-slide.jpg" /></p>
 <p><strong>为何重要</strong>：延迟是人机交互体验的关键约束。人与人对话本身就有延迟；人与机器对话却常因等待而露馅——课堂提到 AI 演员对话时突然说起广东话的传播片段，以及数字人之间「很大的延迟」。若有 50–200ms 的小决策回路，就可以实时生成脸上的微表情，让人感到「有人感」；它能打游戏，也能哄婴儿睡觉。乐观一点把模型裁得更小，50ms 以内也可能。后面谈到豆包手机与「软件公司消亡」时，Jev 这类近实时决策模型被当作关键赌注（参考时间 00:25:23–00:27:00）。</p>
 <h3 id="ai">AI 进化时间线：能力跃迁常快于预期</h3>
 <p>课堂用一条时间线说明：1956–1958 年感知与规划机器走出实验室；70 到 90 年代是人工智能的寒冬；1997 年搜索算法第一次击败人类世界冠军——此前经历了漫长积累。2012 年 AlexNet 之后世界开始剧变；2016 年讲师在现场看直播；2017 年读博时关注词向量、Transformer、BERT 能做什么；2020 年 GPT-3 问世时大家还吃惊「为什么要做这么大参数的模型」，到 2022 年才明白为什么需要——到现在也不过几年。2020 到 2023 年就能看图，GPT-4o 能识别语音、多模态生成；开源模型与视频生成接踵而至：2024 年 SORA 首次发布，2024 年 9 月才有 chain-of-thought 式 o1 推理模型；第一个开源的 chain-of-thought 一脉是 DeepSeek R1。课堂彩蛋：展示的视频本身完全由生成模型制作（旁白称 GPT-6）；还有把数学难题「暴力出奇迹」解决的案例。幻灯片还写「很难想象 Silcon Valley 里的 Pied Piper 到今天会怎么样」（Silcon 为幻灯片原拼写）。讲师判断：<strong>世界发展在加速，速度可能比大家想象的快</strong>——既是就业挑战，也是生态机遇；例如 Jev 带火的那种实时决策生态，可能一年内成熟，也可能要等硬件与技术。</p>
@@ -452,31 +597,37 @@ body {
 <h3 id="ai_1">与 AI 同行：斩杀线、学习方式与一手材料</h3>
 <p>人类社会近似 survival of the fittest（适者生存），讲师把能力门槛称为「斩杀线」，它不断上移；目标是在被斩杀前搭上车，成为更好的人。技术侧他强调：仍要上课，因为还不能完全依赖 AI，也因为「能理解 AI 的人活下来」。学习方式也变了：过去查证知识网络几乎不可能，只能读教科书的有损压缩；今天可以直接读一手材料（传记、原报告、原文），用 AI 帮助对照误读链。课堂示范用 Agent「入库」论文、在命令行里读长文——知识压缩的责任从「唯一教材」变成「点 + 原文 + 属于你自己的压缩」。</p>
 <h2 id="mvp">二、回到软件：缺口、MVP 与现场设备</h2>
-<p><em>(参考时间: 00:18:35–00:30:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-18-35" title="在字幕对照页定位此段">00:18:35–00:30:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=1115" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="intentspecificationimplementation-gap">intent、specification、implementation 之间的 gap</h3>
 <p>课程主线：软件构造难在三段之间的 gap——<strong>intent（意图：你想要什么）</strong>、<strong>specification（规格：打算怎么做/做成什么样）</strong>、<strong>implementation（实现：真正写出来的软件）</strong>。有 gap，构造软件才成为世纪性难题，才有了软件工程。版本管理解决「改了什么、如何回滚」；真正开工前还有一个直观答案：MVP（最小可行产品）。</p>
 <h3 id="mvp_1">MVP：用最小切片补上认知缺口</h3>
 <p>讲师判断：做多错多，做少错少；做最少的、又最接近最终产品的切片，收益最大。MVP 首先很便宜（课堂戏称 AI 生成的 slop 可随时扔），关键是它能告诉你 <strong>intent 哪里没弄对、specification（含架构）还有没有改进空间</strong>。范式是：先做一版，迭代几轮，再往外长。条件限制：MVP 不是「把按钮样式先抠完」——样式依赖界面设计，界面依赖功能；上层未定时做的细节很快作废。不要研究即将被扔掉的东西。</p>
 <h3 id="_2">设备抽象案例：标签打印机与扫描仪</h3>
-<p><em>(参考时间: 00:20:01–00:25:20)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-20-01" title="在字幕对照页定位此段">00:20:01–00:25:20</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=1201" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>课堂展示一晚上用国产模型做出的 self-service 设备台：标签打印机、扫描仪等都接到一台计算机总线上（操作系统课的意象），却不想用原厂「像吃屎一样」的驱动软件。做法是<strong>抽象</strong>：把设备抽象成更干净的接口——扫描仪是 <code>scan</code>（正/反面、单双面、dpi），打印机是 <code>print(image)</code>。一旦有了接口，设计和实现就解耦了，软件层可以工作在接口层上。这是非常典型的软件工程设计智慧。</p>
 <p>细节值得保留：打印机是热转印非标设备（碳粉袋按像素加热烫到标签上），有个「加热深度/图像深度」参数不知道设多少。AI 就一轮一轮打标签，标上「第 15 次尝试」，问人「淡了还是浓了」；它看不到，但接个摄像头就能全自动。它先试 LP 方案，后来直接用 PCL 驱动把设备当通用打印机处理。人只验收结果，不监管过程。这引出讲师判断：<strong>以后软件公司面临彻底消亡</strong>——标签打印机、扫描仪的 Windows/Mac 驱动开发成本曾经很高；今天生产定制软件与 intelligence 的成本非常低。App 也可能死掉：<strong>豆包手机</strong>一类的思路是把 App 抽象成接口，由 computer use 调用（点外卖只剩查询接口）；幻灯片把「软件公司的彻底消亡」直接点名为 <strong>Jev、豆包手机</strong> 等同一波变化（参考时间 00:25:23–00:26:50）。阿里也在把服务整合给 agent。实验室预告：下一实验要求把 assistant 接到某个 physical device（手表、宿舍小设备、电子墨水瓶等非标硬件）。课堂还演示了对 Android APK 解包、逆向蓝牙协议，自写驱动写屏。</p>
 <h2 id="_3">三、软件危机：需求是拍脑袋的，成本是真金白银的</h2>
-<p><em>(参考时间: 00:30:00–00:50:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-30-00" title="在字幕对照页定位此段">00:30:00–00:50:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=1800" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="1960">1960 年代的约束：硬件贵、码农贵、客户想象过度</h3>
 <p>软件还是新事物的年代（课堂以 1960 年前后为锚）：一台计算机占一间大房，制造成本很高，不敢偷工减料（类比建筑刚起步时猛堆料）；编程工具不成熟，码农是高智力工种。写机器码/汇编时必须先画流程图——不像今天大模型可以直接写汇编羊稿，人做不到，需要大量预训练式练习。客户一侧则对计算机充满过度遐想：1968 年《Boys' Life》杂志已经畅想「终端及时判分、按薄弱环节辅导、按自己的节奏学习」——到今天仍未完全实现。课堂对比：客户脑子里是跨时代系统，程序员脑子里是汇编和 goto，gap 巨大。软件企业还要签合同、垫付开发（课堂玩笑「一千万美元开发操作系统」），而客户（如军方、NASA 类工程方）也未必知道自己想要什么。1957 年程序员甚至不被承认为职业，Dijkstra（图灵奖得主）登记结婚时只能写「理论物理学家」。</p>
 <h3 id="_4">软件需求是高度定制化的</h3>
 <p>与其他工程不同：桥梁、炼钢受材料与力学约束，出厂强度已定，只能适应自然规律做 incremental（渐进）改进；<strong>软件需求是拍脑袋想出来的，高度定制化，而且会随时间演进</strong>。课堂选课系统例子：先到先得还是抽签？按专业保留吗？不满足先修课时老师能否特批？——这些 corner case 连提 intent 的人都没想好。操作系统课的先修要求是「硬限制还是软限制？谁能 override？」最后一秒钟毕不了业时，所有口子学校都能开。软件需求连接物理社会与人的偏好，进度、成本、质量会一起失控：开发进度不可预测、成本崩溃、延期交付。这就是软件危机（软件规模与复杂度增长超过方法能力，导致失控成本与失败项目的历史困境）的土壤；没有危机，就不会有后来的软件工程学科。</p>
 <h3 id="dijkstragoto">Dijkstra：goto、可读性与「永不发生」的假设</h3>
-<p><em>(参考时间: 00:39:30–00:48:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-39-24" title="在字幕对照页定位此段">00:39:30–00:48:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=2370" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>Dijkstra 的名文《Go To Statement Considered Harmful》大家听说过，但课堂立刻补充反例：Linux 内核里有大量 goto——C 里少数 idiomatic 用法之一是 <code>goto release</code>：在出口统一检查并释放函数申请的全部资源，中途退出必须走 release，程序就基本正确了。讲师转述暴论：<strong>程序员水平随 goto 密度上升而下降</strong>（有道理但不绝对）。真正要害不是 goto 本身，而是大量 goto 让程序难以理解；<strong>只有人能读，才可能维护下去</strong>。若把 goto 限制成「只能这样用」的机制，它就不 harmful。</p>
 <p>1972 年 Dijkstra 图灵奖演讲《The Humble Programmer》谈到软件危机根源：若永远只写 online judge 小程序，算完就完，不会有危机；<strong>机器变强后，软件承担的现实 intent 越多，不确定性越多，实现越复杂</strong>。他提倡 nicely factored solutions（分解良好的方案）——课堂标签打印机抽象就是一例。还有一句放到今天仍醍醐灌顶的话：保守力量主要来自教育机构与舍不得重写旧程序的用户。课堂倡导直接读一手文稿：教科书多层转述后，东西可能已经不是那个东西了。</p>
 <h3 id="nato-1968hamilton">NATO 1968、Hamilton 与防御性编程</h3>
-<p><em>(参考时间: 00:44:00–00:48:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-44-00" title="在字幕对照页定位此段">00:44:00–00:48:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=2640" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>软件开始失败后，1968 年 NATO 会议聚焦软件工程；约同期 Margaret Hamilton 和团队提出「软件工程」概念。课堂展示标志性照片与阿波罗代码故事：1969 年（口误处课堂说 2019）经过不懈排错，最初的软件工程师把宇航员送上月球。工程智慧是<strong>防御性编程（把「绝对不可能发生」当成可能来设计，使系统在意外下仍有兜底）</strong>：never going to happen can happen。SICP 式教育要求写 assertions / specifications：假设软件在任何时候、甚至违反假设时仍要能工作；假设硬件也不可靠，程序 crash 后系统要有兜底。阿波罗 11 登月下降时发生警报，软件因优先级与 recovery 机制，让关键的下降控制得以继续——这是还没有「软件工程」名字时，从 first principle 思考高质量软件的成果。</p>
 <p><strong>软件工程的定义性任务</strong>：在成本、时间、团队约束下，把人的意图变成可工作、可维护、可生存的软件（需求还会变）。IEEE 将其概括为系统化、可量化、覆盖生命周期的工程方法。从「个人英雄主义 + 好领导」变成「checklist：一二三四五全满足，失败概率小很多」。数亿美金的教训（炸火箭等）沉淀了这门学科；今天写 OJ 时「假设题目是对的、能做出来的」本身也是隐含假设，开放世界里题目可能错、条件会变、甚至变成另一道题。</p>
 <h2 id="royce">四、瀑布、Royce 与把风险提前</h2>
-<p><em>(参考时间: 00:50:00–01:15:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-50-00" title="在字幕对照页定位此段">00:50:00–01:15:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=3000" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="royce-1970">Royce 1970：瀑布图的出处，也是最被误读的论文</h3>
 <p>接到开发任务不能一声「大家去干」——leader 要划分任务（课堂类比：打印机/扫描仪起两个 agent 窗口并行）。1970 年还没有 MVP，Winston Royce 的《Managing the Development of Large Software Systems》思考「如何按时不超预算交付大型软件」，给出从需求 → 分析 → 设计 → 代码 → 测试 → 上线的经典瀑布图（瀑布模型：按阶段顺序推进、后一阶段依赖前一阶段产出的过程图景）。有意思的是：<strong>这篇文章其实是批判纯瀑布流程的</strong>——「后被称为瀑布模型的原始出处，也是被误读最严重的一篇」。课堂用 Agent 帮忙读原文、还原误读链：教材一级级消化后，原意会漂移；而 1970 年的原文反而好懂，且与今天的实践对得上（总是从空项目开始：想清楚要干什么 → 大概想怎么做 → 写代码，不论写代码的是工程师还是 AI）。</p>
 <h3 id="_5">测试是第一个物理事件，缺陷越晚越贵</h3>
@@ -484,10 +635,12 @@ body {
 <h3 id="do-it-twicepilot-mvp">Do it twice：pilot 程序就是当年的 MVP</h3>
 <p>Royce 提出 design-first 与「do it twice」：先做一个不完备但能体现系统功能的 <strong>preliminary pilot program</strong>；它可能失败，但迭代成本低，能反射到系统设计上——这就是 MVP 的先声。今天也可以用 TDD 解释——即测试驱动开发（先写测试再实现功能的开发实践）：设计先行：设计先行 = 先定测试用例（输入走何流程、应输出什么），再实现；敏捷开发则像「do it infinite many times」：第一版哪怕只有 hello world、各模块自报家门并串起来，也是好产品，然后不断向后演进，<strong>让关键假设尽早遇到证据</strong>。课堂总结：今天的正确 practice 可映射回过去，过去的 first principle 也能映射回今天；图灵奖级工作常是「在大家不知道时确立 first principle」。</p>
 <h3 id="data-dependency">讲师自己的读法：data dependency（数据依赖）</h3>
-<p><em>(参考时间: 01:09:30–01:15:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-09-28" title="在字幕对照页定位此段">01:09:30–01:15:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=4170" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <p>讲师自称做过一点 PL/操作系统，把 Royce 的模型理解成 <strong>data dependency（制品之间的依赖关系，决定错误会传播到哪里）</strong>：把需求点、设计、实现、测试都看成 program/artifact，就得到一张有向无环图；关联关系会传递。若测试错了往上追溯发现某个 design 错了，所有依赖它的东西全部毁掉——<strong>这就解释了返工成本为什么高</strong>。解法自然是割小：不要一次产生大量 dependency，而用宽度优先（BFS）先做第一层再做第二层，变成按依赖深度迭代的 DFS——这就是敏捷/MVP：先做优先级最高的依赖链路走通，再向右扩展。每个 intent 会拆成多个小点并对后面产生 dependency，所以 MVP、敏捷、TDD 都是正确事情。每个人对模型的理解可以不同（个性化教学的价值）；这套 data dependency 视角，正是后来软件工程真正采用的形式化方式之一。</p>
 <h2 id="_6">五、工程智慧工具箱：清单、追溯、测试、契约</h2>
-<p><em>(参考时间: 01:15:00–01:30:00)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-15-00" title="在字幕对照页定位此段">01:15:00–01:30:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=4500" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="checklist">checklist（清单）与形式化梯度</h3>
 <p>软件工程为每个阶段创建方法和工具，以减少返工概率。checklist 看起来像 nonsense（OJ 选手尤其反感），但它<strong>减少失败概率</strong>：例如最后一条「是否和客户沟通过」——真打勾时，intent 不符合客户要求的概率大幅下降。它是有人文关怀的工具，没有任何代码。清单还要求文档两两对照审查，避免 gap 在阶段间漂移；「所有勾打上才能进下一阶段」赋予了形式语义。决策表/决策树也是同类。</p>
 <p>更深的观察是<strong>形式化程度自上而下递增</strong>：checklist 仍是自然语言，但有格式规范（逐条、勾/叉），已是介于自然与形式之间的中间语言——人对勾和叉的对齐比对一篇散文更 formal。到设计阶段缺语言，就发明设计语言（领域专用）；到实现是编程语言。中间还有能做逻辑检验的半形式语言。没有大模型这个「万能编译器」时，不同阶段必须用不同语言——这就是 gap 的管理史。</p>
@@ -498,7 +651,8 @@ body {
 <h3 id="design-by-contract">契约式设计（design by contract，用前置/后置条件约定例程责任的开发方法）</h3>
 <p>Eiffel 等语言约 1986 年把霍尔三元组直接写进代码：先写文档（函数干什么），<code>require</code> 前置条件，<code>do</code> 实现，<code>ensure</code> 后置保证。鼓励先不写 do，把各模块文档与 pre/post condition 写出来。写契约会强迫你处理边界：账户取款的「余额不足」到底怎么办——MVP 时可以假装永不发生、排除出 specification 空间；<strong>软件一旦向后演进，contract 就变得非常重要</strong>。规格写清之后，演进中才谈得上稳定。这条线沿袭到今天的许多语言与验证器。</p>
 <h2 id="uml">六、UML（统一建模语言，用图示化中间层对齐需求与实现语义） 的野心、消亡与形式化的尽头</h2>
-<p><em>(参考时间: 01:30:01–01:39:59)</em></p>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-30-01" title="在字幕对照页定位此段">01:30:01–01:39:59</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=5401" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
 <h3 id="_7">语义对齐为什么难</h3>
 <p>多年软工史，本质是在 spec 上「横跳」：自然语言 → 半自然/带逻辑公式的语言 → 编程语言。自然语言对不齐，是因为它直连人脑的 latent space（隐空间：模型/大脑内部的连续表示）：说「一个美女」，每个人内部构造的形象都不一样；要求用 Blender 建模，不同模型画的也不同。人类发明了数学语言才真正对齐——从很小的公理（如皮亚诺算术公理）一点一点构造，全世界对「自然数」的语义一致，才能在计算机世界里建起确定语义。UML 想做的，就是把自然语言世界里说不清的需求、设计，能对齐的部分与不能对齐的部分剥离出来。</p>
 <h3 id="uml_1">UML（统一建模语言，用图示化中间层对齐需求、设计与实现语义）</h3>
@@ -514,9 +668,9 @@ body {
 <li><strong>接口与抽象</strong>：设备/应用一旦抽象成干净接口，实现与消费解耦；AI 让定制实现变便宜，设计判断反而更关键。</li>
 <li><strong>教育与算力</strong>：好模型拉大学习效率与成本差距；是否「人人都用得起好模型」受算力资源约束，这是社会性问题，不只是技术问题。</li>
 </ol>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Nyeq6qEt8&t=2871&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="课堂板书示意：从软件危机到软件工程"></iframe></div><p class="video-caption"><span class="cap-text">课堂板书示意：从软件危机到软件工程</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=2871" target="_blank" rel="noopener">在 B 站打开 (00:47:51)</a></span></p></div>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Nyeq6qEt8&t=2871&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="课堂板书示意：从软件危机到软件工程"></iframe></div><p class="video-caption"><span class="cap-text">课堂板书示意：从软件危机到软件工程</span><span class="cap-time"><a href="transcript.corrected.html#t-00-47-51" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=2871" target="_blank" rel="noopener">在 B 站打开 (00:47:51)</a></span></p></div>
 
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Nyeq6qEt8&t=5129&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="课堂板书示意：需求与追溯"></iframe></div><p class="video-caption"><span class="cap-text">课堂板书示意：需求与追溯</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=5129" target="_blank" rel="noopener">在 B 站打开 (01:25:29)</a></span></p></div>
+<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Nyeq6qEt8&t=5129&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="课堂板书示意：需求与追溯"></iframe></div><p class="video-caption"><span class="cap-text">课堂板书示意：需求与追溯</span><span class="cap-time"><a href="transcript.corrected.html#t-01-25-29" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Nyeq6qEt8/?t=5129" target="_blank" rel="noopener">在 B 站打开 (01:25:29)</a></span></p></div>
 
 <hr />
 <p><em>本讲对应视频约 100 分钟；正文为可独立阅读的忠实书稿（已保留关键实体、定义、因果、案例与限制，并核对 TypeSafe AI / Jev / System I 等画面与旁白）。完整逐句对照见 <code>transcript.corrected.txt</code>。</em></p>
@@ -534,11 +688,11 @@ body {
   }
 
   ready(function () {
-    // 目录：由渲染器注入 data-toc-source 或从 .book-body 抽取
     var body = document.querySelector(".book-body");
     var panel = document.querySelector(".toc-panel");
     var list = document.querySelector(".toc-list");
     var toggle = document.querySelector(".toc-toggle");
+    var backdrop = document.querySelector(".toc-backdrop");
     var mainH1 = document.querySelector(".book-head h1");
 
     if (body && mainH1) {
@@ -579,15 +733,33 @@ body {
       list.appendChild(frag);
     }
 
+    // 移动端侧边抽屉式目录
+    function closeDrawer() {
+      if (panel) panel.classList.remove("open");
+      if (backdrop) backdrop.classList.remove("open");
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
+    }
     if (toggle && panel) {
       toggle.addEventListener("click", function () {
         var open = panel.classList.toggle("open");
+        if (backdrop) backdrop.classList.toggle("open", open);
         toggle.setAttribute("aria-expanded", open ? "true" : "false");
       });
     }
+    if (backdrop) {
+      backdrop.addEventListener("click", closeDrawer);
+    }
+    if (list) {
+      list.addEventListener("click", function (e) {
+        if (e.target && e.target.tagName === "A" && window.innerWidth <= 960) {
+          closeDrawer();
+        }
+      });
+    }
 
-    // 当前章节高亮（本页阅读位置，不持久化）
+    // 当前章节高亮与非侵入式目录自动跟随
     var links = list ? list.querySelectorAll("a[data-target]") : [];
+    var lastActiveLink = null;
     function setActive() {
       if (!links.length) return;
       var current = null;
@@ -597,12 +769,120 @@ body {
         var top = el.getBoundingClientRect().top;
         if (top <= 80) current = a;
       });
+      if (!current && links.length) current = links[0];
       links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+
+      // 仅在当前章节改变且目录项超出容器时，微调目录面板 scrollTop，不干扰正文滚动
+      if (current && current !== lastActiveLink && panel && window.innerWidth > 960) {
+        lastActiveLink = current;
+        var pRect = panel.getBoundingClientRect();
+        var cRect = current.getBoundingClientRect();
+        if (cRect.top < pRect.top + 24 || cRect.bottom > pRect.bottom - 24) {
+          var targetTop = panel.scrollTop + (cRect.top - pRect.top) - (panel.clientHeight / 2 - cRect.height / 2);
+          panel.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+        }
+      }
     }
     window.addEventListener("scroll", setActive, { passive: true });
     setActive();
 
-    // Lightbox：键盘可操作
+    // 字号微调 (A- / A+)
+    var fontDec = document.querySelector(".font-dec");
+    var fontInc = document.querySelector(".font-inc");
+    var currentFontSize = 18;
+    try {
+      var savedFont = localStorage.getItem("shelf_font_size");
+      if (savedFont) {
+        currentFontSize = parseInt(savedFont, 10) || 18;
+        document.documentElement.style.setProperty("--text-body", currentFontSize + "px");
+      }
+    } catch (e) {}
+
+    function setFontSize(val) {
+      currentFontSize = Math.max(15, Math.min(22, val));
+      document.documentElement.style.setProperty("--text-body", currentFontSize + "px");
+      try { localStorage.setItem("shelf_font_size", currentFontSize); } catch (e) {}
+    }
+    if (fontDec) fontDec.addEventListener("click", function () { setFontSize(currentFontSize - 1); });
+    if (fontInc) fontInc.addEventListener("click", function () { setFontSize(currentFontSize + 1); });
+
+    // 代码块一键复制
+    document.querySelectorAll(".book-body pre").forEach(function (pre) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-copy-code";
+      btn.textContent = "复制";
+      btn.setAttribute("aria-label", "复制代码");
+      btn.addEventListener("click", function () {
+        var code = pre.querySelector("code");
+        var text = (code ? code.textContent : pre.textContent) || "";
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            btn.textContent = "已复制 ✓";
+            btn.classList.add("copied");
+            setTimeout(function () {
+              btn.textContent = "复制";
+              btn.classList.remove("copied");
+            }, 1800);
+          });
+        }
+      });
+      pre.appendChild(btn);
+    });
+
+    // 记忆阅读位置与静默恢复
+    var storageKey = "shelf_pos_" + window.location.pathname;
+    var saveTimer = null;
+    window.addEventListener("scroll", function () {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        if (scrollY > 120) {
+          try { localStorage.setItem(storageKey, scrollY); } catch (e) {}
+        } else {
+          try { localStorage.removeItem(storageKey); } catch (e) {}
+        }
+      }, 250);
+    }, { passive: true });
+
+    function showToast(msg) {
+      var toast = document.getElementById("shelf-toast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "shelf-toast";
+        toast.className = "shelf-toast";
+        toast.setAttribute("role", "status");
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = htmlEscape(msg) + ' <button type="button" class="shelf-toast-btn" id="toast-to-top">回到顶部</button>';
+      toast.classList.add("show");
+      var toTop = toast.querySelector("#toast-to-top");
+      if (toTop) {
+        toTop.addEventListener("click", function () {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          toast.classList.remove("show");
+        });
+      }
+      setTimeout(function () { toast.classList.remove("show"); }, 3800);
+    }
+    function htmlEscape(s) {
+      return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    try {
+      var savedPos = localStorage.getItem(storageKey);
+      if (savedPos && !window.location.hash) {
+        var pos = parseInt(savedPos, 10);
+        if (pos > 160) {
+          setTimeout(function () {
+            window.scrollTo({ top: pos, behavior: "instant" });
+            showToast("已恢复上次阅读位置");
+          }, 60);
+        }
+      }
+    } catch (e) {}
+
+    // Lightbox：显式关闭按钮与键盘焦点管理
     var lb = document.getElementById("lightbox");
     if (!lb) {
       lb = document.createElement("div");
@@ -610,11 +890,14 @@ body {
       lb.className = "lightbox";
       lb.setAttribute("role", "dialog");
       lb.setAttribute("aria-modal", "true");
-      lb.innerHTML = '<img alt=""><div class="lightbox-caption"></div>';
+      lb.setAttribute("aria-label", "图片预览");
+      lb.setAttribute("tabindex", "-1");
+      lb.innerHTML = '<button type="button" class="lightbox-close" aria-label="关闭预览">&times;</button><img alt=""><div class="lightbox-caption"></div>';
       document.body.appendChild(lb);
     }
     var lbImg = lb.querySelector("img");
     var lbCap = lb.querySelector(".lightbox-caption");
+    var lbClose = lb.querySelector(".lightbox-close");
     var lastFocus = null;
 
     function openLb(src, alt) {
@@ -624,13 +907,20 @@ body {
       lbCap.textContent = alt || "";
       lb.classList.add("open");
       document.body.style.overflow = "hidden";
-      lb.focus();
+      if (lbClose) lbClose.focus();
+      else lb.focus();
     }
     function closeLb() {
       lb.classList.remove("open");
       lbImg.src = "";
       document.body.style.overflow = "";
       if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    if (lbClose) {
+      lbClose.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeLb();
+      });
     }
     document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
       img.setAttribute("tabindex", "0");
@@ -643,9 +933,17 @@ body {
         }
       });
     });
-    lb.addEventListener("click", closeLb);
+    lb.addEventListener("click", function (e) {
+      if (e.target === lb || e.target === lbClose) closeLb();
+    });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && lb.classList.contains("open")) closeLb();
+      if (e.key === "Escape") {
+        if (lb.classList.contains("open")) closeLb();
+        closeDrawer();
+      } else if (e.key === "Tab" && lb.classList.contains("open")) {
+        e.preventDefault();
+        if (lbClose) lbClose.focus();
+      }
     });
 
     // Mermaid（若页面引入了 mermaid）

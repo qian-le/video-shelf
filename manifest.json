@@ -6,6 +6,7 @@
     "course": "26生成式软件工程",
     "series": "NJU",
     "author": "NJU 软件学院",
+    "uploader": "绿导师原谅你了",
     "lecture_number": 4,
     "summary": "仓库管理进阶与工具",
     "tags": [
@@ -13,9 +14,9 @@
       "软件仓库管理 (2)"
     ],
     "duration": 5909,
-    "updated": "2026-09-28T23:14:31+08:00",
+    "updated": "2026-10-07T14:34:31+08:00",
     "corrected": true,
-    "corrected_html": false
+    "corrected_html": true
   },
   "BV1CQt365EzW": {
     "folder": "提示词工程 [02-Raw／26生成式软件工程／NJU]",
@@ -24,6 +25,7 @@
     "course": "26生成式软件工程",
     "series": "NJU",
     "author": "NJU 软件学院",
+    "uploader": "绿导师原谅你了",
     "lecture_number": 2,
     "summary": "提示词工程的方法与实践",
     "tags": [
@@ -31,9 +33,9 @@
       "提示词工程"
     ],
     "duration": 5905,
-    "updated": "2026-09-28T23:14:31+08:00",
+    "updated": "2026-10-07T14:34:31+08:00",
     "corrected": true,
-    "corrected_html": false
+    "corrected_html": true
   },
   "BV1kybV6DE47": {
     "folder": "软件仓库管理 [03-Raw／26生成式软件工程／NJU]",
@@ -42,6 +44,7 @@
     "course": "26生成式软件工程",
     "series": "NJU",
     "author": "NJU 软件学院",
+    "uploader": "绿导师原谅你了",
     "lecture_number": 3,
     "summary": "版本库与协作流程",
     "tags": [
@@ -49,9 +52,9 @@
       "软件仓库管理"
     ],
     "duration": 6013,
-    "updated": "2026-09-28T23:14:31+08:00",
+    "updated": "2026-10-07T14:34:31+08:00",
     "corrected": true,
-    "corrected_html": false
+    "corrected_html": true
   },
   "BV1pb8o6yE8f": {
     "folder": "欢迎来到未来 [01-Raw／26生成式软件工程／NJU]",
@@ -60,6 +63,7 @@
     "course": "26生成式软件工程",
     "series": "NJU",
     "author": "NJU 软件学院",
+    "uploader": "绿导师原谅你了",
     "lecture_number": 1,
     "summary": "AI 时代的学习与软件工程开篇",
     "tags": [
@@ -67,9 +71,9 @@
       "欢迎来到未来"
     ],
     "duration": 5999,
-    "updated": "2026-09-28T23:14:31+08:00",
+    "updated": "2026-10-07T14:34:31+08:00",
     "corrected": true,
-    "corrected_html": false
+    "corrected_html": true
   },
   "BV1Nyeq6qEt8": {
     "folder": "软件工程的来龙去脉 [05-Raw／26生成式软件工程／NJU]",
@@ -78,6 +82,7 @@
     "course": "26生成式软件工程",
     "series": "NJU",
     "author": "NJU 软件学院",
+    "uploader": "绿导师原谅你了",
     "lecture_number": 5,
     "summary": "从 AI 新闻到软件危机、过程模型与追溯/测试/契约/UML 的工程智慧",
     "tags": [
@@ -88,7 +93,7 @@
       "契约式设计"
     ],
     "duration": 5999,
-    "updated": "2026-09-29T21:02:31+08:00",
+    "updated": "2026-10-07T14:34:31+08:00",
     "corrected": true,
     "corrected_html": true
   },
@@ -729,6 +734,7 @@
     "course": "26生成式软件工程",
     "series": "NJU 生成式软件工程",
     "author": "绿导师原谅你了（蒋炎岩）",
+    "uploader": "绿导师原谅你了",
     "lecture_number": 6,
     "summary": "从 Intent→Spec→实现回顾软件工程主线，展开需求工程与拆课导致的准出规则变更案例，讨论无处不在的架构与需求变化的承载，并回到教务系统看规则与架构如何共同演进。",
     "tags": [
@@ -741,7 +747,30 @@
       "Spec"
     ],
     "duration": 5810,
-    "updated": "2026-09-28T23:14:31+08:00",
+    "updated": "2026-10-07T14:34:31+08:00",
+    "corrected": true,
+    "corrected_html": true
+  },
+  "BV1JGap6LE74": {
+    "folder": "需求和架构 (2) [07-Raw／26生成式软件工程／NJU]",
+    "title": "需求和架构 (2) [07-Raw/26生成式软件工程/NJU]",
+    "display_title": "需求和架构（二）：让系统容纳变化",
+    "course": "26生成式软件工程",
+    "series": "NJU 生成式软件工程",
+    "author": "绿导师原谅你了（蒋炎岩）",
+    "uploader": "绿导师原谅你了",
+    "lecture_number": 7,
+    "summary": "从登录需求、经典阅读和动态规划调试出发，理解可生长语言与系统，进而以界面状态、订单和记账案例，说明如何显式表达历史、依赖和变化。",
+    "tags": [
+      "架构",
+      "需求工程",
+      "经典阅读",
+      "UNIX",
+      "MVC",
+      "事件溯源"
+    ],
+    "duration": 5981,
+    "updated": "2026-10-07T14:34:31+08:00",
     "corrected": true,
     "corrected_html": true
   }

@@ -773,5 +773,21 @@
     "updated": "2026-10-07T14:34:31+08:00",
     "corrected": true,
     "corrected_html": true
+  },
+  "BV11LWw6VEHW": {
+    "folder": "Agent-native 开发 [08-Raw／26生成式软件工程／NJU]",
+    "title": "Agent-native 开发 [08-Raw/26生成式软件工程/NJU]",
+    "display_title": "Agent-native 开发：让工程流程适配智能体",
+    "course": "26生成式软件工程",
+    "series": "NJU 生成式软件工程",
+    "author": "",
+    "uploader": "绿导师原谅你了",
+    "lecture_number": 8,
+    "summary": "",
+    "tags": [],
+    "duration": 5829,
+    "updated": "2026-10-14T09:54:27+08:00",
+    "corrected": true,
+    "corrected_html": true
   }
 }

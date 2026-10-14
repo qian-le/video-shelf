@@ -611,7 +611,7 @@ body {
 <li>一旦上游要改，下游大面积受污染，重做成本急剧上升。</li>
 </ol>
 <p>也就是说：写代码写到一半发现「需求理解错了」，不是改几行字的事，而是整条 <strong>数据依赖</strong> 链上的规格、接口、用例都要跟着动。这正是软件工程强调「把 intent–spec 做对」的原因——早期便宜的决策，在依赖网络里会被放大。</p>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Rch76WEfQ&t=480&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="依赖网络：错误回溯成本"></iframe></div><p class="video-caption"><span class="cap-text">依赖网络：错误回溯成本</span><span class="cap-time"><a href="transcript.corrected.html#t-00-07-58" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=480" target="_blank" rel="noopener">在 B 站打开 (00:08:00)</a></span></p></div>
+<div class="video-card screenshot-card"><img alt="依赖网络：错误回溯成本" loading="lazy" src="images/shot_00_08_00.png"><p class="video-caption"><span class="cap-text">依赖网络：错误回溯成本</span><span class="cap-time"><a href="transcript.corrected.html#t-00-07-58" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=480" target="_blank" rel="noopener">在 B 站打开 (00:08:00)</a></span></p></div>
 
 <hr />
 <h2 id="2">2. 需求工程：把说不清的事说清楚</h2>
@@ -633,7 +633,7 @@ body {
 <li>要改需求时，能查清「会影响到谁」。</li>
 </ul>
 <p>课堂强调：需求说明书应使用<strong>有编号、有形式意义的 ID</strong> 建立追踪链，并写到具体功能条目，而不是只靠自然语言长句。人脑很难对齐一长段散文；编号 + 短条目 + 交叉引用，才能让「改动影响面」变成可计算的问题。</p>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Rch76WEfQ&t=1320&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="结构化需求与追踪链"></iframe></div><p class="video-caption"><span class="cap-text">结构化需求与追踪链</span><span class="cap-time"><a href="transcript.corrected.html#t-00-22-00" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=1320" target="_blank" rel="noopener">在 B 站打开 (00:22:00)</a></span></p></div>
+<div class="video-card screenshot-card"><img alt="结构化需求与追踪链" loading="lazy" src="images/shot_00_22_00.png"><p class="video-caption"><span class="cap-text">结构化需求与追踪链</span><span class="cap-time"><a href="transcript.corrected.html#t-00-22-00" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=1320" target="_blank" rel="noopener">在 B 站打开 (00:22:00)</a></span></p></div>
 
 <h3 id="22">2.2 软件「不软」：细微差错也会致命</h3>
 <p>主讲人反复用一个反差：物理世界里的「软材料」可以弹回；<strong>软件是纯粹逻辑制品</strong>，容不下细微差错——少一个分支、差一个条件，行为就完全走偏。</p>
@@ -725,7 +725,7 @@ body {
                  └─ 译到 Excel：做交付
 </code></pre>
 <p>一份中间语言、两种执行后端：一边用 Python 验证，一边把同一表达式翻译成 Excel 交付。它还可以承载优化：循环中若某个变量每次都重复计算、但结果不变，就能用改写规则把这次计算移到循环外；模型也可以在中间表示上提出这样的改写。先做性能剖析（profiling）找出瓶颈，再据 profile 指导代码优化；课堂把这称为 <strong>profiling-guided optimization（剖析引导的优化）</strong>。这样 Excel 版本变化时，只需调整算子到目标版本的翻译实现，不必重写表达式与验证后端。二维码生成在这里本质上是编译问题。</p>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Rch76WEfQ&t=3900&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="中间语言：表达式树与双后端"></iframe></div><p class="video-caption"><span class="cap-text">中间语言：表达式树与双后端</span><span class="cap-time"><a href="transcript.corrected.html#t-01-04-53" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=3900" target="_blank" rel="noopener">在 B 站打开 (01:05:00)</a></span></p></div>
+<div class="video-card screenshot-card"><img alt="中间语言：表达式树与双后端" loading="lazy" src="images/shot_01_05_00.png"><p class="video-caption"><span class="cap-text">中间语言：表达式树与双后端</span><span class="cap-time"><a href="transcript.corrected.html#t-01-04-53" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=3900" target="_blank" rel="noopener">在 B 站打开 (01:05:00)</a></span></p></div>
 
 <h3 id="34">3.4 十行与两千行</h3>
 <p>有时真正的架构体现在：用很少的结构表达很多行为；有时是把复杂性关进某一层，外面仍简单。<code>getopt</code> 这类十行量级的代码里，也有可复用的架构模式（POSIX 里解析 <code>argv</code> 的经典接口）。表达力与复杂性管理是架构的两端。</p>
@@ -743,7 +743,7 @@ body {
 <p>本节对比 <strong>CRUD</strong>（增删改查：只维护当前状态快照）与 <strong>event sourcing</strong>（只追加历史事件、需要时回放或投影出当前状态），并展开机制、例子与限制。</p>
 <h3 id="41">4.1 软件是物理世界的投影</h3>
 <p>物理世界有过程、有状态；软件往往是这些过程在信息世界的投影。因此许多业务系统天然适合建成<strong>状态迁移系统</strong>。</p>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1Rch76WEfQ&t=4500&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="世界状态与信息投影"></iframe></div><p class="video-caption"><span class="cap-text">世界状态与信息投影</span><span class="cap-time"><a href="transcript.corrected.html#t-01-15-00" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=4500" target="_blank" rel="noopener">在 B 站打开 (01:15:00)</a></span></p></div>
+<div class="video-card screenshot-card"><img alt="世界状态与信息投影" loading="lazy" src="images/shot_01_15_00.png"><p class="video-caption"><span class="cap-text">世界状态与信息投影</span><span class="cap-time"><a href="transcript.corrected.html#t-01-15-00" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Rch76WEfQ/?t=4500" target="_blank" rel="noopener">在 B 站打开 (01:15:00)</a></span></p></div>
 
 <h3 id="42-crud">4.2 CRUD 的黑洞：丢了历史</h3>
 <p><strong>定义</strong>：<strong>CRUD</strong>（增删改查：只维护当前状态快照）只保留「现在是什么」。</p>

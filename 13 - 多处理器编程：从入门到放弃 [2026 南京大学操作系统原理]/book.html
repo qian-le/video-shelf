@@ -618,7 +618,7 @@ sum = sum + 1;  // load / add / store
 <p>现代处理器：多发射、乱序、分支预测、cache。概念上「每次选一线程执行一条」并不存在；更接近每个核有自己的读写缓冲/缓存视图，最终才趋于一致（弱内存模型）。</p>
 <p><strong>经典 litmus</strong>：T1: <code>x=1; r1=y;</code> T2: <code>y=1; r2=x;</code><br />
 顺序一致性下不应看到 <code>(r1,r2)=(0,0)</code>；真实多核上<strong>几乎总看到 00</strong>——写还没对另一核可见就去读。</p>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1vgQGBREyJ&t=4740&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="弱内存模型：00 结果实验"></iframe></div><p class="video-caption"><span class="cap-text">弱内存模型：00 结果实验</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1vgQGBREyJ/?t=4740" target="_blank" rel="noopener">在 B 站打开 (01:19:00)</a></span></p></div>
+<div class="video-card screenshot-card"><img alt="弱内存模型：00 结果实验" loading="lazy" src="images/shot_01_19_00.png"><p class="video-caption"><span class="cap-text">弱内存模型：00 结果实验</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1vgQGBREyJ/?t=4740" target="_blank" rel="noopener">在 B 站打开 (01:19:00)</a></span></p></div>
 
 <p>结论：<strong>Don't play with shared memory</strong>——并发课要学的是受控同步，而不是手搓内存序。</p>
 <pre><code class="language-mermaid">flowchart LR

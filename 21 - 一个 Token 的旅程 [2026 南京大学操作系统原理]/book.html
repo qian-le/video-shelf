@@ -545,7 +545,7 @@ async function handler(event) {
 </code></pre>
 <p>要求：函数应尽量 <strong>幂等</strong>（同一操作执行多次效果相同）。计费若写成“读-加-存”，崩溃重试会记两次账；可用唯一键 + set 大小等结构避免。</p>
 <p>云厂商还通过：计算与存储分离、SSD 集群多副本、压缩与去重（相同 libc 只存一份）等，在可靠的同时压低实际存储成本。</p>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1zS5R6tEWZ&t=2700&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="分布式请求：CDN → 网关 → 多副本业务与存储"></iframe></div><p class="video-caption"><span class="cap-text">分布式请求：CDN → 网关 → 多副本业务与存储</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1zS5R6tEWZ/?t=2700" target="_blank" rel="noopener">在 B 站打开 (00:45:00)</a></span></p></div>
+<div class="video-card screenshot-card"><img alt="分布式请求：CDN → 网关 → 多副本业务与存储" loading="lazy" src="images/shot_00_45_00.png"><p class="video-caption"><span class="cap-text">分布式请求：CDN → 网关 → 多副本业务与存储</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1zS5R6tEWZ/?t=2700" target="_blank" rel="noopener">在 B 站打开 (00:45:00)</a></span></p></div>
 
 <hr />
 <h2 id="3-token-tensor">3. 从 Token 到 Tensor</h2>
@@ -638,7 +638,7 @@ GPU 硬件
 <li>API 定价区分 cache hit/miss，与 KV 是否仍热有关。</li>
 </ul>
 <p>推理集群内还有 tensor parallelism、pipeline parallelism、MoE 专家并行等——最终吐出一个 <strong>next token</strong>，再经过审计、计费、HTTP 流式响应返回给客户端。</p>
-<div class="video-card"><div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=BV1zS5R6tEWZ&t=5250&autoplay=0&high_quality=1&danmaku=0" frameborder="0" allowfullscreen loading="lazy" title="Token 经历的完整路径"></iframe></div><p class="video-caption"><span class="cap-text">Token 经历的完整路径</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1zS5R6tEWZ/?t=5250" target="_blank" rel="noopener">在 B 站打开 (01:27:30)</a></span></p></div>
+<div class="video-card screenshot-card"><img alt="Token 经历的完整路径" loading="lazy" src="images/shot_01_27_30.png"><p class="video-caption"><span class="cap-text">Token 经历的完整路径</span><span class="cap-time"><a href="https://www.bilibili.com/video/BV1zS5R6tEWZ/?t=5250" target="_blank" rel="noopener">在 B 站打开 (01:27:30)</a></span></p></div>
 
 <h3 id="36">3.6 收束：永远变化的“正确答案”</h3>
 <ul>

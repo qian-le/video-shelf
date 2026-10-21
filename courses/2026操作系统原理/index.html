@@ -201,6 +201,9 @@ body.shelf-page {
   font-family: var(--font-mono); font-size: 12px; color: var(--accent-ink); font-weight: 600;
 }
 .lec-title { line-height: 1.45; }
+.lec-info { min-width: 0; }
+.lec-info .lec-title { display: block; }
+.lec-course { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
 
 .card-actions {
   position: relative; z-index: 3; margin-top: auto;
@@ -253,7 +256,8 @@ body.shelf-page {
   border-radius: var(--r-panel); background: var(--surface);
   font-family: var(--font-ui); font-size: 14px;
 }
-.shelf-no-result[hidden], .shelf-empty[hidden], .collection-card[hidden] { display: none !important; }
+.shelf-no-result[hidden], .shelf-empty[hidden], .collection-card[hidden],
+.collection-matches[hidden], .collection-lec[hidden] { display: none !important; }
 
 .shelf-footer {
   margin-top: var(--sp-7); padding-top: var(--sp-4);

@@ -1,0 +1,103 @@
+{
+  "schema_version": 2,
+  "policy_version": "20260926",
+  "renderer": "post_process.process_markdown",
+  "inputs": {
+    "book_md": {
+      "sha256": "292b6f7a85e23870bce909692da5dd0235a5babf0b56706ff553285f3272c1d4"
+    },
+    "book_html": {
+      "sha256": "87c465871b6195a1ef9a4e0e73f19018480e27583dddbd9e3d8ba263fafcdfb8"
+    },
+    "images": {
+      "images/shot_00_07_42.png": {
+        "sha256": "8111766c7f6ebc7fc1bbe9047a15e25a93f0303dbe36252e8356a9c3dec63f10"
+      },
+      "images/shot_00_48_50.png": {
+        "sha256": "f276ce9f0b393a3ba5c5de5ae63eca8703b3abe1901d4af13f92154ec4dfdaa3"
+      },
+      "images/shot_00_57_20.png": {
+        "sha256": "95fd44123349f538ccf1c4e17b939cce0e1c3aea40e2e214c26df0471615d36e"
+      },
+      "images/shot_01_11_00.png": {
+        "sha256": "ae4a8f9b85dadc02988acf241048a79fb9cb731bb3e634af2a339cc9cdae912b"
+      },
+      "images/shot_01_17_37.png": {
+        "sha256": "e64e23a81c442ecfd5f3c712adee52d013945e42cbc3acf91d33049bb79c1afa"
+      }
+    },
+    "transcripts": {
+      "transcript.corrected.html": {
+        "sha256": "f7644cf5b8a9552ff5ccf3b4a9bf5601dcdfb63df2f1d1a8599cfd0ad850e79c"
+      },
+      "transcript.corrected.txt": {
+        "sha256": "9b1f96e0770c6efaedf07f93da2befedc31b23df62e3f4b662c7ae1cae8efde2"
+      }
+    },
+    "theme": {
+      "tokens.css": {
+        "sha256": "78be2bd9a276bfb90b350f060c0d171c8c478ff11ad5a06f5cb79e9451170dba"
+      },
+      "book.css": {
+        "sha256": "60558296ed35a90d5787737c685f6033cfd2eee1ac2face31e804ea7ef58c5ee"
+      },
+      "book.js": {
+        "sha256": "433137b7edb921098f96cb447a99fd5c7da5ba4309421899151af5128c4a2895"
+      },
+      "transcript.css": {
+        "sha256": "4da386587091282033fd7351290e6423dac0cafc2826e50236874b11c13463c3"
+      }
+    },
+    "code": {
+      "post_process.py": {
+        "sha256": "4dad92d2ee0a4a42ef9e7269188104ed9a45c69b3ecc1ea668c77cb814604d06"
+      },
+      "render_transcript.py": {
+        "sha256": "d03e66eec1ba58b3674d0da127a34a13b85b45ba8082a6ed2c677899cee861f4"
+      },
+      "transcript_links.py": {
+        "sha256": "a07e24c86d988078ac23a0dbbc1549df6603941c8fe3f086c7ecdc6d2791532b"
+      },
+      "reading_metrics.py": {
+        "sha256": "5aef32c5eb8234a1edf071fc484709e8cb7a9923dcd5e2dc520915d094d61a77"
+      },
+      "book_metadata.py": {
+        "sha256": "8ad3926fb922426c2ab5040c090b3f7c9ffa5a6d0f86ac8f0ccadf49139f3a0e"
+      },
+      "book_quality.py": {
+        "sha256": "5582b9415cc0643d82d0c47c111839f003fdb7b281d48ef0e3fc714e42f3a359"
+      },
+      "screenshot_assets.py": {
+        "sha256": "087fd0caae48e32bf98e551f3d9610b5423e0b7bcbc08b085af67fdc574f0b6d"
+      },
+      "shelf_ui.py": {
+        "sha256": "73692d2e50948989dd8a60e30e2c0351740a57b301d560e23bc0f0c3e62b773d"
+      }
+    },
+    "book_meta": {
+      "sha256": "3a8f76ea8d158699cf3f4862f5a01eaab9cb79728eaf212cf69776c7b642b63c"
+    },
+    "nav": {
+      "required": true,
+      "sha256": "8ad3926fb922426c2ab5040c090b3f7c9ffa5a6d0f86ac8f0ccadf49139f3a0e",
+      "prev": {
+        "video_id": "BV11LWw6VEHW",
+        "display_title": "Agent-native 开发：让工程流程适配智能体",
+        "folder": "Agent-native 开发 [08-Raw／26生成式软件工程／NJU]",
+        "lecture_number": 8,
+        "course": "26生成式软件工程"
+      },
+      "next": null,
+      "self": "BV144nc6KEA4"
+    }
+  },
+  "output": {
+    "book.html": {
+      "sha256": "87c465871b6195a1ef9a4e0e73f19018480e27583dddbd9e3d8ba263fafcdfb8"
+    }
+  },
+  "extra": {
+    "video_url": "https://www.bilibili.com/video/BV144nc6KEA4/",
+    "md_file": "book.md"
+  }
+}

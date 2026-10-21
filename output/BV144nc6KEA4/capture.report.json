@@ -1,0 +1,72 @@
+{
+  "video_id": "BV144nc6KEA4",
+  "backend": "auto",
+  "frames": {
+    "00:07:42": {
+      "status": "captured",
+      "method": "stream",
+      "width": 1280,
+      "height": 410,
+      "attempts": [
+        {
+          "method": "stream",
+          "success": true,
+          "seconds": 0.984
+        }
+      ]
+    },
+    "00:48:50": {
+      "status": "captured",
+      "method": "stream",
+      "width": 1280,
+      "height": 410,
+      "attempts": [
+        {
+          "method": "stream",
+          "success": true,
+          "seconds": 0.963
+        }
+      ]
+    },
+    "00:57:20": {
+      "status": "captured",
+      "method": "stream",
+      "width": 1280,
+      "height": 410,
+      "attempts": [
+        {
+          "method": "stream",
+          "success": true,
+          "seconds": 0.956
+        }
+      ]
+    },
+    "01:11:00": {
+      "status": "captured",
+      "method": "stream",
+      "width": 1280,
+      "height": 410,
+      "attempts": [
+        {
+          "method": "stream",
+          "success": true,
+          "seconds": 0.835
+        }
+      ]
+    },
+    "01:17:37": {
+      "status": "captured",
+      "method": "stream",
+      "width": 1280,
+      "height": 410,
+      "attempts": [
+        {
+          "method": "stream",
+          "success": true,
+          "seconds": 0.959
+        }
+      ]
+    }
+  },
+  "elapsed_seconds": 6.26
+}

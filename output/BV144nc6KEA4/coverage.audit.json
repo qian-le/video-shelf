@@ -1,0 +1,1673 @@
+{
+  "version": 1,
+  "schema_version": 2,
+  "completion_status": "reviewed",
+  "reviewer": "Shelf Agent（当前执行者），逐窗阅读 quality/source.md 并逐项对照 book.md 与原始/校正字幕",
+  "items": [
+    {
+      "id": "K01",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "你是 CTO，负责全部，但很可能不写代码",
+        "没有它，你接不住一个复杂需求",
+        "需要版本控制、需要**仓库**"
+      ],
+      "checks": [
+        {
+          "requirement": "单独一个学生是单线程 agent，拥有 agent 之后相当于 CTO：下面有架构、产品、前端后端等多个 agent，每个 agent 又带 sub agent，形成组织架构",
+          "evidence": "你是 CTO，负责全部，但很可能不写代码"
+        },
+        {
+          "requirement": "没有组织架构就无法管理复杂需求",
+          "evidence": "没有它，你接不住一个复杂需求"
+        },
+        {
+          "requirement": "交付物仍是产品，仍要仓库、版本控制，并经过 CI/CD 上线",
+          "evidence": "需要版本控制、需要**仓库**"
+        },
+        {
+          "requirement": "讲师转述：Anthropic 上周说 Git 已经不够用（讲师认为这一天很自然会到来）",
+          "evidence": "就在上周，Anthropic 说 Git 已经不够用了"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "agent",
+          "status": "defined",
+          "first_use": "agent（能自己调用工具、多轮执行任务直到把事做完的模型程序）",
+          "evidence": "agent（能自己调用工具、多轮执行任务直到把事做完的模型程序）"
+        },
+        {
+          "term": "sub agent",
+          "status": "defined",
+          "first_use": "**sub agent**（被派出去执行子任务的下层 agent）",
+          "evidence": "**sub agent**（被派出去执行子任务的下层 agent）"
+        },
+        {
+          "term": "CI/CD",
+          "status": "defined",
+          "first_use": "**CI/CD**（持续集成与持续交付，代码提交后自动构建、测试、上线）",
+          "evidence": "**CI/CD**（持续集成与持续交付，代码提交后自动构建、测试、上线）"
+        }
+      ],
+      "causal_check": {
+        "status": "not_applicable",
+        "evidence": [],
+        "note": "本项是组织架构判断与讲师转述，不涉及原因→结果的推导链。"
+      },
+      "note": "组织架构、交付链与 Anthropic 转述均在正文；未把转述写成已核实事实。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "你是 CTO，负责全部，但很可能不写代码",
+        "note": "Anthropic 的说法明确标为讲师转述，未写成已核实事实。"
+      }
+    },
+    {
+      "id": "K02",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "这个 task 一定和仓库的某一部分相关",
+        "只读锁：只是看，不改",
+        "多个互相独立的小 fix 完全可以并行执行"
+      ],
+      "checks": [
+        {
+          "requirement": "每个 agent 收到的是一个小 task，从 first principle 看它一定与 repository 的某些部分相关（重构某个 subsystem、加功能、影响若干模块）",
+          "evidence": "这个 task 一定和仓库的某一部分相关"
+        },
+        {
+          "requirement": "锁可以有类型：只读锁、写锁、重构锁",
+          "evidence": "只读锁：只是看，不改"
+        },
+        {
+          "requirement": "小 fix 虽是写锁但不产生 breaking change，互相独立时可以并行执行",
+          "evidence": "多个互相独立的小 fix 完全可以并行执行"
+        },
+        {
+          "requirement": "可借鉴操作系统的先上锁，与数据库的乐观/悲观并发和冲突检测两种做法",
+          "evidence": "操作系统式的“先上锁”"
+        },
+        {
+          "requirement": "讲师说明这套方案尚未真正用起来，答案会从组织架构里慢慢浮现",
+          "evidence": "这套方案目前还没有真正用起来"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "锁",
+          "status": "defined",
+          "first_use": "加**锁**（先占住一块区域，避免别人同时改动）",
+          "evidence": "加**锁**（先占住一块区域，避免别人同时改动）"
+        },
+        {
+          "term": "breaking change",
+          "status": "defined",
+          "first_use": "**breaking change**（让已有调用方或结构失效的改动）",
+          "evidence": "**breaking change**（让已有调用方或结构失效的改动）"
+        },
+        {
+          "term": "乐观并发",
+          "status": "defined",
+          "first_use": "**乐观并发**（先各改各的，提交时检测冲突，冲突才回退）",
+          "evidence": "**乐观并发**（先各改各的，提交时检测冲突，冲突才回退）"
+        }
+      ],
+      "causal_check": {
+        "status": "not_applicable",
+        "evidence": [],
+        "note": "本项为讲师设想的设计方案，未给出已验证的因果结果。"
+      },
+      "note": "锁的类型、并行条件、可借鉴的两种既有做法与“尚未落地”都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "这个 task 一定和仓库的某一部分相关",
+        "note": "锁的方案标为讲师设想，并写明尚未落地。"
+      }
+    },
+    {
+      "id": "K03",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "要一个比例基本真实的南大仙林校区三维图",
+        "图书馆建模相对较好，俯视的几何形状被正确保持了",
+        "地图上没有信息的区域被标成绿色"
+      ],
+      "checks": [
+        {
+          "requirement": "讲师在高铁上给一句话需求，让 agent 生成比例基本真实的南大仙林校区三维图",
+          "evidence": "要一个比例基本真实的南大仙林校区三维图"
+        },
+        {
+          "requirement": "结果整体可用：图书馆建模与俯视几何形状较正确，计算机楼十层的高度明显不对",
+          "evidence": "图书馆建模相对较好，俯视的几何形状被正确保持了"
+        },
+        {
+          "requirement": "做法：从 OpenStreetMap 爬取细到篮球场边线的地图数据，再据此自行建模；地图上没信息的区域被标成绿地，大门被建成楼、门口铺满树",
+          "evidence": "地图上没有信息的区域被标成绿色"
+        },
+        {
+          "requirement": "改进办法是要求逐区域划定、思考功能再精确建模，代价约十倍 token，在不错的基础上逐步修",
+          "evidence": "把每一块区域单独划定"
+        },
+        {
+          "requirement": "网上很多 3D 生成效果都是同一套路：靠 skill 反复验证、烧 token 迭代",
+          "evidence": "靠 skills 追着 agent 一遍遍验证"
+        },
+        {
+          "requirement": "讲师认为这类三维模型可以作为做校园版 GTA 的起点：知道哪里可走、哪里可蹲点，就能搭游戏逻辑",
+          "evidence": "这类模型已经可以作为做“南大版 GTA”的起点"
+        },
+        {
+          "requirement": "但只能课上玩一把，不能当产品",
+          "evidence": "它能课上玩一把，不能作为产品"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "token",
+          "status": "defined",
+          "first_use": "**token**（模型读写文本的最小计费单位，多轮反复迭代就多烧算力）",
+          "evidence": "**token**（模型读写文本的最小计费单位，多轮反复迭代就多烧算力）"
+        },
+        {
+          "term": "OpenStreetMap",
+          "status": "defined",
+          "first_use": "**OpenStreetMap**（开放协作的世界地图数据库，可自由下载矢量地图）",
+          "evidence": "**OpenStreetMap**（开放协作的世界地图数据库，可自由下载矢量地图）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "要一个比例基本真实的南大仙林校区三维图",
+          "图书馆建模相对较好，俯视的几何形状被正确保持了"
+        ],
+        "note": "原文说明了“有地图数据源 → 爬取建模 → 形状正确/高度失真”的链条，正文保留。"
+      },
+      "note": "数据源、建模偏差、十倍 token 改进、GTA 起点与“不能当产品”均在正文；截图与图注一致。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "要一个比例基本真实的南大仙林校区三维图",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K04",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "它假设网络服务不会中断",
+        "网断了——进程直接终止",
+        "没有会话保存，没有恢复，也没有断网重连"
+      ],
+      "checks": [
+        {
+          "requirement": "150 行 mini agent 默认假设网络服务不中断，一两轮对话感受不到问题",
+          "evidence": "它假设网络服务不会中断"
+        },
+        {
+          "requirement": "讲师在高铁上跑了较长时间、已有中间结果，网断后进程直接终止",
+          "evidence": "网断了——进程直接终止"
+        },
+        {
+          "requirement": "该 agent 没有会话保存、没有恢复、没有断网后重连，只能从零重跑或整段重做",
+          "evidence": "没有会话保存，没有恢复，也没有断网重连"
+        },
+        {
+          "requirement": "这属于 accidental complexity（偶然复杂度）：不是业务本身难，而是工程环境逼出来的复杂度",
+          "evidence": "这属于 **accidental complexity**"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "accidental complexity",
+          "status": "defined",
+          "first_use": "**accidental complexity**（偶然复杂度：问题本身不难，是工具与环境逼出来的额外复杂度）",
+          "evidence": "**accidental complexity**（偶然复杂度：问题本身不难，是工具与环境逼出来的额外复杂度）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "它假设网络服务不会中断",
+          "网断了——进程直接终止"
+        ],
+        "note": "正文保留“默认假设网络稳定 → 断网 → 进程终止且无恢复”的因果。"
+      },
+      "note": "断网前后的状态与三项缺失能力都在正文，并点明偶然复杂度。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "它假设网络服务不会中断",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K05",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "第二次重试该用等间距，还是逐步拉长",
+        "失败后按 1、2、4、8 秒这样成倍拉长间隔再试",
+        "是完全不同的网络环境"
+      ],
+      "checks": [
+        {
+          "requirement": "重试要先定间隔：等间距重试，还是逐步拉长",
+          "evidence": "第二次重试该用等间距，还是逐步拉长"
+        },
+        {
+          "requirement": "网络有指数退避特性：连续失败说明短时间内大概率还失败，于是 1s → 2s → 4s → 8s 地退，直到分钟级",
+          "evidence": "失败后按 1、2、4、8 秒这样成倍拉长间隔再试"
+        },
+        {
+          "requirement": "超时与重连时长取决于网络环境（美国数据中心直连，与国内多层代理访问，timeout 完全不同）",
+          "evidence": "是完全不同的网络环境"
+        },
+        {
+          "requirement": "讲师自己的物理断网场景，恢复可能需要两三分钟",
+          "evidence": "恢复可能需要两三分钟"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "指数退避",
+          "status": "defined",
+          "first_use": "**指数退避**（失败后按 1、2、4、8 秒这样成倍拉长间隔再试）",
+          "evidence": "**指数退避**（失败后按 1、2、4、8 秒这样成倍拉长间隔再试）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "第二次重试该用等间距，还是逐步拉长",
+          "失败后按 1、2、4、8 秒这样成倍拉长间隔再试"
+        ],
+        "note": "正文说明连续失败意味着短时间仍会失败，因此要成倍拉长间隔。"
+      },
+      "note": "间隔、环境差异、退避理由与分钟级恢复都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "第二次重试该用等间距，还是逐步拉长",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K06",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "客户端发起支付请求，服务端收到后要和别的系统确认",
+        "这时应用不能崩，它得转圈",
+        "可能成功了，也可能失败了"
+      ],
+      "checks": [
+        {
+          "requirement": "客户端发起支付请求，服务端收到后要与其他系统（银行、航空公司）确认，无法等客户端回来再 commit，事务在服务端结束",
+          "evidence": "客户端发起支付请求，服务端收到后要和别的系统确认"
+        },
+        {
+          "requirement": "订单发出后手机断网：应用不能崩，要转圈并告知网络中断，但订单处于“我不知道”的状态——可能成功也可能失败",
+          "evidence": "这时应用不能崩，它得转圈"
+        },
+        {
+          "requirement": "因为与服务端缺少同步，客户端无法判定自己的状态",
+          "evidence": "可能成功了，也可能失败了"
+        },
+        {
+          "requirement": "结论：这类 essential complexity 是系统设计里躲不掉的",
+          "evidence": "这就是 **essential complexity**"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "essential complexity",
+          "status": "defined",
+          "first_use": "**essential complexity**（本质复杂度：业务本身固有的复杂度，写得再聪明也消不掉）",
+          "evidence": "**essential complexity**（本质复杂度：业务本身固有的复杂度，写得再聪明也消不掉）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "客户端发起支付请求，服务端收到后要和别的系统确认",
+          "这时应用不能崩，它得转圈"
+        ],
+        "note": "正文说明服务端事务已结束而客户端失联，因此客户端无法判定状态。"
+      },
+      "note": "服务端事务结束、客户端未知状态、本质复杂度结论都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "客户端发起支付请求，服务端收到后要和别的系统确认",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K07",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "能在多个项目之间切换的 **dashboard**",
+        "历史检索与任务复用",
+        "大概率会陷入 **slop**"
+      ],
+      "checks": [
+        {
+          "requirement": "产品级 agent 需要：多工作目录并行、在项目间切换的 dashboard、项目相关工具与 skills、工具调用的沙箱与权限审批（对应 coding agent 里的 approve 交互）",
+          "evidence": "能在多个项目之间切换的 **dashboard**"
+        },
+        {
+          "requirement": "让 AI 假想对标当时最火的交互式 agent（讲师举例 WorkBuddy）写需求，它会先想典型场景与用例（把文件夹里本周项目记录整理成周报、列延期事项、生成 Word），再列需求点：历史检索与任务复用、模板与偏好、执行预算与用量、账号与数据管理、外部内容与指令隔离、用户反馈与问题诊断，此外还有大量非功能需求",
+          "evidence": "历史检索与任务复用"
+        },
+        {
+          "requirement": "agent 有强烈倾向直接把任务完成，不会思考未来还会发生什么，直接实现大概率进入 slop（一堆能跑但没想清楚的实现）状态",
+          "evidence": "大概率会陷入 **slop**"
+        },
+        {
+          "requirement": "MVP 的价值是让假设被不断验证：mini agent 假设网络与 API 稳定，这一点不成立，需求就随之膨胀",
+          "evidence": "用 MVP 时你的假设会不断被验证"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "MVP",
+          "status": "defined",
+          "first_use": "MVP（最小可用版本，用最少功能验证需求是否成立）",
+          "evidence": "MVP（最小可用版本，用最少功能验证需求是否成立）"
+        },
+        {
+          "term": "slop",
+          "status": "defined",
+          "first_use": "**slop**（讲师用词：量大、能跑、但缺少判断的粗制实现）",
+          "evidence": "**slop**（讲师用词：量大、能跑、但缺少判断的粗制实现）"
+        },
+        {
+          "term": "非功能性需求",
+          "status": "defined",
+          "first_use": "**非功能性需求**（性能、安全、权限、成本这类不属于具体功能的约束）",
+          "evidence": "**非功能性需求**（性能、安全、权限、成本这类不属于具体功能的约束）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "能在多个项目之间切换的 **dashboard**",
+          "历史检索与任务复用"
+        ],
+        "note": "正文说明 agent 有直接完成任务的倾向，因此直接实现会陷入 slop。"
+      },
+      "note": "产品级骨架（多目录、dashboard、沙箱与审批）、需求清单、slop 成因、MVP 价值都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "能在多个项目之间切换的 **dashboard**",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K08",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "带着 AI 写了 50 万行代码，并且上线了",
+        "也可以规定谁每天什么时间做什么",
+        "交互模式的根基崩塌了"
+      ],
+      "checks": [
+        {
+          "requirement": "场景：已按办公场景写完详尽的面向 WorkBuddy 的需求，带着 AI 写了 50 万行代码并上线",
+          "evidence": "带着 AI 写了 50 万行代码，并且上线了"
+        },
+        {
+          "requirement": "GrokBot 走红：把 agent 当人，每人有自己的记忆，可以拉群让两个 agent 协同，也可以规定每天某时做什么（routine）",
+          "evidence": "也可以规定谁每天什么时间做什么"
+        },
+        {
+          "requirement": "交互方式一变，原来“左边栏项目、右边栏 pinpoint/任务视图”的需求前提全部作废",
+          "evidence": "交互模式的根基崩塌了"
+        },
+        {
+          "requirement": "“怎么杀死一个程序员：改需求三次” —— 因为之前的假设全崩了，崩塌的是交互模式的根基",
+          "evidence": "改需求三次就够了"
+        },
+        {
+          "requirement": "大厂即使架构在性能、功能/非功能需求上做到极致，遇到这种摧毁性变化也必然要重新拉通对齐、闭环沉淀复用，再进入下一版本",
+          "evidence": "必然要开始疯狂拉通对齐"
+        },
+        {
+          "requirement": "大厂的选择是优先保证交付质量，所以架构相对保守",
+          "evidence": "架构会相对保守"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "GrokBot",
+          "status": "defined",
+          "first_use": "GrokBot（xAI 2026 年推出的多智能体产品，把 AI 当同事）",
+          "evidence": "GrokBot（xAI 2026 年推出的多智能体产品，把 AI 当同事）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "带着 AI 写了 50 万行代码，并且上线了",
+          "也可以规定谁每天什么时间做什么"
+        ],
+        "note": "正文说明交互模式改变使原需求前提失效，因此大厂必须重新拉通对齐。"
+      },
+      "note": "50 万行前提、GrokBot 式交互与 routine、改需求三次、大厂取舍都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "带着 AI 写了 50 万行代码，并且上线了",
+        "note": "GrokBot 的时间与能力按讲师口述归属；大厂选择标为讲师解释。"
+      }
+    },
+    {
+      "id": "K09",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "界面**像素级复刻**",
+        "不开放任何编辑配置的权限",
+        "而是代表你所管理部门层级的树状结构"
+      ],
+      "checks": [
+        {
+          "requirement": "GrokBot 走红后，很快有不止一个人发布了 DSH bot，界面像素级复刻：可设多个 bot、可建群、有群图标、能与 bot 聊天",
+          "evidence": "界面**像素级复刻**"
+        },
+        {
+          "requirement": "讲师认为可以在其上外挂它没有的功能：GrokBot 面向普通人，不开放配置与提示词的编辑权限，而程序员想直接改配置文件和提示词",
+          "evidence": "不开放任何编辑配置的权限"
+        },
+        {
+          "requirement": "还可以做老板视角：左侧不是树状项目栏，而是代表部门层级的组织结构，右侧聊天压缩，甚至有老板坐在办公室里的情绪价值；这类需求很快有人实现",
+          "evidence": "而是代表你所管理部门层级的树状结构"
+        },
+        {
+          "requirement": "对照：2026 年 6 月 10 日晚 11 点，DeepSeek Harness 以一个空仓库启动，连当时为兼容多种 agent 需要的 CLAUDE.md 都没有；第一个需求分析就写明要做 microkernel 架构、要做操作系统",
+          "evidence": "仓库里什么也没有"
+        },
+        {
+          "requirement": "多 agent 并存时，项目要用各家 agent 都理解的方式组织文件（讲师提到今天已不必依赖 CLAUDE.md）",
+          "evidence": "就得用它们都理解的方式组织文件"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "microkernel",
+          "status": "defined",
+          "first_use": "**microkernel**（微内核：内核只做最小调度，其余能力全部外挂成可替换模块）",
+          "evidence": "**microkernel**（微内核：内核只做最小调度，其余能力全部外挂成可替换模块）"
+        },
+        {
+          "term": "CLAUDE.md",
+          "status": "defined",
+          "first_use": "CLAUDE.md（放在仓库里告诉 agent 项目规则与命令的说明文件）",
+          "evidence": "CLAUDE.md（放在仓库里告诉 agent 项目规则与命令的说明文件）"
+        }
+      ],
+      "causal_check": {
+        "status": "not_applicable",
+        "evidence": [],
+        "note": "本项为现象对照（复刻速度），不涉及机制因果。"
+      },
+      "note": "复刻现象、权限封闭、老板视角需求、6 月首个提交与多 agent 文件组织都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "界面**像素级复刻**",
+        "note": "首个提交与时间点标为讲师所述。"
+      }
+    },
+    {
+      "id": "K10",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "会为需求里的名词建结构",
+        "于是架构开始出现模块、出现数据库、出现消息队列",
+        "架构意味着没有免费的午餐"
+      ],
+      "checks": [
+        {
+          "requirement": "对着需求文档让 agent 设计架构，注意力会落在需求上；它不能交一个空架构，于是会为“工作区”这样的名词建 class，再补上工作区与模型层、agent 层、session 的交互（session 里发 chat、agent 调工具、画布结果放回 session）",
+          "evidence": "会为需求里的名词建结构"
+        },
+        {
+          "requirement": "于是数据库存 session、模块间用消息队列，架构很快自然成形；这是大厂也常用的设计方式",
+          "evidence": "于是架构开始出现模块、出现数据库、出现消息队列"
+        },
+        {
+          "requirement": "但架构意味着没有免费的午餐：它是在受限与自由之间取平衡",
+          "evidence": "架构意味着没有免费的午餐"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "session",
+          "status": "defined",
+          "first_use": "**session**（会话：一次持续对话的上下文容器）",
+          "evidence": "**session**（会话：一次持续对话的上下文容器）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "会为需求里的名词建结构",
+          "于是架构开始出现模块、出现数据库、出现消息队列"
+        ],
+        "note": "正文保留“对着需求设计 → 为名词建结构 → 架构自然成形”的链条。"
+      },
+      "note": "工作区 class、session 与消息队列的自然成形、免费午餐结论都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "会为需求里的名词建结构",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K11",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "架构确定，模块之间的边界就有了",
+        "立刻可以启动大量 sub agent 并行把产品堆出来",
+        "就会不断出现**抽象泄露**"
+      ],
+      "checks": [
+        {
+          "requirement": "架构定了，模块边界就有了；开发某模块时只需较少知道系统其余部分如何工作",
+          "evidence": "架构确定，模块之间的边界就有了"
+        },
+        {
+          "requirement": "好处：第一天就能把需求切成模块，立刻启动大量 sub agent 并行堆出产品",
+          "evidence": "立刻可以启动大量 sub agent 并行把产品堆出来"
+        },
+        {
+          "requirement": "代价：限制即自由度损失；未来需求（如 GrokBot 式交互）不匹配时，会不断出现抽象泄露，项目难以维护",
+          "evidence": "就会不断出现**抽象泄露**"
+        },
+        {
+          "requirement": "反过来做得太自由也不行（见 K12）",
+          "evidence": "但这不意味着自由越多越好"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "抽象泄露",
+          "status": "defined",
+          "first_use": "**抽象泄露**（原本封装好的细节被迫漏出来，调用方不得不关心它）",
+          "evidence": "**抽象泄露**（原本封装好的细节被迫漏出来，调用方不得不关心它）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "架构确定，模块之间的边界就有了",
+          "立刻可以启动大量 sub agent 并行把产品堆出来"
+        ],
+        "note": "正文说明边界使模块可独立开发，因此能并行堆出产品；假设不匹配则抽象泄露。"
+      },
+      "note": "边界收益与抽象泄露代价都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "架构确定，模块之间的边界就有了",
+        "note": "“没有免费的午餐”标为讲师强调，非客观定律。"
+      }
+    },
+    {
+      "id": "K12",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "每个模块都是一个 process",
+        "它没有约束",
+        "接口一确定，就只能做这件事，反而容易开发"
+      ],
+      "checks": [
+        {
+          "requirement": "若把工作区、session、agent、UI 都做成进程、彼此随意 message passing，架构看起来非常干净自由，本质是 actor model",
+          "evidence": "每个模块都是一个 process"
+        },
+        {
+          "requirement": "但它没有约束：消息何时发、发什么、怎么管理都没有规定，等于没有架构",
+          "evidence": "它没有约束"
+        },
+        {
+          "requirement": "对比之下，规定工作区与 agent 之间通过某个 API 或 session 消息队列交互，接口定下来就只能做这件事，反而容易开发",
+          "evidence": "接口一确定，就只能做这件事，反而容易开发"
+        },
+        {
+          "requirement": "受限有受限的好处，自由有自由的好处，架构总在这条光谱上取舍",
+          "evidence": "受限有受限的好处，自由有自由的好处"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "actor model",
+          "status": "defined",
+          "first_use": "**就是个 actor model**（每个单元都是独立进程、只能靠收发消息协作的模型）",
+          "evidence": "**就是个 actor model**（每个单元都是独立进程、只能靠收发消息协作的模型）"
+        },
+        {
+          "term": "message passing",
+          "status": "defined",
+          "first_use": "**message passing**（消息传递：模块之间不直接调函数，而是发消息通信）",
+          "evidence": "**message passing**（消息传递：模块之间不直接调函数，而是发消息通信）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "每个模块都是一个 process",
+          "它没有约束"
+        ],
+        "note": "正文说明没有约束导致消息无规定，因此等于没有架构。"
+      },
+      "note": "过度自由的例子与“接口确定反而好开发”的对照都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "每个模块都是一个 process",
+        "note": "对 actor model 的评价标为讲师判断。"
+      }
+    },
+    {
+      "id": "K13",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "光“操作系统该用什么语言开发”人类就吵了几十年",
+        "每一个点都是瓶颈",
+        "你必须加入一个特殊的 event"
+      ],
+      "checks": [
+        {
+          "requirement": "进程是极好的抽象但非常自由，正因如此上层才能长出浏览器、coding agent、虚拟机；代价是“什么语言最好”这类争论持续几十年（含 PHP 是最好的语言这一老梗），以及 C 这类自由语言带来的内存泄漏等问题",
+          "evidence": "光“操作系统该用什么语言开发”人类就吵了几十年"
+        },
+        {
+          "requirement": "LAMP/WordPress 架构在单机扛得住时最合适；要服务上亿人时每个点（单机、数据库）都是瓶颈，靠分库分表、拆服务器不断产生抽象泄露，最终演进到下一代架构",
+          "evidence": "每一个点都是瓶颈"
+        },
+        {
+          "requirement": "event sourcing 概念干净（只追加事实、其余都是派生），但代价是当前状态完全由历史推导：性能更难做，且想直接改当前状态（如教务员无理由让某学生强行毕业）就必须加一个特殊 event 和特殊处理规则，并且会留在可审计的历史里",
+          "evidence": "你必须加入一个特殊的 event"
+        },
+        {
+          "requirement": "总原则：架构与需求匹配就便利，假设变了架构就成为阻力；人类进步就是不断打破旧假设的过程，新旧交替时也有人被淘汰",
+          "evidence": "架构和需求匹配时就便利"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "event sourcing",
+          "status": "defined",
+          "first_use": "**event sourcing**（事件溯源：只追加记录发生过的事件，当前状态由事件重放算出来）",
+          "evidence": "**event sourcing**（事件溯源：只追加记录发生过的事件，当前状态由事件重放算出来）"
+        },
+        {
+          "term": "LAMP",
+          "status": "defined",
+          "first_use": "**LAMP**（Linux + Apache + MySQL + PHP 这套建站组合）",
+          "evidence": "**LAMP**（Linux + Apache + MySQL + PHP 这套建站组合）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "光“操作系统该用什么语言开发”人类就吵了几十年",
+          "每一个点都是瓶颈"
+        ],
+        "note": "正文说明假设变化使 LAMP 每点成为瓶颈，因此要通过拆分演进。"
+      },
+      "note": "语言之争、LAMP 瓶颈、event sourcing 强行毕业的代价都在正文；讲师举例已标归属。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "光“操作系统该用什么语言开发”人类就吵了几十年",
+        "note": "强行毕业明确标为讲师举例的假设需求。"
+      }
+    },
+    {
+      "id": "K14",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "Jeff Dean 与 Sanjay Ghemawat 发表了一篇改变世界的文章",
+        "只要遵循一个受限的代码模式：map 和 reduce",
+        "最多 2000 台机器"
+      ],
+      "checks": [
+        {
+          "requirement": "2004 年 Jeff Dean 与 Sanjay Ghemawat 发表 MapReduce 论文（大规模集群上的简化数据处理）",
+          "evidence": "Jeff Dean 与 Sanjay Ghemawat 发表了一篇改变世界的文章"
+        },
+        {
+          "requirement": "核心是限制编程模型：只允许 map（把一个 list 经函数变成另一个 list）与 reduce（用函数把元素逐个合并；若满足结合律还能并行分段 reduce 再合并）",
+          "evidence": "只要遵循一个受限的代码模式：map 和 reduce"
+        },
+        {
+          "requirement": "系统替你处理按 key 排序的 shuffle、机器调度与容错：只需声明要多少台机器（如最多 2000 台、每任务 100MB 内存）即可跑完",
+          "evidence": "最多 2000 台机器"
+        },
+        {
+          "requirement": "它解决了 Google 的真实痛点：机器一多，跑全互联网索引几乎一定会有机器掉线；旧假设是“机器是好的”，学生大作业机器坏了可以找老师，Google 必须用系统抽象解决",
+          "evidence": "它必须用系统抽象解决"
+        },
+        {
+          "requirement": "限制也有代价：只适合离线任务，用起来不够方便；实时数据（如银行订单）也走向分布式时 MapReduce 撑不住，于是有了 Spark 计算引擎与 Flink 流处理",
+          "evidence": "MapReduce 就撑不住了"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "map 和 reduce",
+          "status": "defined",
+          "first_use": "map 和 reduce（把一个列表逐项变换，再把结果逐步合并）",
+          "evidence": "map 和 reduce（把一个列表逐项变换，再把结果逐步合并）"
+        },
+        {
+          "term": "shuffle",
+          "status": "defined",
+          "first_use": "**shuffle**（把中间结果按 key 重新分发排序的过程）",
+          "evidence": "**shuffle**（把中间结果按 key 重新分发排序的过程）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "Jeff Dean 与 Sanjay Ghemawat 发表了一篇改变世界的文章",
+          "只要遵循一个受限的代码模式：map 和 reduce"
+        ],
+        "note": "正文说明机器规模导致必然故障，因此必须用系统抽象容错；限制只适用离线。"
+      },
+      "note": "map/reduce 限制、shuffle 与容错、离线边界与后续 Spark/Flink 都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "Jeff Dean 与 Sanjay Ghemawat 发表了一篇改变世界的文章",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K15",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "操作系统不需要知道每个进程在干什么",
+        "所有东西都可以插件化解耦",
+        "**private state**（私有状态：只属于该模块内部的数据）"
+      ],
+      "checks": [
+        {
+          "requirement": "操作系统不需要知道每个进程在做什么，只要能把进程组合起来、彼此可互相使用；UNIX 诞生时还没有桌面浏览器和图形界面",
+          "evidence": "操作系统不需要知道每个进程在干什么"
+        },
+        {
+          "requirement": "DSH 的 first principle 是 everything is a plugin：所有东西都以插件解耦",
+          "evidence": "所有东西都可以插件化解耦"
+        },
+        {
+          "requirement": "把每个插件想成进程或人、彼此发消息，理论上可实现任意架构；关键是每个模块的 private state 封装在自己内部，交互只能发消息并得到返回",
+          "evidence": "**private state**（私有状态：只属于该模块内部的数据）"
+        },
+        {
+          "requirement": "由此任何软件模块都能被提取成“进程”，把模块间函数调用换成 RPC 就得到同样形态",
+          "evidence": "任何软件都会变成这个形态"
+        },
+        {
+          "requirement": "DSH 没有特权内核，所有东西都是 Cordis 插件",
+          "evidence": "DSH 没有特权内核"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "Everything is a plugin",
+          "status": "defined",
+          "first_use": "**Everything is a plugin**（一切皆插件：所有能力都做成可装卸的插件）",
+          "evidence": "**Everything is a plugin**（一切皆插件：所有能力都做成可装卸的插件）"
+        },
+        {
+          "term": "RPC",
+          "status": "defined",
+          "first_use": "**RPC**（远程过程调用：像调本地函数一样调远端进程的函数）",
+          "evidence": "**RPC**（远程过程调用：像调本地函数一样调远端进程的函数）"
+        }
+      ],
+      "causal_check": {
+        "status": "not_applicable",
+        "evidence": [],
+        "note": "本项是架构原则的来源说明，非因果论证。"
+      },
+      "note": "插件原则、私有状态、RPC 推论、无特权内核都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "操作系统不需要知道每个进程在干什么",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K16",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "它在 DSH 之前就有一篇论文",
+        "Cordis 负责的是服务的解析",
+        "写 C 程序从来不回收内存"
+      ],
+      "checks": [
+        {
+          "requirement": "讲师提到 DSH 先发布过一篇关于 Cordis 的论文，含大量公式；本课不展开这部分",
+          "evidence": "它在 DSH 之前就有一篇论文"
+        },
+        {
+          "requirement": "Cordis 负责服务解析、依赖激活、插件的 load/unload",
+          "evidence": "Cordis 负责的是服务的解析"
+        },
+        {
+          "requirement": "类比操作系统的进程管理：进程退出时其持有的资源应被回收——写 C 程序不必回收内存，因为操作系统会回收",
+          "evidence": "写 C 程序从来不回收内存"
+        },
+        {
+          "requirement": "插件可以声明所需依赖或副作用，依赖应被自动加载；插件 unload 时依赖最好自动卸载（讲师承认并非所有副作用都能自动回收）",
+          "evidence": "当插件 unload 时，依赖的东西最好能自动卸载"
+        },
+        {
+          "requirement": "Cordis 之外才是 DSH 自身的抽象（session、agent、slot 等）",
+          "evidence": "Cordis 之外才是 DSH 自身的抽象（session、agent、界面插槽等）"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "Cordis",
+          "status": "defined",
+          "first_use": "**Cordis**（DSH 的插件框架，只负责插件加载、卸载与依赖管理）",
+          "evidence": "**Cordis**（DSH 的插件框架，只负责插件加载、卸载与依赖管理）"
+        },
+        {
+          "term": "side effect",
+          "status": "defined",
+          "first_use": "**side effect**（副作用：装上后对系统造成的改动）",
+          "evidence": "**side effect**（副作用：装上后对系统造成的改动）"
+        }
+      ],
+      "causal_check": {
+        "status": "not_applicable",
+        "evidence": [],
+        "note": "本项为职责描述，非因果链。"
+      },
+      "note": "Cordis 职责、论文提及、进程资源回收类比、依赖自动装卸与“并非所有副作用可回收”都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "它在 DSH 之前就有一篇论文",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K17",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "如果插件之间可以随便发消息、随便协同，那就全乱了",
+        "构建一个 **agent harness 的世界模型**",
+        "在 Cordis 之上有更细一层的世界模型"
+      ],
+      "checks": [
+        {
+          "requirement": "如果插件之间可以随便发消息、随便协同，就等于全都在同一地址空间里互相调函数，没有任何好处；但不协同又没有用",
+          "evidence": "如果插件之间可以随便发消息、随便协同，那就全乱了"
+        },
+        {
+          "requirement": "真正有意思的设计是构建 agent harness 的世界模型：有一个所有进程共享的共享空间，关键数据结构存放在那里",
+          "evidence": "构建一个 **agent harness 的世界模型**"
+        },
+        {
+          "requirement": "DSH 没有特权内核，但在 Cordis 之上有更细一层的世界模型，例如 Cordis 之下的 session",
+          "evidence": "在 Cordis 之上有更细一层的世界模型"
+        },
+        {
+          "requirement": "LM agent 应用仍以大模型为中心：session 的 append-only 事件日志是唯一 ground truth；模型的历史不单独存储，而是从事件消息派生（即 event sourcing）",
+          "evidence": "它是唯一的 **ground truth**"
+        },
+        {
+          "requirement": "在进程基础上做 event bus，插件可以挂载、监听；在此之上是持久的历史，其他能力都长在这个地基上",
+          "evidence": "在进程基础上又做了一个 **event bus**"
+        },
+        {
+          "requirement": "配套机制：类型检查与服务定义（service definition 的 provider 与 consumer）、权限管理；事件作为扩展点按领域分类，不匹配类型时 TypeScript 直接不编译（用来禁止任意给别的插件发消息）",
+          "evidence": "不匹配的话 TypeScript 直接不会编译"
+        },
+        {
+          "requirement": "插件不仅能监听事件，还能收到事件并修改事件本身",
+          "evidence": "插件不仅能监听事件，还能收到事件后修改事件本身"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "event bus",
+          "status": "defined",
+          "first_use": "**event bus**（事件总线：所有插件共用的消息通道，可发布、可订阅）",
+          "evidence": "**event bus**（事件总线：所有插件共用的消息通道，可发布、可订阅）"
+        },
+        {
+          "term": "ground truth",
+          "status": "defined",
+          "first_use": "**ground truth**（唯一可信的事实来源）",
+          "evidence": "**ground truth**（唯一可信的事实来源）"
+        },
+        {
+          "term": "append-only",
+          "status": "defined",
+          "first_use": "**append-only**（只追加、不修改不删除的日志写法）",
+          "evidence": "**append-only**（只追加、不修改不删除的日志写法）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "如果插件之间可以随便发消息、随便协同，那就全乱了",
+          "构建一个 **agent harness 的世界模型**"
+        ],
+        "note": "正文保留“随便发消息则无收益 → 需要世界模型与事实日志 → 插件依据事实协作”。"
+      },
+      "note": "协同难点、共享空间、事实日志、event bus、类型检查、事件可修改都在正文；分层图与正文一致。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "如果插件之间可以随便发消息、随便协同，那就全乱了",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K18",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "history 里可以有一个 open entry",
+        "这个状态不持久化，但仍然可以被观察到",
+        "实现层面的一个小 trick"
+      ],
+      "checks": [
+        {
+          "requirement": "大模型这次推理尚未结束的状态不 commit 到历史：history 里可以有一个 open entry 表示本轮未结束",
+          "evidence": "history 里可以有一个 open entry"
+        },
+        {
+          "requirement": "模型不断往其中送新 token，该状态不持久化，但仍然可被观察到，因而能实时显示思维链的动态变化",
+          "evidence": "这个状态不持久化，但仍然可以被观察到"
+        },
+        {
+          "requirement": "这是实现层面的小技巧（trick）",
+          "evidence": "实现层面的一个小 trick"
+        },
+        {
+          "requirement": "插件（如 token 统计）据此统计 token 成本与 cache 命中，并通过 slot 抽象绑定到 UI 上",
+          "evidence": "统计 token 成本与 cache 命中情况"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "slot",
+          "status": "defined",
+          "first_use": "**slot**（界面插槽：UI 上预留给插件填充的位置）",
+          "evidence": "**slot**（界面插槽：UI 上预留给插件填充的位置）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "history 里可以有一个 open entry",
+          "这个状态不持久化，但仍然可以被观察到"
+        ],
+        "note": "正文说明未结束状态不 commit 但可观察，因此能实时显示思维链。"
+      },
+      "note": "open entry、不持久化但可观察、trick 定位、token 统计与 slot 都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "history 里可以有一个 open entry",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K19",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "就是白板一块，真的什么都没有",
+        "因为它是**不侵入**的",
+        "只有希望别人看到的事情，才以事件的方式放到总线上"
+      ],
+      "checks": [
+        {
+          "requirement": "内测版几乎什么都没有，就是白板一块；第一天就有开发者要求在插件群里加 token 与上下文统计",
+          "evidence": "就是白板一块，真的什么都没有"
+        },
+        {
+          "requirement": "该插件只需观察 event bus 上 LM 吐 token 的情况并更新自身内部状态，不干扰系统任何其他部分",
+          "evidence": "因为它是**不侵入**的"
+        },
+        {
+          "requirement": "设计意图：大部分 state 留在插件内部，只有希望别人知道的事才以事件形式放到总线上",
+          "evidence": "只有希望别人看到的事情，才以事件的方式放到总线上"
+        },
+        {
+          "requirement": "为此 DSH 对 LM 场景做了专门化抽象：session 是事件列表；agent 接收输入、推动执行；UI 用 slot 装配",
+          "evidence": "session 是事件列表"
+        },
+        {
+          "requirement": "聊天窗口本质是 message history 的一个投影：可以隐藏它、换成自定义呈现；trajectory 是同一个 session 历史的另一种投影，给开发者看工具调用参数、结果与额外信息，便于调试",
+          "evidence": "也可以投影成给开发者看的 **trajectory**"
+        },
+        {
+          "requirement": "结论：只要 event 与 session 的概念体系建得可靠，绝大多数插件只需 consume 极少量非侵入事件，虽然它们具备侵入能力",
+          "evidence": "使得上面的插件绝大部分时候只需要消费极少量"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "投影",
+          "status": "defined",
+          "first_use": "**两种投影**（把同一份事实日志按不同需要呈现成不同视图）",
+          "evidence": "**两种投影**（把同一份事实日志按不同需要呈现成不同视图）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "就是白板一块，真的什么都没有",
+          "因为它是**不侵入**的"
+        ],
+        "note": "正文说明状态留在插件内、只发事件，因此可以不侵入地统计 token。"
+      },
+      "note": "白板起点、零侵入统计、状态留在插件、专门化抽象与两种投影都在正文；trajectory 截图与图注一致。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "就是白板一块，真的什么都没有",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K20",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "对外暴露的接口很小",
+        "是等这一轮工具全部完成再注入",
+        "可以拦截、丢弃、改写事件"
+      ],
+      "checks": [
+        {
+          "requirement": "API 很小：session 上 append；注册某个 event 的 handler 并在 event bus 上监听；从事实生成投影（session 的 message、导出的 agent trajectory、chat）；向 agent 提交输入，可 follow up、inject、steer",
+          "evidence": "对外暴露的接口很小"
+        },
+        {
+          "requirement": "inject 的时机是设计问题：等本轮全部工具完成再注入，还是每次模型 response 后立刻注入，或者按 ESC 中断再来",
+          "evidence": "是等这一轮工具全部完成再注入"
+        },
+        {
+          "requirement": "session.event 可以 hook 尚未 persist 的事件：不只是旁观后再推自己的事件，还能拦截、丢弃、改写",
+          "evidence": "可以拦截、丢弃、改写事件"
+        },
+        {
+          "requirement": "典型用法：agent 的 pre-step 之前挂 hook，往 agent loop 里注入 prompt——例如每一轮都注入当前时区、机器指纹等信息；这类需求本来写在 build context 里，用 hook 就能改",
+          "evidence": "在 agent 的 pre-step 之前挂一个 hook"
+        },
+        {
+          "requirement": "总体：插件挂在总线上，只有少量协作接口，状态留在本地，但每个插件都能感知全局 agent loop、session 与各种投影，按需取到 LM 推理进展和其他插件做了什么",
+          "evidence": "按需拿到关于“推理进行到哪一步"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "hook",
+          "status": "defined",
+          "first_use": "**hook**（在流程的某个节点插入自己的处理逻辑）",
+          "evidence": "**hook**（在流程的某个节点插入自己的处理逻辑）"
+        },
+        {
+          "term": "steer",
+          "status": "defined",
+          "first_use": "steer（插话改变它的方向）",
+          "evidence": "steer（插话改变它的方向）"
+        }
+      ],
+      "causal_check": {
+        "status": "not_applicable",
+        "evidence": [],
+        "note": "本项为接口能力描述；注入时机一节只陈述选择，未给因果结论。"
+      },
+      "note": "小 API、inject 时机、可改写未持久事件、pre-step 注入与 hook 释义都在正文；时序图箭头与来源时间已核。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "对外暴露的接口很小",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K21",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "把所有用于装配 UI 的 slot 全扔掉",
+        "共享状态的 TUI 克隆",
+        "内测早期官方仓库里其实有 TUI"
+      ],
+      "checks": [
+        {
+          "requirement": "DSH 原生是 Web UI（其关键抽象是装 UI 的 slot）；要做 Text UI，只需丢掉所有 slot，只保留 session、agent 与 event bus 上能听到的 session 事件（包括正在吐 token 的 open chat completion），投射到终端",
+          "evidence": "把所有用于装配 UI 的 slot 全扔掉"
+        },
+        {
+          "requirement": "还可以做共享状态的 TUI clone：主界面运行时，另一个终端看到一模一样的内容",
+          "evidence": "共享状态的 TUI 克隆"
+        },
+        {
+          "requirement": "内测早期官方有 TUI，后来被从仓库移除，现在是第三方 TUI",
+          "evidence": "内测早期官方仓库里其实有 TUI"
+        },
+        {
+          "requirement": "PDF reader 之类也是 hook 生命周期事件：看到某类内容（如加载）时把 reader 注入进去",
+          "evidence": "hook 生命周期事件"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "TUI",
+          "status": "defined",
+          "first_use": "**TUI**（Text UI，跑在终端里的文本界面）",
+          "evidence": "**TUI**（Text UI，跑在终端里的文本界面）"
+        }
+      ],
+      "causal_check": {
+        "status": "not_applicable",
+        "evidence": [],
+        "note": "本项是同一抽象换界面的示例，非因果论证。"
+      },
+      "note": "Text UI 做法、TUI 克隆、官方 TUI 被移除、PDF reader 都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "把所有用于装配 UI 的 slot 全扔掉",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K22",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "普通 agent session 只有 agent 权限",
+        "可以把插件拆了",
+        "就像操作系统里可以随时启动一个进程"
+      ],
+      "checks": [
+        {
+          "requirement": "普通 agent session 只有 agent 权限：工作目录读写、Bash，外面还套沙箱",
+          "evidence": "普通 agent session 只有 agent 权限"
+        },
+        {
+          "requirement": "Creator 模式给出 Cordis 权限：能看到整个运行世界，可以拆插件、加插件，agent 一边跑一边往 event bus 上挂东西",
+          "evidence": "可以把插件拆了"
+        },
+        {
+          "requirement": "这种能力来自 Cordis 全动态的插件生命周期：像操作系统里随时启动或杀掉进程",
+          "evidence": "就像操作系统里可以随时启动一个进程"
+        },
+        {
+          "requirement": "演示：把界面改造成 VS Code 式的布局（左侧边栏、编辑器、浏览器、底部 terminal、git、side chat），本质上只是不断观察主 session 并维护自己的 UI 状态，与系统其余部分不冲突",
+          "evidence": "要 git、要 side chat"
+        },
+        {
+          "requirement": "对比 GrokBot 这类产品：预先定好一套需求，所有人在其框架内工作；Creator 模式则把权限交出去",
+          "evidence": "请所有人都在我的需求里工作"
+        },
+        {
+          "requirement": "讲师判断：看起来是白板，实际是核弹——白板上能长出什么取决于想象力",
+          "evidence": "它是一颗核弹"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "Creator 模式",
+          "status": "defined",
+          "first_use": "**Creator 模式**（把内核权限交给模型的运行模式）",
+          "evidence": "**Creator 模式**（把内核权限交给模型的运行模式）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "普通 agent session 只有 agent 权限",
+          "可以把插件拆了"
+        ],
+        "note": "正文说明 Creator 模式给出内核权限、生命周期全动态，因此能边跑边挂插件。"
+      },
+      "note": "权限差异、全动态生命周期、VS Code 式改造与 GrokBot 的对照都在正文；截图与图注一致。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "普通 agent session 只有 agent 权限",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K23",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "插件和插件之间的语义可能是冲突的",
+        "1/2 的十次方大约就是千分之一",
+        "到底检查在前还是改写在前，架构没有规定"
+      ],
+      "checks": [
+        {
+          "requirement": "统一了事件层（同一组事件、类型不匹配就不行），但插件自身状态仍在自己手里；不同插件产生的语义可能冲突",
+          "evidence": "插件和插件之间的语义可能是冲突的"
+        },
+        {
+          "requirement": "例：一个上下文压缩插件把每次上下文输出压到 1/2；若装十个，1/2 的十次方约千分之一，信息全丢",
+          "evidence": "1/2 的十次方大约就是千分之一"
+        },
+        {
+          "requirement": "例：一个插件检查输入、一个改写输入，谁先谁后没有规定；两个 hook 一个要求停止、一个要求继续，冲突时谁先运行谁生效",
+          "evidence": "到底检查在前还是改写在前，架构没有规定"
+        },
+        {
+          "requirement": "这类语义冲突与应用语义相关，属于 essential complexity，架构不解决；可能需要额外机制（如再放一黑板 blackboard 共享状态）",
+          "evidence": "这类语义冲突永远没办法由这种架构解决"
+        },
+        {
+          "requirement": "结论：插件减少一部分 accidental complexity，让动态 UI 生成之类的事变容易，但不是万能；有这类需求时抽象就会泄露",
+          "evidence": "插件只是减少了一部分 accidental complexity"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "blackboard",
+          "status": "defined",
+          "first_use": "**blackboard**（黑板：一块共享状态区，多个模块读写同一份数据来协调）",
+          "evidence": "**blackboard**（黑板：一块共享状态区，多个模块读写同一份数据来协调）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "插件和插件之间的语义可能是冲突的",
+          "1/2 的十次方大约就是千分之一"
+        ],
+        "note": "正文保留“十个压缩插件串联 → 千分之一 → 信息丢失”的链条。"
+      },
+      "note": "两个冲突例子、blackboard 设想与“插件不是万能”都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "插件和插件之间的语义可能是冲突的",
+        "note": "“插件不是万能的”标为讲师结论。"
+      }
+    },
+    {
+      "id": "K24",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "release 了一个 nothing",
+        "开发者自己组织的活动",
+        "不会拿这么好的底座去许愿一个高达驾驶舱"
+      ],
+      "checks": [
+        {
+          "requirement": "常规路线是需求确定→发布→挣钱；DSH 发布时几乎只给了基础抽象与少量第一方插件，其余交给开源生态，因此外部成本低、可长出生态",
+          "evidence": "release 了一个 nothing"
+        },
+        {
+          "requirement": "北京出现过完全由开发者自发组织的线下活动，官方无人到场",
+          "evidence": "开发者自己组织的活动"
+        },
+        {
+          "requirement": "讲师认为社区被“带歪”了：这么强的底座被用来做高达驾驶舱之类的小玩意，他会拿去做更了不起的整合（同时承认大学生有时间、脑洞多，Better Sidebar 就是好想法）",
+          "evidence": "不会拿这么好的底座去许愿一个高达驾驶舱"
+        },
+        {
+          "requirement": "方向一：给已有超级应用（WPS、Excel、Blender、Excalidraw 这类可嵌网页的大应用）做 bridge，只需支持三步：把对象锁住（如锁定第 1、2 页不许编辑）；把锁定的对象 hand off 到模型上下文；把模型改完的对象拿回来替换原对象",
+          "evidence": "把一些对象锁住"
+        },
+        {
+          "requirement": "演示用 Excalidraw：让 AI 在框里画一只 turtle，编辑照常进行但被锁对象不可动；做完后可以继续手改，甚至删掉不满意部分",
+          "evidence": "让 AI 在框里画一只 turtle"
+        },
+        {
+          "requirement": "讲师核对插件实现后总结：工具调用不直接改画布，只暂存；begin 时生成一个 job，把选区 id 锁在画布上；画布等于 session，编辑请求等于 tool call，提交等于回合结束的 commit；应用被做成 agent 宿主插件，对应用本身侵入很小",
+          "evidence": "画布等于 session，编辑请求等于 tool call"
+        },
+        {
+          "requirement": "与 MCP 的关系：只需要一个很小的 protocol，甚至可以成为 DSH 原生插件",
+          "evidence": "只需要做一个非常小的 protocol"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "bridge",
+          "status": "defined",
+          "first_use": "**bridge**（桥接层：把外部应用里的对象与操作接到 agent 上）",
+          "evidence": "**bridge**（桥接层：把外部应用里的对象与操作接到 agent 上）"
+        },
+        {
+          "term": "MCP",
+          "status": "defined",
+          "first_use": "**MCP**（让模型统一接入外部工具与数据的协议）",
+          "evidence": "**MCP**（让模型统一接入外部工具与数据的协议）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "release 了一个 nothing",
+          "开发者自己组织的活动"
+        ],
+        "note": "正文保留“三步桥接 → 老应用获得 agent 能力”的链条。"
+      },
+      "note": "release nothing、社区活动与评价、三步桥接、Excalidraw 演示、画布即 session 的映射、与 MCP 的关系都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "release 了一个 nothing",
+        "note": "对社区“被带歪”的评价标为讲师个人看法；超级应用名称存疑已在文首说明。"
+      }
+    },
+    {
+      "id": "K25",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "约定某个标记",
+        "可以放按钮、放输入框",
+        "把 UI 里的点击与状态重新注回模型上下文"
+      ],
+      "checks": [
+        {
+          "requirement": "约定一个标记（讲师演示里是一个带特定名的 div），模型输出里出现该标记就以卡片方式渲染到界面任意 slot",
+          "evidence": "约定某个标记"
+        },
+        {
+          "requirement": "卡片带 JS，意味着可以有按钮、输入框，甚至嵌入 Excalidraw、WPS 或复杂组件",
+          "evidence": "可以放按钮、放输入框"
+        },
+        {
+          "requirement": "允许某些 JS 往 event bus 注入事件，把点击与状态重新注回模型上下文，再指导 UI 更新——这就是生成式 UI",
+          "evidence": "把 UI 里的点击与状态重新注回模型上下文"
+        },
+        {
+          "requirement": "演示一：成语接龙（以“惊弓之鸟”开局），点击按钮后 JS 往上下文注入一句话，模型接“鸟语花香”并生成界面 patch",
+          "evidence": "以“惊弓之鸟”开局"
+        },
+        {
+          "requirement": "演示二：五子棋，棋盘状态在 UI 里，但所有落子由模型思考后决定",
+          "evidence": "棋盘状态放在 UI 里"
+        },
+        {
+          "requirement": "当前实现有缺陷：因为关闭了思考，出现过状态不同步、棋子下在线上等 bug；讲师强调这不是成熟产品",
+          "evidence": "出现过状态不同步、棋子下到线上的 bug"
+        },
+        {
+          "requirement": "意义参照 GPT-3.5 时刻：当时又慢又不好用，但一旦看到“能做到一点”，就意味着有办法做得极好；生成式 UI 还能配合上下文压缩、管理、fork 等插件省 token",
+          "evidence": "看到它“能做到一点”的时候"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "generative UI",
+          "status": "defined",
+          "first_use": "**generative UI**（生成式 UI：界面本身由模型按需生成）",
+          "evidence": "**generative UI**（生成式 UI：界面本身由模型按需生成）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "约定某个标记",
+          "可以放按钮、放输入框"
+        ],
+        "note": "正文保留“卡片带 JS → 注入事件 → 回到上下文 → 再指导 UI”的闭环。"
+      },
+      "note": "标记约定、卡片能力、回注闭环、两个演示与缺陷、“看到可能性”都在正文；棋盘截图与图注一致。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "约定某个标记",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K26",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "接一个自己的 database 插件",
+        "要求列出 2021 年至今发表的所有论文",
+        "把必要的数据取回来，一次把表格填好"
+      ],
+      "checks": [
+        {
+          "requirement": "场景：某表格要求填写 2021 年至今发表的所有论文",
+          "evidence": "接一个自己的 database 插件"
+        },
+        {
+          "requirement": "在插件生态里接一个个人 database 插件，向模型提供必要信息（个人信息、发表论文、指导学生等）",
+          "evidence": "要求列出 2021 年至今发表的所有论文"
+        },
+        {
+          "requirement": "超级应用需要填表时，把任务丢到总线上，生态里的工具、本机、记忆与 bot 协作取回数据，一次填好",
+          "evidence": "把必要的数据取回来，一次把表格填好"
+        },
+        {
+          "requirement": "全程不需要 computer use、不需要多余 token、不需要疯狂截图",
+          "evidence": "中间不需要任何 computer use"
+        },
+        {
+          "requirement": "这才是操作系统的价值：很多事情能在生态内闭环完成",
+          "evidence": "这就是一个操作系统"
+        }
+      ],
+      "term_checks": [
+        {
+          "term": "computer use",
+          "status": "defined",
+          "first_use": "**computer use**（让模型看屏幕、动鼠标键盘来操作软件）",
+          "evidence": "**computer use**（让模型看屏幕、动鼠标键盘来操作软件）"
+        }
+      ],
+      "causal_check": {
+        "status": "pass",
+        "evidence": [
+          "接一个自己的 database 插件",
+          "要求列出 2021 年至今发表的所有论文"
+        ],
+        "note": "正文说明任务丢到总线、生态取数，因此不需要 computer use。"
+      },
+      "note": "数据库插件、填表场景、总线取数、无需 computer use 都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "接一个自己的 database 插件",
+        "note": "本项内容为来源陈述或演示记录，正文没有把编辑推断写成讲师原话。"
+      }
+    },
+    {
+      "id": "K27",
+      "status": "covered",
+      "completion_status": "reviewed",
+      "evidence": [
+        "一侧是对接开发者",
+        "另一侧是更严肃的厂商",
+        "你愿意用 WPS，还是愿意用这个"
+      ],
+      "checks": [
+        {
+          "requirement": "生态两侧：一侧是开发者（有脑洞、有时间，做出小玩意与好想法），另一侧是严肃厂商（是否愿意介入、能否挣到钱）",
+          "evidence": "一侧是对接开发者"
+        },
+        {
+          "requirement": "关键选择：一个只有 WPS 七八成功能、但原生具备 agent 能力、且接入你自己的 agent、数据库、记忆与内容生成器的办公工具，你是否愿意换",
+          "evidence": "另一侧是更严肃的厂商"
+        },
+        {
+          "requirement": "讲师说自己用 agent 管理个人数据库，因此可以把“需要填论文列表”这类任务交给生态闭环",
+          "evidence": "你愿意用 WPS，还是愿意用这个"
+        },
+        {
+          "requirement": "讲师还谈到一个保密中的 agent OS 项目，思路与 everything is a plugin 相近，位于 DSH 下层、可与之并行并提供更多能力",
+          "evidence": "还有一个保密中的 **agent OS** 项目"
+        },
+        {
+          "requirement": "预计未来所有东西都会发生根本性变化，这一天很快到来；下一讲继续讲 agent native 开发的细节",
+          "evidence": "这一天很快就要来"
+        }
+      ],
+      "term_checks": [],
+      "causal_check": {
+        "status": "not_applicable",
+        "evidence": [],
+        "note": "本项为预测与生态判断，不涉及因果链。"
+      },
+      "note": "生态两侧、选择问题、agent OS 披露与时间预测都在正文。",
+      "attribution_check": {
+        "status": "pass",
+        "evidence": "一侧是对接开发者",
+        "note": "agent OS 项目与“很快到来”均标为讲师披露与预测。"
+      }
+    }
+  ],
+  "source_sweep": {
+    "chunks": [
+      "S01",
+      "S02",
+      "S03",
+      "S04",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S09"
+    ],
+    "windows": [
+      {
+        "chunk": "S01",
+        "disposition": "covered",
+        "item_ids": [
+          "K01",
+          "K02",
+          "K03"
+        ],
+        "reason": "开场铺垫（agent 组织架构、Git 不够用、锁的类型）、3D 建模案例与 OpenStreetMap 数据源全部入清单；口癖归入 K28。"
+      },
+      {
+        "chunk": "S02",
+        "disposition": "covered",
+        "item_ids": [
+          "K04",
+          "K05",
+          "K06",
+          "K07",
+          "K08"
+        ],
+        "reason": "断网与恢复、指数退避、支付状态不一致、需求文档膨胀与 slop、GrokBot 引发的需求变更均已入项。"
+      },
+      {
+        "chunk": "S03",
+        "disposition": "covered",
+        "item_ids": [
+          "K08",
+          "K09",
+          "K10",
+          "K11",
+          "K12",
+          "K13"
+        ],
+        "reason": "DSH bot 复刻、6 月 10 日首个提交、对着需求做架构、架构边界与自由度的两端取舍均入项。"
+      },
+      {
+        "chunk": "S04",
+        "disposition": "covered",
+        "item_ids": [
+          "K13",
+          "K14",
+          "K15"
+        ],
+        "reason": "event sourcing 代价、MapReduce 案例与边界、微内核 first principle 均入项。"
+      },
+      {
+        "chunk": "S05",
+        "disposition": "covered",
+        "item_ids": [
+          "K15",
+          "K16",
+          "K17",
+          "K18"
+        ],
+        "reason": "Cordis 职责、协同难点、session 事件日志作为唯一事实、open entry 与 slot 均入项。"
+      },
+      {
+        "chunk": "S06",
+        "disposition": "covered",
+        "item_ids": [
+          "K19",
+          "K20",
+          "K21",
+          "K22"
+        ],
+        "reason": "token 统计插件、trajectory 投影、对外 API 与可改事件、TUI、VS Code 化与 Creator 模式均入项。"
+      },
+      {
+        "chunk": "S07",
+        "disposition": "covered",
+        "item_ids": [
+          "K22",
+          "K23",
+          "K24"
+        ],
+        "reason": "许愿式插件演示、语义冲突的代价、发布 nothing 与超级应用桥接方向均入项。"
+      },
+      {
+        "chunk": "S08",
+        "disposition": "covered",
+        "item_ids": [
+          "K24",
+          "K25"
+        ],
+        "reason": "Excalidraw 桥接演示、生成式 UI 卡片与成语接龙/五子棋演示、当前缺陷与 GPT-3.5 类比均入项。"
+      },
+      {
+        "chunk": "S09",
+        "disposition": "covered",
+        "item_ids": [
+          "K24",
+          "K26",
+          "K27"
+        ],
+        "reason": "插件实现核对（无侵入、scope 限制、对象同一性过滤）、个人数据库填表案例、生态两侧与 agent OS 展望均入项。"
+      }
+    ],
+    "note": "回看全部九个窗口：未发现在清单之外仍被遗漏的高价值内容；演示走场中的设计结论已提升为 A 项，没有被当作操作过程删除。"
+  },
+  "fidelity": {
+    "status": "pass",
+    "note": "事实、讲师观点与预测分别归属；未发现来源之外的技术细节或成功案例增补。存疑专名（超级应用名称、动态 UI 标记名）以保守措辞处理，并在文首与 term_verification.md 标注。"
+  },
+  "redundancy": {
+    "status": "pass",
+    "note": "C 类口癖与等待已删；同一主题的不同理由与例子按独立观点保留，未做二次全书压缩。"
+  },
+  "budget_note": "",
+  "semantic_review": {
+    "performed": true,
+    "mode": "agent_assisted",
+    "method": "逐窗阅读 quality/source.md，并逐项对照 book.md 与原字幕；图示逐张核对节点、箭头与来源时间"
+  },
+  "accessibility": {
+    "status": "pass",
+    "note": "首次出现的关键术语均给了括号短释义；三张 mermaid 图与五张截图均紧邻对应段落，带图注与来源时间。窄屏与截图字号未逐设备实测，截图取自平台原生分辨率（1280×410），细部文字需点击放大查看。"
+  },
+  "independent_review": {
+    "status": "self_only",
+    "note": "本次由同一执行者完成分诊、写作与复核，未启用第二执行者深审；因此只是完整自审，不等于独立复核。"
+  },
+  "bindings": {
+    "source_sha256": "769a76b4c6c064e3b7fb8fa9c8e7f7edc5f02e76b80e9da574f058913622fdf3",
+    "book_md_sha256": "292b6f7a85e23870bce909692da5dd0235a5babf0b56706ff553285f3272c1d4",
+    "triage_sha256": "866471e0b4a1bbcba31ed555d9796079fded0f3b2d6ea479c7d48fee708fa5d6",
+    "bound_at": "2026-10-21T20:19:13+08:00"
+  }
+}

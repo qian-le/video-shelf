@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepSeek Harness（一）：需求、架构与生态</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  --faint: #8A908A;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: 0 var(--sp-5);
+  height: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-right {
+  display: flex; align-items: center; gap: var(--sp-3);
+}
+.font-resizer {
+  display: inline-flex; align-items: center;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-ctl); padding: 1px 3px; gap: 2px;
+}
+.btn-font {
+  background: transparent; border: 0; color: var(--muted);
+  font-family: var(--font-ui); font-size: 11.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 4px; cursor: pointer;
+  line-height: 1.4;
+}
+.btn-font:hover { color: var(--ink); background: var(--code-bg); }
+.btn-font:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 10px 14px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4);
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-6); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4);
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+}
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-panel) var(--r-panel) 0;
+  padding: var(--sp-3) var(--sp-4);
+  line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+.book-body img { max-width: 100%; height: auto; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供；禁止使用 + * 避免误伤正文导语 */
+.book-body > h1:first-child,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  position: relative;
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.btn-copy-code {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--surface); border: 1px solid var(--line);
+  color: var(--muted); font-family: var(--font-ui); font-size: 11px;
+  padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  opacity: 0; transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  line-height: 1.3;
+}
+.book-body pre:hover .btn-copy-code,
+.btn-copy-code:focus-visible {
+  opacity: 1;
+}
+.btn-copy-code:hover {
+  color: var(--ink); border-color: var(--line-strong);
+}
+.btn-copy-code.copied {
+  color: var(--accent); border-color: var(--accent); font-weight: 600;
+}
+
+/* 参考时间穿透锚点 */
+.time-anchor {
+  display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: var(--sp-2) 0 var(--sp-4); padding: 3px 12px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; font-family: var(--font-mono); font-size: 12px;
+  color: var(--muted); width: fit-content; max-width: 100%;
+}
+.time-anchor .ta-label {
+  font-family: var(--font-ui); font-size: 11px; font-weight: 600;
+  color: var(--faint); letter-spacing: .04em;
+}
+.time-anchor .ta-ts {
+  color: var(--accent-ink); text-decoration: none; font-weight: 600;
+  border-bottom: 1px dashed var(--accent);
+}
+.time-anchor .ta-ts:hover {
+  color: var(--accent); border-bottom-style: solid;
+}
+.time-anchor .ta-sep { color: var(--line-strong); }
+.time-anchor .ta-vid {
+  color: var(--muted); text-decoration: none; font-family: var(--font-ui);
+  font-size: 11.5px; font-weight: 500;
+}
+.time-anchor .ta-vid:hover { color: var(--accent); }
+.book-body .table-wrap {
+  width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  margin: var(--sp-5) 0; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-media);
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  display: block; width: 100%; max-width: 100%;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  font-family: var(--font-ui); font-size: .92em;
+}
+.book-body .table-wrap > table {
+  margin: 0; border: 0; border-radius: 0;
+  display: table; width: 100%; min-width: 520px; overflow: visible;
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); min-width: 0;
+}
+.mermaid {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.mermaid svg { display: block; margin: 0 auto; }
+.diagram-status {
+  font-family: var(--font-ui); font-size: 14px; color: var(--muted);
+}
+.diagram-zoom {
+  display: block; margin: var(--sp-3) 0 0 auto; min-height: 40px;
+  padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line-strong);
+  border-radius: var(--r-ctl); background: var(--surface);
+  color: var(--accent-ink); font: 500 13px var(--font-ui); cursor: pointer;
+}
+.diagram-zoom:hover { background: var(--accent-soft); }
+.diagram-zoom:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-error pre { margin-bottom: 0; }
+.mermaid-wrap [hidden] { display: none; }
+
+/* 图示按原尺寸查看，宽图与长图均可滚动，保留截图预览原有尺寸。 */
+.lightbox.lightbox-diagram {
+  display: none; overflow: auto; padding: var(--sp-8) var(--sp-5) var(--sp-8);
+}
+.lightbox.lightbox-diagram.open { display: block; }
+.lightbox.lightbox-diagram img {
+  display: block; max-width: none; max-height: none; margin: 0 auto;
+  background: var(--surface); cursor: default;
+}
+.lightbox-diagram .lightbox-close, .lightbox-diagram .lightbox-caption { position: fixed; }
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-close {
+  position: absolute; top: 16px; right: 20px; z-index: 102;
+  width: 38px; height: 38px; border: 0; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18); color: #fff;
+  font-size: 26px; line-height: 1; display: flex;
+  align-items: center; justify-content: center; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.32); }
+.lightbox-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+/* 阅读位置恢复轻提示 */
+.shelf-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: #F4EFE6; padding: 8px 18px;
+  border-radius: 999px; font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22); z-index: 90;
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.shelf-toast.show {
+  opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto;
+}
+.shelf-toast-btn {
+  background: transparent; border: 0; color: #5EEAD4;
+  cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 0; margin-left: 2px; text-decoration: underline;
+}
+
+.toc-backdrop { display: none; }
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-toggle {
+    display: inline-flex; align-items: center; justify-content: space-between;
+  }
+  .toc-backdrop {
+    position: fixed; inset: 0; z-index: 48;
+    background: rgba(37, 42, 39, 0.45);
+    backdrop-filter: blur(2px);
+    display: none;
+  }
+  .toc-backdrop.open { display: block; }
+  .toc-panel {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 49;
+    width: min(320px, 85vw); max-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    box-shadow: 0 0 24px rgba(37, 42, 39, 0.15);
+    padding: var(--sp-5) var(--sp-4);
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    display: block !important;
+    overflow-y: auto;
+  }
+  .toc-panel.open {
+    transform: translateX(0);
+  }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: 0 var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+@media print {
+  .topbar, .toc-panel, .toc-toggle, .toc-backdrop, .book-pager, .lightbox,
+  .meta-actions, .time-anchor .ta-vid, .btn-copy-code, .shelf-toast, .diagram-zoom {
+    display: none !important;
+  }
+  .layout {
+    display: block !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important;
+  }
+  .book-main, .book-body {
+    max-width: 100% !important;
+  }
+  .book-body {
+    font-size: 11pt !important; line-height: 1.6 !important; color: #000 !important;
+  }
+  .screenshot-card { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+}
+
+/* quality gate badges (local preview only) */
+
+</style>
+</head>
+<body>
+<div class="book-shell">
+  <div class="topbar">
+    <div class="topbar-in">
+      <a class="back-link" href="../index.html">← 书架</a>
+      <div class="topbar-right">
+        <div class="font-resizer" role="group" aria-label="字号调节">
+          <button type="button" class="btn-font font-dec" aria-label="减小字号">A-</button>
+          <button type="button" class="btn-font font-inc" aria-label="增大字号">A+</button>
+        </div>
+        <span class="topbar-tag">SHELF · READ</span>
+      </div>
+    </div>
+  </div>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false">目录</button>
+    <div class="toc-backdrop" aria-hidden="true"></div>
+    <aside class="toc-panel" aria-label="目录">
+      <h2 class="toc-title">目录</h2>
+      <ul class="toc-list"></ul>
+    </aside>
+    <div class="book-main">
+      <header class="book-head">
+        <p class="course-line"><strong>26生成式软件工程</strong> · NJU 生成式软件工程 · 第 9 讲</p>
+        <h1>DeepSeek Harness（一）：需求、架构与生态</h1>
+        <p class="book-summary">从一个 150 行的 mini agent 出发，讲清把它做成产品要跨过的需求变更、架构取舍与生态问题；并以 DeepSeek Harness 为例，拆解微内核、事件总线与会话事实日志如何支撑插件生态，以及超级应用桥接和生成式 UI 两条落地路径。</p>
+        <div class="book-meta-card"><div>原视频：<a href="https://www.bilibili.com/video/BV144nc6KEA4/" target="_blank" rel="noopener">BV144nc6KEA4</a> · 视频时长 1h29m · 预计阅读约 33.3 分钟（约 13,310 个阅读单位） · 标签：agent harness、DeepSeek Harness、微内核、插件架构、事件溯源、需求工程</div><div class="meta-actions"><a href="transcript.corrected.html">字幕对照</a><a href="../index.html">返回书架</a></div></div>
+      </header>
+      <article class="book-body">
+<p><strong>课程</strong>：26 生成式软件工程（NJU）
+<strong>原视频</strong>：<a href="https://www.bilibili.com/video/BV144nc6KEA4/">DeepSeek Harness (1) [09-Raw/26生成式软件工程/NJU]</a>
+<strong>时长</strong>：约 89 分钟　<strong>阅读时长</strong>：约 32 分钟（按正文阅读单位估算，非实测）</p>
+<p>上一讲用 150 行代码写出了一个能跑的 agent（能自己调用工具、多轮执行任务直到把事做完的模型程序）。这一讲换一个问题：如果要把它做成一个产品，会遇到什么。讲师选的案例是 DeepSeek Harness（下称 DSH）——一个把 agent 运行时做成操作系统微内核的开源项目。全程只讲四件事：需求为什么会变、架构在受限与自由之间怎么取平衡、DSH 用什么抽象支撑插件生态、以及这个架构最终能长出什么。</p>
+<blockquote>
+<p>说明：本文依据课堂字幕整理。讲师对产品的判断、预测与个人项目披露均按原意标注归属；字幕中明显误转的专名已按上下文校正，个别无法确定的保留疑点。</p>
+</blockquote>
+<hr />
+<h2 id="_1">一、为什么要在智能体时代重讲软件工程</h2>
+<h3 id="11-agent">1.1 你不再是一个单线程 agent</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-00-00" title="在字幕对照页定位此段">00:00:00–00:00:45</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=0" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>软件工程、项目、项目管理这些概念之所以要反复重讲，是因为它们在 agent native 时代正在被重新定义。</p>
+<p>讲师用了一个身份比喻：你自己上学时是<strong>单线程 agent</strong>（一次只推进一件事的执行者）——学 C++、学 Python、写自己的项目，全在自己一个人的时间线上。而当你开始用 agent，你立刻拥有了一家现代公司的架构：你是 CTO，负责全部，但很可能不写代码；下面有架构、产品、UI、前端、后端好几个 agent；每个 agent 又带多个 <strong>sub agent</strong>（被派出去执行子任务的下层 agent），sub agent 还能再创建更多。这个组织架构不是比喻，是管理复杂需求的必需品——没有它，你接不住一个复杂需求。</p>
+<p>讲师提到一个时间点：就在上周，Anthropic 说 Git 已经不够用了。他的态度是“这很自然”：在讲版本管理那一讲时他就说过，总有一天会不够用。</p>
+<p>商品最终仍要交付：需要版本控制、需要<strong>仓库</strong>（repository，存放代码与历史的目录），产品还要经过 <strong>CI/CD</strong>（持续集成与持续交付，代码提交后自动构建、测试、上线）才能对外提供服务。</p>
+<h3 id="12-agent">1.2 多个 agent 改同一个仓库：并发改动怎么协调</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-01-26" title="在字幕对照页定位此段">00:01:26–00:03:05</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=86" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>一个 agent 收到的是一个 task。从 first principle（第一性原理，即从最根本的事实出发推理）看，这个 task 一定和仓库的某一部分相关：可能重构某个 subsystem，可能在某处加功能，可能影响若干模块。不同 task 在系统里“覆盖的形状”不一样。</p>
+<p>讲师设想给这些操作加<strong>锁</strong>（先占住一块区域，避免别人同时改动），而且锁应该有类型：</p>
+<ul>
+<li>只读锁：只是看，不改；</li>
+<li>写锁；</li>
+<li>重构锁。</li>
+</ul>
+<p>关键判断是：一个小的 fix 虽然是写锁，但不产生 <strong>breaking change</strong>（让已有调用方或结构失效的改动），所以多个互相独立的小 fix 完全可以并行执行。</p>
+<p>可以借鉴的既有方案有两种：操作系统式的“先上锁”，以及数据库式的“先做、再做冲突检测”——即<strong>乐观并发</strong>（先各改各的，提交时检测冲突，冲突才回退）与悲观并发之分。讲师明确说，这套方案目前还没有真正用起来；但他认为答案会随着组织架构的清晰而慢慢浮现，而世界正在朝这个方向推进。</p>
+<h3 id="13-deepseek-harness">1.3 选 DeepSeek Harness 当案例</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-03-12" title="在字幕对照页定位此段">00:03:12–00:06:16</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=192" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>概念讲得差不多了，就该落到具体项目上：如果真要设计一个 AI native 时代的产品，整个流程会是什么样。</p>
+<p>讲师选 DSH 的原因很实际：他前天在北京参加了 DSH 的线下聚会，到场很多是与在座同学同龄的开发者。他们不像讲师那样写过很多代码、经历过“古法编程”时代，很多是对着网页<strong>许愿式编程</strong>（把需求说给模型，让它自己想办法实现）成长起来的；但这批人几年后很可能成为核心开发者。所以要讲清楚：从零开始构建一个 agent harness，会遇到什么问题。</p>
+<p>本讲覆盖需求、架构，以及“在 DSH 上做二次开发”时整个软件系统的设计。下一讲再讲 agent native 开发更细的部分。</p>
+<p>讲师也提前解释了一个常见困惑：网上有很多 skills，可以 grow 出各种能力、看起来有 super powers，但真正拿来用时，会发现 agent 陷进无穷多你不想让它管的事情里——尤其面对未知时你不知道它在干什么，有时它会疯狂派 sub agent 做你觉得没必要的测试和 validation。这些行为在公司真做产品时可能成立，但最好自己摸索一遍，有切身感受。</p>
+<p>本次演示环境是他已经编译好的 DSH，运行方式是纯许愿式的：从部署到外部对接，只确认“这个项目可以被编译”，剩下交给 agent。</p>
+<hr />
+<h2 id="_2">二、一个能跑的东西离产品有多远</h2>
+<h3 id="21">2.1 一句话生成南大仙林三维模型</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-06-16" title="在字幕对照页定位此段">00:06:16–00:10:01</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=376" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>起点是上一讲的 mini agent。几乎所有 agent harness 都遵循同一个循环，因为大模型推理是 request-response 式的：一问一答，不管回答方是人还是工具。</p>
+<p>这个 mini agent 能用，而且能做不 trivial 的任务。讲师在高铁上给了一句话需求：要一个比例基本真实的南大仙林校区三维图。结果超出预期——虽然有些地方不对（计算机楼是十层楼，高度明显做错），但图书馆建模相对较好，俯视的几何形状被正确保持了。</p>
+<p>它是怎么做到的？讲师看了 agent 的 trace（执行轨迹）：网上有大量数据源。他上学时就发现过一个宝藏网站 <strong>OpenStreetMap</strong>（开放协作的世界地图数据库，可自由下载矢量地图），细到连一个篮球场的边线都会画出来。agent 从这里爬数据，再按自己的想法建模：地图上没有信息的区域被标成绿色，它判断是绿地（可能有小公园或休息座椅）；大门也被建成了楼，门口铺满了树。</p>
+<p>改进路径也清楚：给它更好的提示词——把每一块区域单独划定，先思考这块区域的功能应该是什么样，再做精确建模。代价是大约十倍 <strong>token</strong>（模型读写文本的最小计费单位，多轮反复迭代就多烧算力），换来一个明显更好的版本。</p>
+<p>网上很多三维生成效果用的是同一套路：靠 skills 追着 agent 一遍遍验证，烧 token 在“还不错”的基础上继续修。讲师说，这类模型已经可以作为做“南大版 GTA”的起点——你知道哪里可以走人、哪里可以蹲点，游戏逻辑就能搭起来。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_07_42.png" alt="南大仙林校区三维模型：几何形状基本正确，楼高与区域功能判断有误" loading="lazy"><p class="video-caption"><span class="cap-text">南大仙林校区三维模型：几何形状基本正确，楼高与区域功能判断有误</span><span class="cap-time"><a href="transcript.corrected.html#t-00-07-42" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV144nc6KEA4/?t=462" target="_blank" rel="noopener">在 B 站打开 (00:07:42)</a></span></p></div>
+
+<p>但结论是：<strong>它能课上玩一把，不能作为产品。</strong></p>
+<h3 id="22-mini-agent">2.2 断网：mini agent 缺的那三件事</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-10-01" title="在字幕对照页定位此段">00:10:01–00:11:11</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=601" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>原因在上一版的一个隐含假设：它假设网络服务不会中断。只聊一两轮，你感受不到；但讲师在高铁上跑了一段较长时间、已经有中间结果时，网断了——进程直接终止。而那 150 行代码里没有会话保存，没有恢复，也没有断网重连。他只有两个选择：从零继续，或者整段重做。</p>
+<p>这属于 <strong>accidental complexity</strong>（偶然复杂度：问题本身不难，是工具与环境逼出来的额外复杂度）。一旦要做一个真正的 agent 产品，第一件要应对的就是 API 中断，也就是你天天在 coding agent 里看到的各种重连行为。</p>
+<h3 id="23">2.3 重试为什么是设计问题</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-11-11" title="在字幕对照页定位此段">00:11:11–00:12:41</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=671" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>重连听起来简单，往下追就变成一系列选择。</p>
+<p><strong>间隔</strong>：在美国的数据中心直连 OpenAI 服务，和在国内叠多层代理访问，是完全不同的网络环境，<strong>timeout</strong>（等待多久算超时）和重试时长都不一样。</p>
+<p><strong>退避方式</strong>：第二次重试该用等间距，还是逐步拉长？网络里有个成熟特性叫<strong>指数退避</strong>（失败后按 1、2、4、8 秒这样成倍拉长间隔再试）：既然 1 秒后失败、再 1 秒后还失败，那大概率下一秒仍然失败，所以应该等 2 秒、4 秒、8 秒，一直退到分钟级。讲师自己的物理断网场景，恢复可能需要两三分钟。</p>
+<p>讲师还让 AI 帮忙总结过这个话题，AI 又列出了一堆更细的坑。而真实产品里的挑战比这更大。</p>
+<h3 id="24">2.4 断网下的支付：未知状态</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-12-41" title="在字幕对照页定位此段">00:12:41–00:14:30</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=761" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>最典型的例子是客户端与服务端不一致。</p>
+<p>客户端发起支付请求，服务端收到后要和别的系统确认（银行、航空公司），它等不了你把所有事做完再关事务：钱付给银行或航司的那一刻，<strong>事务</strong>（一组要么全成功要么全失败的操作）就已经在服务端 <strong>commit</strong>（提交生效）了。服务端有很复杂的架构保证订单可靠完成，但问题出在客户端：订单发出去以后，手机断网了。</p>
+<p>这时应用不能崩，它得转圈，得告诉你网络中断；但这个订单处在一个“我不知道”的状态——可能成功了，也可能失败了，因为缺少与服务端的同步，客户端无法判定自己到底是什么状态。</p>
+<p>这就是 <strong>essential complexity</strong>（本质复杂度：业务本身固有的复杂度，写得再聪明也消不掉）。软件系统设计里，这类复杂度躲不掉。</p>
+<h3 id="25">2.5 产品级需求清单：为什么直接实现会走样</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-14-30" title="在字幕对照页定位此段">00:14:30–00:17:49</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=870" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>那么一个 agent 产品到底要做多少东西？</p>
+<p>先说最基本的骨架：产品级 agent 需要能同时在多个工作目录上工作、能在多个项目之间切换的 <strong>dashboard</strong>（仪表盘式的总控界面）、项目相关的工具与 skills（预置的能力包），以及运行过程中对工具调用施加<strong>沙箱</strong>（限制权限的隔离环境）和权限审批——也就是你在 coding agent 里天天遇到的 approve 交互。</p>
+<p>讲师的做法是让 AI 假装要做一个交互式 agent 产品（他举例说可以对标当时最火的 <strong>WorkBuddy</strong>），看它会写出什么需求。结果 AI 先想到了典型场景与用例图，比如“把这个文件夹里本周的项目记录整理成周报、列出延期事项、生成 Word 文件”——这是普通人办公时非常常见的需求；然后开始疯狂列需求点：</p>
+<ul>
+<li>历史检索与任务复用；</li>
+<li>模板与偏好；</li>
+<li>执行预算与用量；</li>
+<li>账号与数据管理；</li>
+<li>外部内容与指令隔离；</li>
+<li>用户反馈与问题诊断。</li>
+</ul>
+<p>而且实际上还会多得多，此外还有大量<strong>非功能性需求</strong>（性能、安全、权限、成本这类不属于具体功能的约束）。</p>
+<p>如果直接让 agent 去实现这份需求，大概率会陷入 <strong>slop</strong>（讲师用词：量大、能跑、但缺少判断的粗制实现）。原因是 agent 有一个非常强的倾向：直接把任务完成，不花脑子想未来还会发生什么。</p>
+<p>所以<strong>做一个产品和做一个 MVP 是不一样的</strong>。但 MVP（最小可用版本，用最少功能验证需求是否成立）有它的价值：用 MVP 时你的假设会不断被验证。讲师那个 mini agent 就做了一个不切实际的假设——网络稳定、API 稳定；假设不成立，需求就相应膨胀了。</p>
+<hr />
+<h2 id="_3">三、需求：真正的敌人是需求改变</h2>
+<h3 id="31">3.1 改需求三次</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-17-49" title="在字幕对照页定位此段">00:17:49–00:19:55</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=1069" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>所以设计 agent harness 面对的真正的挑战，不是把当前需求做完，而是<strong>需求的改变</strong>。</p>
+<p>讲师构造了一个场景：你已经按办公场景写了一份面向 WorkBuddy 的详尽需求报告，带着 AI 写了 50 万行代码，并且上线了。然后 GrokBot 火了。</p>
+<p>GrokBot（xAI 2026 年推出的多智能体产品，把 AI 当同事）带来一种新交互：把 agent 当人。当人对待，每个人就有自己的记忆，于是可以拉一个群让两个 agent 协同完成工作，也可以规定谁每天什么时间做什么（GrokBot 里叫 routine，即按固定时间或触发条件自动执行的任务）。</p>
+<p>这时你发现，原来那份详尽需求的前提全废了。原需求定的是左边栏放项目、右边栏放几种视图（pinpoint view 之类）。老板说下一版照 GrokBot 做——“怎么杀死一个程序员？改需求三次就够了”。因为之前所有需求都建立在那个交互模式上，而<strong>交互模式的根基崩塌了</strong>。</p>
+<p>这也解释了大厂的行为：不管它把架构做得多好，性能做到极致，功能性与非功能性需求都极好地满足上一版设计，一旦这种摧毁性的变化来了，它必然要开始疯狂拉通对齐、闭环沉淀复用，再到下一个版本。这没办法——大厂有交付质量要求，它做了一个选择：优先保证极高质量交付，所以架构会相对保守。</p>
+<h3 id="32-grokbot-dsh-bot">3.2 GrokBot 与 DSH bot 的光速复刻</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-19-55" title="在字幕对照页定位此段">00:19:55–00:22:10</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=1195" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>对比之下，DSH 生态的反应速度是另一种景象。</p>
+<p>GrokBot 火了之后，很快有不止一个人发布了 DSH bot：界面<strong>像素级复刻</strong>——可以设置多个 bot，可以拉群，群还有群图标，可以和 bot 聊天。讲师认为在这之上还能外挂它没有的功能：</p>
+<p>GrokBot 面向普通人，所以不开放任何编辑配置的权限。但对程序员来说，就想把配置文件拿出来自己改一下，或者把提示词拿出来改一下——“因为我懂得怎么改提示词，而 99% 的人不知道怎么跟模型对话”。GrokBot 是很成功的产品，但你不满意就可以“许愿”加上别的功能：比如一个 multi agent 交互的 dashboard，让你以老板视角管理，左边栏不是项目树，而是代表你所管理部门层级的树状结构，右边的聊天压缩小一点，甚至给你一点“坐在办公室里的老板”的情绪价值。这类需求很快也有人实现。</p>
+<p>讲师说这个故事的用意在于：同样是需求变化，一边是拉通对齐，一边是光速复刻，差别来自架构给了多少自由度。</p>
+<h3 id="33-2026-6-10-11">3.3 2026 年 6 月 10 日晚 11 点</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-22-10" title="在字幕对照页定位此段">00:22:10–00:23:32</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=1330" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>时间倒回 2026 年 6 月 10 日。那时 coding agent 已经让大家意识到要变天了，主流产品有 Claude Code、OpenCode 等；还没有 WorkBuddy，有 CodeBuddy（讲师后来得知两者共享同一套 agent 层编排的底层架构）。</p>
+<p>当晚 11 点，一个神秘项目启动，仓库里什么也没有——“谁说 DeepSeek 不加班的”。连当时为了同时支持多种 agent 而需要的 CLAUDE.md（放在仓库里告诉 agent 项目规则与命令的说明文件）都没有，这本身是个很麻烦的需求点：项目要同时支持多个 agent，就得用它们都理解的方式组织文件。好消息是今天已经不必依赖它了。</p>
+<p>而它的第一份需求分析（一份 link 进去的 MVP requirement analysis）里就写着一个 <strong>microkernel</strong>（微内核：内核只做最小调度，其余能力全部外挂成可替换模块）架构。<strong>从第一天起，它就想做一个操作系统，想造一艘航母。</strong></p>
+<hr />
+<h2 id="_4">四、架构：受限与自由之间的取舍</h2>
+<h3 id="41">4.1 对着需求做架构会得到什么</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-23-32" title="在字幕对照页定位此段">00:23:32–00:25:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=1412" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>如果直接对着需求文档让 agent 设计架构，会发生一件很自然的事：agent 的注意力落在需求上，而它不能交一个空架构（那等于没完成任务），于是会为需求里的名词建结构。</p>
+<p>比如需求里有个“工作区”。agent 就会为工作区做一个 class，再去补工作区和其他东西的交互：和模型、和 agent 层怎么交互；工作区里可以链接 <strong>session</strong>（会话：一次持续对话的上下文容器）；session 可以向 agent 发 chat；agent 之间可以调用 agent loop 或工具做事；工具的结果（比如画布的绘制结果）可以放回 session 上；session 的数据该存数据库。</p>
+<p>于是架构开始出现模块、出现数据库、出现消息队列。这是非常自然的架构设计方式，大厂也经常这么设计。</p>
+<p>但讲师强调：<strong>架构意味着没有免费的午餐。</strong> 任何设计都是在受限和自由之间达成的平衡。</p>
+<h3 id="42">4.2 边界的好处与代价</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-24-58" title="在字幕对照页定位此段">00:25:00–00:26:03</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=1500" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>架构确定，模块之间的边界就有了。边界带来的直接好处是：开发某个模块时，不必（或只需少量）知道系统其余部分怎么工作。</p>
+<p>于是第一天就能把需求切进这个架构，每个模块独立开发，<strong>立刻可以启动大量 sub agent 并行把产品堆出来</strong>。</p>
+<p>代价是自由度：你做的这个限制，限制了未来。当 GrokBot 那样的需求出现时，如果架构适应不了，就会不断出现<strong>抽象泄露</strong>（原本封装好的细节被迫漏出来，调用方不得不关心它），项目很难维护下去。</p>
+<p>但这不意味着自由越多越好：如果把所有约束都拆掉，会走到另一个极端。</p>
+<h3 id="43">4.3 太自由等于没有架构</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-26-03" title="在字幕对照页定位此段">00:26:03–00:28:01</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=1563" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>反过来，做得太自由也不行。讲师假设有人要做“创新架构”：每个模块都是一个 process（进程），工作区、session、agent、UI 各是一个进程，进程之间全靠 <strong>message passing</strong>（消息传递：模块之间不直接调函数，而是发消息通信）。</p>
+<p>这个架构看起来很干净、很自由，随便发消息。讲师说：这确实<strong>就是个 actor model</strong>（每个单元都是独立进程、只能靠收发消息协作的模型）——说得对，可能确实能这样实现，但它没有约束：消息怎么管理、什么时候发什么消息，全都没有规定。</p>
+<p>对比之下，前面那种架构规定了工作区和 agent 之间通过某个 API、某个队列（比如 session 的消息队列）交互。接口一确定，就只能做这件事，反而容易开发。</p>
+<p><strong>越容易、越自由的东西，越不好开发。</strong> 受限有受限的好处，自由有自由的好处。</p>
+<h3 id="44">4.4 老案例：进程、语言与建站组合</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-28-01" title="在字幕对照页定位此段">00:28:01–00:30:01</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=1681" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>同样的取舍在软件史上一再出现。</p>
+<p>进程是一个非常好的抽象，非常自由——正因如此，上层才能搭建各种应用：浏览器、coding agent、虚拟机。但自由也有代价：光“操作系统该用什么语言开发”人类就吵了几十年，当年“PHP 是最好的编程语言”这个梗流行了很久；高级语言越自由（比如 C 能更好地控制机器），就越可能带来内存泄漏这类麻烦。受限与自由无法两全，只能在光谱上取一个位置。</p>
+<p>再比如经典的 <strong>LAMP</strong>（Linux + Apache + MySQL + PHP 这套建站组合）架构，它引领了整个互联网世界至少十几年，WordPress 就是典型代表。它很好——在单机还能处理应用需求的时候，它就是最合适的架构，PHP 就是最好的语言。但当你需要服务 1 亿人、10 亿人时，这个架构就扛不住了：从单机到数据库，<strong>每一个点都是瓶颈</strong>。为了拆开，就分库分表，再拆服务器，一路都是抽象泄露，最终演进到下一代架构。</p>
+<h3 id="45">4.5 事件溯源的代价：强行毕业</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-30-01" title="在字幕对照页定位此段">00:30:01–00:33:21</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=1801" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p><strong>event sourcing</strong>（事件溯源：只追加记录发生过的事件，当前状态由事件重放算出来）是个概念非常干净的架构：所有东西都是事实，只做追加记录，其他人看到的都是事实的派生。它给你解耦、给你持久化、甚至可以回退到任何历史版本。</p>
+<p>但它不是没有代价的。因为当前状态完全由过去的历史推导出来，想让性能做好难度更大。</p>
+<p>更麻烦的是一种真实需求：有时候我们真的只想 hack 当前状态。讲师举例：教务员就是想让你强行毕业，没有理由。在一个月黑风高、没人知道的时候悄悄操作一下，你就毕业了——这在真实世界里可能是个合适的需求。但在 event sourcing 里很难办到：你必须加入一个特殊的 event 和特殊的处理规则，叫“强行毕业”；而这件事因为写进了持久的历史，会被审计到，你又不能用“我也不知道当时怎么回事”来搪塞——因为谁 committed 这个 event，当时就知道。</p>
+<p>所以每个架构都有取舍：牺牲一些，换来解耦的系统、持久化、可回退。</p>
+<h3 id="46-mapreduce">4.6 MapReduce：用限制换规模</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-33-21" title="在字幕对照页定位此段">00:33:21–00:38:19</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=2001" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>总原则是：<strong>架构和需求匹配时就便利；假设发生变化时，架构就可能成为阻力。</strong> 讲师由此延伸：人类社会的进步，某种程度上就是不断打破旧假设的过程——新产业诞生、旧产业消亡，新旧交替时有人才流转，也有人被淘汰（他举了国企改革、房地产、互联网到云计算再到 AI 的历次浪潮）。而 AI 是产业超级加速器，这个变化会更有趣。</p>
+<p>接下来是一个具体的架构变化案例。2004 年，Jeff Dean 与 Sanjay Ghemawat 发表了一篇改变世界的文章：MapReduce（大规模集群上的简化数据处理）。文章非常好读，只看例子就够了——要做大规模分布式计算，你不用写很长很长的代码，只要遵循一个受限的代码模式：map 和 reduce（把一个列表逐项变换，再把结果逐步合并）。这也是函数式编程里的概念，Python 里就有。</p>
+<ul>
+<li><strong>map</strong>：有一个 list，再有一个 function，就能把它变成另一个 list；</li>
+<li><strong>reduce</strong>：拿一个 function，不停地用前一次结果和下一个元素计算；如果这个 function 有好的数学性质（比如结合律），就可以并行地 reduce 两个部分，再 reduce 它们的结果。</li>
+</ul>
+<p>只要能把计算写成这个形式，就能用它的框架。它做了一个架构上的取舍：<strong>限制你的编程模型</strong>——你只能先 map 再 reduce。同时它做了很多聪明的系统设计：reduce 前会把中间结果按 key 排序，这一步叫 <strong>shuffle</strong>（把中间结果按 key 重新分发排序的过程），剩下的系统实现藏在后面，你不需要知道。早期 Google 内部是 C++ 的，include 一个头文件，写个 class 说明 map 和 reduce 是什么就行；你用的抽象不再是 pointer、list，而是系统包裹好、可能跑在不同机器上的那层东西。你只需要声明：要 map reduce，最多 2000 台机器，每台每任务 100MB 内存，跑吧。</p>
+<p>它解决了 Google 最大的痛点：机器一多，系统就不可靠；跑一次全互联网数据的索引，几乎一定会有机器掉线或故障。以前的基本假设是“机器是好的”——你在自己电脑上做大作业，机器不会突然消失；就算消失了，你还能用社会工程的方式找老师解释。Google 不能用这种方式解决问题，它必须用系统抽象解决。</p>
+<p>它也失败了。因为这个限制只适合离线任务：用起来不那么方便；而当实时数据（比如银行订单）也走向分布式时，MapReduce 就撑不住了，于是有了 Spark 这样的计算引擎和 Flink 这样的流式数据处理。</p>
+<hr />
+<h2 id="deepseek-harness">五、DeepSeek Harness 的架构</h2>
+<h3 id="51">5.1 第一性原理：一切皆插件</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-38-19" title="在字幕对照页定位此段">00:38:19–00:40:10</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=2299" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>讲完这一串取舍，回到问题：如果要设计一个 agent harness，first principle 是什么？</p>
+<p>DSH 的答案是操作系统式的：操作系统不需要知道每个进程在干什么。UNIX 诞生时还没有桌面浏览器，也没有图形界面，它不需要管这个进程做什么，但它能把这些进程组合起来，让进程之间互相组合、互相使用。</p>
+<p>所以它的 first principle 是 <strong>Everything is a plugin</strong>（一切皆插件：所有能力都做成可装卸的插件）：所有东西都可以插件化解耦。</p>
+<p>如果你把每个插件想象成一个进程、一个人，让它们之间互相发送消息，理论上就能实现任意架构。这个架构真正的要求是：把每个模块的 <strong>private state</strong>（私有状态：只属于该模块内部的数据）封在自己里面；模块之间需要交互时，发一条消息，得到一条返回。</p>
+<p>由此可以推下去：任何程序的任何模块都能被提取成“进程”，把模块之间的函数调用换成 <strong>RPC</strong>（远程过程调用：像调本地函数一样调远端进程的函数），任何软件都会变成这个形态。</p>
+<h3 id="52">5.2 插件内核管什么</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-40-10" title="在字幕对照页定位此段">00:40:10–00:41:41</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=2410" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>讲师特别区分了两层：DSH 底下的插件内核叫 <strong>Cordis</strong>（DSH 的插件框架，只负责插件加载、卸载与依赖管理），它在 DSH 之前就有一篇论文，里面有大量公式；本讲不展开这部分。</p>
+<p>Cordis 负责的是服务的解析、依赖的激活，以及这些插件的 load 和 unload。</p>
+<p>如果把 DSH 想成操作系统，那上面的东西就是进程。操作系统里该有进程管理：一个进程退出时，它持有的所有资源都应该被回收——这是一件大家默认了很久的事，就像写 C 程序从来不回收内存，因为知道操作系统会回收。</p>
+<p>Cordis 的设计也基于这个想法：理想情况下，一个插件可以声明它需要哪些资源、对系统会产生哪些 <strong>side effect</strong>（副作用：装上后对系统造成的改动），这些依赖应该被自动加载；当插件 unload 时，依赖的东西最好能自动卸载。讲师也承认，肯定不是所有副作用都能回收。</p>
+<p>Cordis 之外才是 DSH 自身的抽象（session、agent、界面插槽等），两者不是一回事：前者是插件怎么装上、怎么撤掉，后者是 agent 这个应用怎么运转。</p>
+<h3 id="53">5.3 真正的难点是协同</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-41-39" title="在字幕对照页定位此段">00:41:41–00:43:41</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=2501" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>但整个 harness 设计真正的难点不在加载卸载，而在<strong>协同</strong>。</p>
+<p>如果插件之间可以随便发消息、随便协同，那就全乱了，跟把每个模块做成函数、链接在同一个地址空间里没有区别，没有任何实际好处；可不协同又没有用。</p>
+<p>所以真正有意思的设计，是要构建一个 <strong>agent harness 的世界模型</strong>：有一个所有进程共享的共享空间，关键的数据结构都存在这里。</p>
+<p>DSH 没有特权内核，所有东西都是 Cordis 的插件；但在 Cordis 之上有更细一层的世界模型，比如 Cordis 下面的 session。</p>
+<h3 id="54-session">5.4 session 事件日志是唯一事实</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-43-41" title="在字幕对照页定位此段">00:43:41–00:45:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=2621" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>做 LM（大语言模型）agent，应用无论如何还是以模型为中心。所以 DSH 里 session 的事件日志是 <strong>append-only</strong>（只追加、不修改不删除的日志写法）的，它是唯一的 <strong>ground truth</strong>（唯一可信的事实来源）；模型的历史不单独存储，而是从事实消息里派生出来——这就是 <strong>event sourcing</strong>（事件溯源）。</p>
+<p>也就是说：它有一份完整的事件日志，在进程基础上又做了一个 <strong>event bus</strong>（事件总线：所有插件共用的消息通道，可发布、可订阅），总线上面可以挂载各种插件，插件也可以监听总线上的事件；在这个“世界”之上，是一份持久的历史，其他所有能力都在这个地基上长出来。</p>
+<p>围绕这套事实，还有几层配套机制：</p>
+<ul>
+<li>类型检查，以及服务的定义方（provider）与使用方（consumer）；</li>
+<li>一系列权限管理；</li>
+<li>最重要的是<strong>事件即扩展点</strong>，且按领域分类：每个插件都可能产生事件放到总线上，规则主要规定消息格式是什么、谁能往总线上放、类型是否匹配——不匹配的话 TypeScript 直接不会编译这份代码，相当于禁止你任意往别人那里发消息；</li>
+<li>插件不仅能监听事件，还能收到事件后修改事件本身。</li>
+</ul>
+<p>由此 DSH 给插件提供的就是一组原子能力，像一个小操作系统：每个插件都能在总线上看到 LM inference 的状态（比如这次吐了多少 token）、看到别的插件做了什么。</p>
+<p>下面这张图是这套分层的形状——插件不直接互相调用，而是通过总线和事实日志协作：</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[&quot;插件：工具 / 沙箱 / UI / 统计&quot;] --&gt;|&quot;注册与监听&quot;| B[&quot;event bus 事件总线&quot;]
+    B --&gt;|&quot;事件写入&quot;| C[&quot;session 事件日志 append-only&quot;]
+    C --&gt;|&quot;作为唯一事实来源&quot;| D[&quot;视图：chat / trajectory 调试&quot;]
+    D --&gt;|&quot;装配&quot;| E[&quot;界面插槽&quot;]
+    C --&gt;|&quot;派生历史&quot;| F[&quot;模型上下文&quot;]
+    A --&gt;|&quot;读取他人事件，维护自身私有状态&quot;| B
+</code></pre>
+<p>图依据 00:42:21–00:48:31 内容整理。实线箭头表示“注册/写入/派生出视图”的实际方向；插件的私有状态留在自己内部，只有希望别人看到的事才以事件形式放到总线上。</p>
+<h3 id="55">5.5 未落盘的一轮与界面插槽</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-44-59" title="在字幕对照页定位此段">00:45:00–00:47:20</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=2700" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>有两个实现细节很能说明这套设计的取舍。</p>
+<p><strong>open entry</strong>：模型这次推理还没结束时，状态不 commit 到历史里。history 里可以有一个 open entry，表示这一轮尚未结束；模型不断往里送新的 token，这个状态不持久化，但仍然可以被观察到。正因如此，界面才能实时显示思维链的动态变化（演示里那段不断滚动的 thinking 就是这样来的）。讲师把它称为实现层面的一个小 trick。</p>
+<p>有了可观察的 token 事件，插件就能统计 token 成本与 cache 命中情况，再通过 <strong>slot</strong>（界面插槽：UI 上预留给插件填充的位置）绑定显示出来。</p>
+<p><strong>两种投影</strong>（把同一份事实日志按不同需要呈现成不同视图）：同一个 session 历史可以投影成不同视图。聊天窗口本质上是 message history 的一个投影，可以投影成给人看的 UI；也可以投影成给开发者看的 <strong>trajectory</strong>（执行轨迹）。在 trajectory 里可以调试每一次工具调用：payload 是什么、干了什么、结果是什么，还有一些额外信息。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_48_50.png" alt="trajectory 视图：逐条查看工具调用的参数与结果" loading="lazy"><p class="video-caption"><span class="cap-text">trajectory 视图：逐条查看工具调用的参数与结果</span><span class="cap-time"><a href="transcript.corrected.html#t-00-48-49" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV144nc6KEA4/?t=2930" target="_blank" rel="noopener">在 B 站打开 (00:48:50)</a></span></p></div>
+
+<h3 id="56">5.6 白板一块如何长出生态</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-47-20" title="在字幕对照页定位此段">00:47:20–00:50:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=2840" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>内测最早的时候，这些能力都没有——就是白板一块，真的什么都没有。但就在第一天，开发者群里有人提出“来一个 token 统计吧，上下文的统计”。</p>
+<p>这个插件完全不需要干扰系统里任何一个其他部分，因为它是<strong>不侵入</strong>的：只要观察 event bus 上 LM 吐 token 的情况，相应更新自己内部的状态即可。</p>
+<p>这背后是一条清晰的原则：<strong>希望把大部分状态都放在插件自己内部，只有希望别人看到的事情，才以事件的方式放到总线上。</strong></p>
+<p>为了让这套抽象支撑 LM 场景，DSH 做了更多专门化：session 是事件列表；agent 接收输入、推动执行；UI 有用于装配的 slot。有了这些，你在 WorkBuddy 里想要实现的东西基本都能做出来。</p>
+<p>讲师由此给出判断：如果第一方把 event 的设计、session 的设计做崩了，整个 DSH 就维护不下去；反过来，如果概念体系建得很好，使得上面的插件绝大部分时候只需要消费极少量、对系统没有侵入的事件（虽然它们具备侵入能力），那就可以在上面实现任何东西。</p>
+<h3 id="57-api">5.7 一组很小的 API</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-50-00" title="在字幕对照页定位此段">00:50:00–00:53:23</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=3000" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>对外暴露的接口很小：</p>
+<ul>
+<li>在 session 上 append；</li>
+<li>注册某个 event 的 handler，在 event bus 上监听；</li>
+<li>从事实生成投影：session 的 message、导出的 agent trajectory、chat；</li>
+<li>向 agent 提交输入，可 follow up、inject（把新内容插入正在进行的推理）、steer（插话改变它的方向）。</li>
+</ul>
+<p>其中 inject 的时机本身就是设计问题：是等这一轮工具全部完成再注入，还是每次模型 response 之后就立刻注入，还是按 ESC 停下来再来。</p>
+<p>更关键的能力是：<code>session.event</code> 可以 <strong>hook</strong>（在流程的某个节点插入自己的处理逻辑）尚未 persist 的事件。插件不只是旁观者，也不是“看完再推一个自己的新事件”，而是可以拦截、丢弃、改写事件。</p>
+<p>典型用法是在 agent 的 pre-step 之前挂一个 hook，往 agent loop 里注入 prompt。讲师举例：如果希望每一轮都把当前时区、机器指纹这类信息注入模型上下文，这件事本来写在 build context（构建上下文）里也能做，但在 pre-step 挂钩子上做，就等于把这段逻辑变成了一个可插拔的插件。</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[&quot;agent pre-step 钩子&quot;] --&gt;|&quot;注入上下文：时区 / 机器指纹等&quot;| B[&quot;模型推理&quot;]
+    B --&gt;|&quot;流式输出 token（open entry，不持久化）&quot;| C[&quot;事件总线&quot;]
+    C --&gt;|&quot;本轮结束，写入事实&quot;| D[&quot;session 事件日志&quot;]
+    D --&gt;|&quot;被插件订阅&quot;| E[&quot;插件更新私有状态并投影到 slot&quot;]
+    E --&gt;|&quot;下一轮&quot;| A
+</code></pre>
+<p>图依据 00:45:00–00:52:45 内容整理。箭头表示执行先后与数据流向；其中“流式输出”这一段不进入持久历史，只作为可观察的临时状态存在。</p>
+<p>总体上就是：<strong>插件挂在总线上，只有少量协作接口，每个插件的绝大部分状态留在本地</strong>；但因为它们能感知全局的 agent loop、session 以及各种投影，所以每个插件都能按需拿到关于“推理进行到哪一步、别的插件做了什么”的信息。</p>
+<h3 id="58">5.8 同一套事件，换一种界面</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-53-47" title="在字幕对照页定位此段">00:53:47–00:55:43</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=3227" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>DSH 原生是 Web UI，关键抽象是装 UI 的 slot——Web 能呈现人类友好的界面。</p>
+<p>但如果你偏要在命令行里用，那就要做一个 <strong>TUI</strong>（Text UI，跑在终端里的文本界面）：把所有用于装配 UI 的 slot 全扔掉，只保留 session、agent，以及在 event bus 上能听到的所有 session 相关事件（包括那个正在吐 token 的 open chat completion），然后把它们投射到自己的终端上。整个 Web UI 一行都不用改。</p>
+<p>甚至可以做一个“共享状态的 TUI 克隆”：主界面在跑的时候，另一个终端能看到一模一样的内容。</p>
+<p>内测早期官方仓库里其实有 TUI，后来被移除了，现在是第三方在维护。PDF reader 这类插件也是同一个套路：hook 生命周期事件，看到某类内容（比如加载）时把自己注入进去。</p>
+<h3 id="59">5.9 创造者模式</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-55-43" title="在字幕对照页定位此段">00:55:43–01:00:10</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=3343" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>讲师说，这些还不是插件生态真正好玩的地方。真正好玩的是：<strong>如果让你来做，你想做什么插件？</strong></p>
+<p>有人会说，这不就是一个 Codex、OpenCode 吗，全都长这样。讲师的回答是：你能干任何事。</p>
+<p>比如把 DSH 武装成一个像 VS Code 的东西。VS Code 的基本假设是一个工作区（一个目录），左边栏可以动态配置很多小块边栏（editor、browser），也有自己的插件生态。为什么不能做一个？插件内部的状态归插件自己管，一个插件可以维护好多 UI 状态；要打开工作区、要一个终端、要 git、要 side chat，都只是不断观察主 session 并维护自己的状态而已——这跟整个插件生态里任何东西都不冲突。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_57_20.png" alt="用插件改造界面：左侧是插件与工作区列表，底部挂上 Files、Git、Tasks、Side Chat、Terminal 卡片" loading="lazy"><p class="video-caption"><span class="cap-text">用插件改造界面：左侧是插件与工作区列表，底部挂上 Files、Git、Tasks、Side Chat、Terminal 卡片</span><span class="cap-time"><a href="transcript.corrected.html#t-00-57-20" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV144nc6KEA4/?t=3440" target="_blank" rel="noopener">在 B 站打开 (00:57:20)</a></span></p></div>
+
+<p>这正是 DSH 与“预先定好需求”的产品最根本的差别。GrokBot 那样的产品是：我有一个预先定好的需求，请所有人都在我的需求里工作。而 DSH 专门给了一个 <strong>Creator 模式</strong>（把内核权限交给模型的运行模式），它给的是 Cordis 的权限。</p>
+<p>普通 agent session 只有 agent 权限：工作目录读写、Bash，外面还套一层沙箱。而在“全火力全开”的 Creator 模式里，它是能看到这个世界的：可以把插件拆了，可以往里面加插件——也就是说，agent 一边运行，一边就能往 event bus 上挂东西。这个能力来自 Cordis 的全动态插件生命周期，就像操作系统里可以随时启动一个进程，也可以随时杀掉一个进程。</p>
+<p>所以讲师的评价是：<strong>看起来它是一块白板，实际上它是一颗核弹。</strong> 为什么不许愿式地做插件呢——你发明了 Creator 模式，就可以许愿。</p>
+<hr />
+<h2 id="_5">六、生态的代价与两个方向</h2>
+<h3 id="61">6.1 语义冲突：插件不是万能的</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-00-10" title="在字幕对照页定位此段">01:00:10–01:05:24</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=3610" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>所有好处都是有代价的。代价在哪里？</p>
+<p>事件层做了统一对齐：大家都使用同一组事件，类型不匹配就不行。但<strong>所有状态的管理，也就是插件自己的状态管理，还在插件自己手里</strong>——比如那个把界面做成 VS Code 的插件，窗口长什么样、终端怎么表示，都在它自己内部。它当然也可以造一个自己的事件推到总线上让别人看到，但<strong>插件和插件之间的语义可能是冲突的</strong>。</p>
+<p>举两个例子。</p>
+<p>一是数量叠加。可以实现一个上下文压缩插件，把每一次上下文输出压到 1/2。但如果你加载了十个自动压缩插件，每个都压到 1/2，那 1/2 的十次方大约就是千分之一，任何输出都被压到不能看的程度，信息全丢了。</p>
+<p>二是顺序与意志冲突。一个插件检查输入、另一个插件改写输入，到底检查在前还是改写在前，架构没有规定——这是与应用语义相关的事。两个 hook 一个要求停止、一个要求继续，它们本身就是冲突的，而当 hook 运行到“停止”那里，流程就被停掉了。</p>
+<p>讲师把这归到 essential complexity：这类语义冲突永远没办法由这种架构解决，可能需要另一个机制，比如再放一块 <strong>blackboard</strong>（黑板：一块共享状态区，多个模块读写同一份数据来协调），需要的时候大家再去共享状态。而一旦有这种需求，抽象就开始泄露了。</p>
+<p>结论是：<strong>插件不是万能的，架构也不是万能的。</strong> 插件只是减少了一部分 accidental complexity，让动态 UI 生成这类事情变容易了。</p>
+<h3 id="62-nothing">6.2 发布一个 nothing</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-05-56" title="在字幕对照页定位此段">01:05:56–01:07:40</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=3956" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>前面一直讲的是一个简化模型：做出需求，产品 release 出去，然后就挣钱了。</p>
+<p>DSH 走了一条不太一样的路线：它 release 的时候，<strong>release 了一个 nothing</strong>——只给了一些基础抽象和少量第一方插件，剩下的交给了开源生态。</p>
+<p>于是外部成本低，生态能长出来：上周北京有一场完全由开发者自己组织的活动，官方没有任何人到场（讲师因为正好去北京，顺路闪现了一下）。</p>
+<p>但讲师坦言，他感觉开源社区的开发者有点被“带歪”了：如果他是第一方，可能不会拿这么好的底座去许愿一个高达驾驶舱。他承认大学生有时间、脑洞多（把侧边栏做得更好的 Better Sidebar 就是个很好的想法），但他自己会拿去做更了不起的东西。</p>
+<p>在他看来，这样一条 event bus 真正的能力，不在于接那种 fancy 的小东西（hook 一个事件、把 UI 增强一下），而在于<strong>一整个生态</strong>：工具可以进来，工具之间还可以互相组合。</p>
+<h3 id="63">6.3 方向一：超级应用桥接</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-07-39" title="在字幕对照页定位此段">01:07:40–01:12:30</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=4060" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>第一个他想接入的是<strong>超级应用</strong>（SuperApp，指 WPS、Office、Blender 这类功能完备、能嵌在网页里的大型应用）。讲师估计只需要一个非常小的抽象层，但对它本身要做一点改造；没有 Web UI 也行，可以用一个 <strong>bridge</strong>（桥接层：把外部应用里的对象与操作接到 agent 上）连起来。</p>
+<p>这个 bridge 只支持三步操作：</p>
+<ol>
+<li>把一些对象锁住——比如我在做幻灯片，第一页、第二页别编辑了，现在锁住第二页；</li>
+<li>把对象 hand off，从总线上送进模型的上下文；</li>
+<li>把模型改完的对象从上下文里拿回来，替换回应用里。</li>
+</ol>
+<p>只做这样最小的改造，就给一个超级应用赋予了 AI 原生的能力，而且它能享受到 DSH 插件生态里所有东西的好处。讲师说这能力“非常恐怖”：DSH 是一个非常小、非常薄、什么也没有的内核层，但它底下有一整个大的插件生态。</p>
+<p>他用 Excalidraw（一个可嵌网页的手绘风格白板）花了 5 分钟做了演示：让 AI 在框里画一只 turtle（乌龟），此时所有编辑照常可以进行，但被锁住的对象动不了；模型把对象拿走后生成内容，再回填。演示里不满意的地方可以再改，甚至把画得不合适的龟壳删掉——因为对象回到了本地应用，人可以接着编辑。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_11_00.png" alt="Excalidraw 演示：对象被锁定后交给模型生成，再回填到画布" loading="lazy"><p class="video-caption"><span class="cap-text">Excalidraw 演示：对象被锁定后交给模型生成，再回填到画布</span><span class="cap-time"><a href="transcript.corrected.html#t-01-10-58" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV144nc6KEA4/?t=4260" target="_blank" rel="noopener">在 B 站打开 (01:11:00)</a></span></p></div>
+
+<p>讲师还把它和另一种产品思路做了对比：有些 AI 做 PPT 的产品（他提到 Kimi 这类），自己做完 PPT 后，产品团队还要再做一个 PPT 编辑器，让用户拖框、加注释、再让 AI 改。他的疑问是——为什么不反过来做？直接把这个生态“摁进去”就完了，这才是真正的 AI native：所有东西都可以编辑，不满意可以改，不满意可以删。</p>
+<p>这也解释了它与 <strong>MCP</strong>（让模型统一接入外部工具与数据的协议）的关系：只需要做一个非常小的 protocol（协议），甚至这个 protocol 本身可以成为 DSH 的原生插件，专门做对象的桥接。用同样的方式还可以做 Blender 的 bridge。</p>
+<p>讲师后来核对过这个插件的实现，总结出两条关键设计：<strong>工具调用不直接改画布，只是暂存</strong>；<code>begin</code> 时生成一个 job，把选区 id 锁在画布上。对应关系是——<strong>画布等于 session，编辑请求等于 tool call，提交等于回合结束的 commit</strong>。整个改造相当于一个非常薄的应用改造层，把应用做成了 agent 宿主插件，对应用其他部分几乎没有侵入。</p>
+<h3 id="64">6.4 方向二：让模型生成界面</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-12-29" title="在字幕对照页定位此段">01:12:30–01:19:00</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=4350" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>第二个方向利用了 event bus 可以随意 hook 的特性：建立一个 session 与模型之间的双向通道。</p>
+<p>只要允许模型输出一个带 HTML 加 JS 的卡片，就能把这张卡片放到界面的任何 slot 上。关键在于卡片里有 JS：这意味着可以放按钮、放输入框，理论上甚至可以嵌入 Excalidraw、WPS，或者写一个非常复杂的组件。</p>
+<p>再允许某些 JS 往 event bus 上注入事件，就能把 UI 里的点击与状态重新注回模型上下文，模型据此再指导 UI 更新。讲师说，这不就是一个 <strong>generative UI</strong>（生成式 UI：界面本身由模型按需生成）的应用吗。</p>
+<p>实现只需要一组约定：约定某个标记（讲师演示里是一个带特定名字的 div），只要模型输出里出现这个标记，就把它当成卡片渲染。剩下的就是许愿——跟插件说“我要做这个事”，它会生成一段带 JavaScript 的代码。</p>
+<p>演示有两个：</p>
+<ul>
+<li><strong>成语接龙</strong>：以“惊弓之鸟”开局，点击按钮后，JS 往上下文里注入一句话（就是字符串拼接），模型接“鸟语花香”，然后生成一个界面的 patch。</li>
+<li><strong>五子棋</strong>：棋盘状态放在 UI 里，但所有落子都由模型思考之后决定。</li>
+</ul>
+<div class="video-card screenshot-card"><img src="images/shot_01_17_37.png" alt="生成式 UI 演示：模型在对话里生成的五子棋棋盘卡片" loading="lazy"><p class="video-caption"><span class="cap-text">生成式 UI 演示：模型在对话里生成的五子棋棋盘卡片</span><span class="cap-time"><a href="transcript.corrected.html#t-01-17-37" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV144nc6KEA4/?t=4657" target="_blank" rel="noopener">在 B 站打开 (01:17:37)</a></span></p></div>
+
+<p>当前实现有明显缺陷：因为讲师为了快把思考关掉了，出现过状态不同步、棋子下到线上的 bug。他明确说这肯定不是一个成熟的产品。</p>
+<p>但他请大家回想 GPT-3.5 的 ChatGPT 时刻：当时让它从 50 数到 100，它会一直重复 51；你会觉得这东西又慢又不好用。可是当你看到一种可能性、看到它“能做到一点”的时候，就意味着一定有办法可以做得非常非常好。</p>
+<p>这条路还能和上下文相关的插件配合：怎么做上下文压缩、怎么做上下文管理、甚至上下文的 fork（分叉），一方面省下上下文，另一方面让交互更有效。极端情况下，连聊天框都可以不要——面对一个任务，直接生成一个真正好的生成式界面。</p>
+<hr />
+<h2 id="_6">七、闭环与展望</h2>
+<h3 id="71">7.1 插件实现里的两条纪律</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-19-21" title="在字幕对照页定位此段">01:19:21–01:25:03</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=4761" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>讲师在演示的末尾做了一件更值得学的事：先许愿达到预期效果，再让模型告诉自己<strong>这是怎么做到的</strong>，然后深入到架构里看插件的实现到底有多侵入。</p>
+<p>结论是没有侵入，而且 DSH 通过 <strong>scope</strong>（作用域）机制在机制层面做了限制：插件如果想干一些坏事，它匹配不上自己所声称的东西时就会自动 fail，相当于被隔离开。这个插件同样只注册了一些事件，比如旁听全局的 assistant stream 事件；它还做了一个对象同一性过滤——别的 agent 的事件匹配不上，就不理会；需要时在后台启动一个 inference session，只从里面取结果回到画布。</p>
+<p>讲师说明，这些插件之间没有刻意做组合，因为他完全是许愿式做出来的；而在真实产品里，插件能力的组合才是关键。</p>
+<h3 id="72">7.2 个人数据库替超级应用填表</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-25-03" title="在字幕对照页定位此段">01:25:03–01:28:17</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=5103" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>把前面两个方向合起来，就是一个闭环案例。</p>
+<p>讲师说自己是<strong>用 agent 管理个人数据库的</strong>。于是他做了这样一件事：接一个自己的 database 插件，这个插件可以向模型提供必要的信息——个人信息、发表过的论文、指导的学生等等。</p>
+<p>场景是这样的：有时候必须填一些很讨厌的表格，比如要求列出 2021 年至今发表的所有论文。用 WPS 手填要花时间，用 Codex 的 <strong>computer use</strong>（让模型看屏幕、动鼠标键盘来操作软件）也要花时间，还要疯狂截图、消耗多余的 token。</p>
+<p>而在他的插件生态里，超级应用需要填表时，就把这个任务往总线上一丢；接着他生态里的工具、他的电脑、他的记忆、他的 bot 一起协作，把必要的数据取回来，一次把表格填好。中间不需要任何 computer use。</p>
+<p>讲师说，<strong>这就是一个操作系统</strong>：很多事情可以在这里面闭环完成。</p>
+<h3 id="73">7.3 生态两侧与我们这一层</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-28-17" title="在字幕对照页定位此段">01:28:17–01:29:22</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV144nc6KEA4/?t=5297" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p>最后是生态的图景。它有两侧：</p>
+<p>一侧是对接开发者。尤其开发者群里很多是“无所事事的大学生”——讲师觉得这挺好。他们没有讲师这么多软件系统的设计与实现经验，未必知道怎么把这个底座用到极致，但他们有时间，也有脑洞，会做出很多神奇的小东西；有些很小（一个高达驾驶舱，或者把 UI 做得更漂亮一点），有些是真正好的想法（像 Better Sidebar）。</p>
+<p>另一侧是更严肃的厂商：要不要介入，谁能在这个生态里挣到钱。至少这一切是开源的。</p>
+<p>讲师留给听众的判断是：在 AI native 时代，如果一个办公工具只有 WPS 七八成的功能，但它原生具备 agent 能力——而接进这个系统以后，你面对的是你自己的 agent、你自己的数据库、你自己用顺手的内容生成器——你愿意用 WPS，还是愿意用这个？</p>
+<p>他也提到，自己手上还有一个保密中的 <strong>agent OS</strong> 项目，思路与 everything is a plugin 有些像，但位置在 agent 操作系统这一层，可以与 DSH 并行，并为它提供更多能力。他预计在不久的未来，我们看到的很多东西都会发生根本性变化，而且这一天很快就要来。</p>
+<p>下一讲继续讲 DSH 里 agent native 开发的部分。</p>
+<hr />
+<h2 id="_7">附：本讲的关键判断</h2>
+<table>
+<thead>
+<tr>
+<th>判断</th>
+<th>出处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用上 agent 之后，个人就拥有了公司级组织架构，协作问题随之上移</td>
+<td>00:00:30–00:01:14</td>
+</tr>
+<tr>
+<td>多 agent 改同一仓库需要带类型的锁，小 fix 可并行</td>
+<td>00:01:26–00:03:05</td>
+</tr>
+<tr>
+<td>架构是受限与自由之间的取舍，没有免费午餐</td>
+<td>00:24:56–00:25:11</td>
+</tr>
+<tr>
+<td>真正的挑战是需求改变，而不是当前需求做完</td>
+<td>00:17:55–00:19:20</td>
+</tr>
+<tr>
+<td>Everything is a plugin；无特权内核，状态留在插件内</td>
+<td>00:38:24–00:40:10</td>
+</tr>
+<tr>
+<td>session 事件日志是唯一事实，历史是投影</td>
+<td>00:42:53–00:43:05</td>
+</tr>
+<tr>
+<td>插件解决 accidental complexity，解决不了语义冲突</td>
+<td>01:04:31–01:05:24</td>
+</tr>
+<tr>
+<td>发布 nothing，把剩余交给生态</td>
+<td>01:06:18–01:06:36</td>
+</tr>
+</tbody>
+</table>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../Agent-native%20%E5%BC%80%E5%8F%91%20%5B08-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">Agent-native 开发：让工程流程适配智能体</span></a><span class="pager-btn next disabled"><span class="pager-label">下一讲 →</span><span class="pager-title">已是最后一讲</span></span></nav>
+    </div>
+  </div>
+</div>
+<script src="mermaid.min.js"></script>
+<script>
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var backdrop = document.querySelector(".toc-backdrop");
+    var mainH1 = document.querySelector(".book-head h1");
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    // 移动端侧边抽屉式目录
+    function closeDrawer() {
+      if (panel) panel.classList.remove("open");
+      if (backdrop) backdrop.classList.remove("open");
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
+    }
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        var open = panel.classList.toggle("open");
+        if (backdrop) backdrop.classList.toggle("open", open);
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+    if (backdrop) {
+      backdrop.addEventListener("click", closeDrawer);
+    }
+    if (list) {
+      list.addEventListener("click", function (e) {
+        if (e.target && e.target.tagName === "A" && window.innerWidth <= 960) {
+          closeDrawer();
+        }
+      });
+    }
+
+    // 当前章节高亮与非侵入式目录自动跟随
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    var lastActiveLink = null;
+    function setActive() {
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      if (!current && links.length) current = links[0];
+      links.forEach(function (a) { a.classList.toggle("is-active", a === current); });
+
+      // 仅在当前章节改变且目录项超出容器时，微调目录面板 scrollTop，不干扰正文滚动
+      if (current && current !== lastActiveLink && panel && window.innerWidth > 960) {
+        lastActiveLink = current;
+        var pRect = panel.getBoundingClientRect();
+        var cRect = current.getBoundingClientRect();
+        if (cRect.top < pRect.top + 24 || cRect.bottom > pRect.bottom - 24) {
+          var targetTop = panel.scrollTop + (cRect.top - pRect.top) - (panel.clientHeight / 2 - cRect.height / 2);
+          panel.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+        }
+      }
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    setActive();
+
+    // 字号微调 (A- / A+)
+    var fontDec = document.querySelector(".font-dec");
+    var fontInc = document.querySelector(".font-inc");
+    var currentFontSize = 18;
+    try {
+      var savedFont = localStorage.getItem("shelf_font_size");
+      if (savedFont) {
+        currentFontSize = parseInt(savedFont, 10) || 18;
+        document.documentElement.style.setProperty("--text-body", currentFontSize + "px");
+      }
+    } catch (e) {}
+
+    function setFontSize(val) {
+      currentFontSize = Math.max(15, Math.min(22, val));
+      document.documentElement.style.setProperty("--text-body", currentFontSize + "px");
+      try { localStorage.setItem("shelf_font_size", currentFontSize); } catch (e) {}
+    }
+    if (fontDec) fontDec.addEventListener("click", function () { setFontSize(currentFontSize - 1); });
+    if (fontInc) fontInc.addEventListener("click", function () { setFontSize(currentFontSize + 1); });
+
+    // 代码块一键复制
+    document.querySelectorAll(".book-body pre").forEach(function (pre) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-copy-code";
+      btn.textContent = "复制";
+      btn.setAttribute("aria-label", "复制代码");
+      btn.addEventListener("click", function () {
+        var code = pre.querySelector("code");
+        var text = (code ? code.textContent : pre.textContent) || "";
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            btn.textContent = "已复制 ✓";
+            btn.classList.add("copied");
+            setTimeout(function () {
+              btn.textContent = "复制";
+              btn.classList.remove("copied");
+            }, 1800);
+          });
+        }
+      });
+      pre.appendChild(btn);
+    });
+
+    // 记忆阅读位置与静默恢复
+    var storageKey = "shelf_pos_" + window.location.pathname;
+    var saveTimer = null;
+    window.addEventListener("scroll", function () {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        if (scrollY > 120) {
+          try { localStorage.setItem(storageKey, scrollY); } catch (e) {}
+        } else {
+          try { localStorage.removeItem(storageKey); } catch (e) {}
+        }
+      }, 250);
+    }, { passive: true });
+
+    function showToast(msg) {
+      var toast = document.getElementById("shelf-toast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "shelf-toast";
+        toast.className = "shelf-toast";
+        toast.setAttribute("role", "status");
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = htmlEscape(msg) + ' <button type="button" class="shelf-toast-btn" id="toast-to-top">回到顶部</button>';
+      toast.classList.add("show");
+      var toTop = toast.querySelector("#toast-to-top");
+      if (toTop) {
+        toTop.addEventListener("click", function () {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          toast.classList.remove("show");
+        });
+      }
+      setTimeout(function () { toast.classList.remove("show"); }, 3800);
+    }
+    function htmlEscape(s) {
+      return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    try {
+      var savedPos = localStorage.getItem(storageKey);
+      if (savedPos && !window.location.hash) {
+        var pos = parseInt(savedPos, 10);
+        if (pos > 160) {
+          setTimeout(function () {
+            window.scrollTo({ top: pos, behavior: "instant" });
+            showToast("已恢复上次阅读位置");
+          }, 60);
+        }
+      }
+    } catch (e) {}
+
+    // Lightbox：显式关闭按钮与键盘焦点管理
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.setAttribute("aria-label", "图片预览");
+      lb.setAttribute("tabindex", "-1");
+      lb.innerHTML = '<button type="button" class="lightbox-close" aria-label="关闭预览">&times;</button><img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lbClose = lb.querySelector(".lightbox-close");
+    var lastFocus = null;
+    var lastScrollX = 0;
+    var lastScrollY = 0;
+    var lastOverflow = "";
+    var lbObjectUrl = null;
+
+    function openLb(src, alt, isDiagram) {
+      lastFocus = document.activeElement;
+      lastScrollX = window.pageXOffset;
+      lastScrollY = window.pageYOffset;
+      lastOverflow = document.body.style.overflow;
+      lbObjectUrl = isDiagram ? src : null;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.setAttribute("aria-label", isDiagram ? "图示预览" : "图片预览");
+      lb.classList.toggle("lightbox-diagram", !!isDiagram);
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      if (lbClose) lbClose.focus({ preventScroll: true });
+      else lb.focus({ preventScroll: true });
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lb.classList.remove("lightbox-diagram");
+      lbImg.removeAttribute("src");
+      if (lbObjectUrl) URL.revokeObjectURL(lbObjectUrl);
+      lbObjectUrl = null;
+      document.body.style.overflow = lastOverflow;
+      if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+      window.scrollTo({ left: lastScrollX, top: lastScrollY, behavior: "instant" });
+    }
+    if (lbClose) {
+      lbClose.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeLb();
+      });
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", function (e) {
+      if (e.target === lb || e.target === lbClose) closeLb();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        if (lb.classList.contains("open")) closeLb();
+        closeDrawer();
+      } else if (e.key === "Tab" && lb.classList.contains("open")) {
+        e.preventDefault();
+        if (lbClose) lbClose.focus();
+      }
+    });
+
+    // 只处理明确标记的 Mermaid 围栏，不把普通代码猜成图示。
+    var diagrams = document.querySelectorAll(".book-body pre > code.language-mermaid");
+    var diagramReady = false;
+    if (diagrams.length && window.mermaid) {
+      try {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "neutral",
+          securityLevel: "strict",
+          fontFamily: getComputedStyle(document.body).getPropertyValue("--font-ui").trim(),
+          flowchart: { htmlLabels: false },
+          secure: ["securityLevel", "startOnLoad", "maxTextSize", "maxEdges", "flowchart"]
+        });
+        diagramReady = true;
+      } catch (e) { /* 每张图保留源码并显示加载失败 */ }
+    }
+
+    diagrams.forEach(function (node, index) {
+      var source = node.textContent.trim();
+      var pre = node.parentNode;
+      var previous = pre.previousElementSibling;
+      while (previous && !/^H[23]$/.test(previous.tagName)) previous = previous.previousElementSibling;
+      var label = previous ? previous.textContent.trim() + " · 图示" : "图示 " + (index + 1);
+      var wrap = document.createElement("div");
+      wrap.className = "mermaid-wrap";
+      var status = document.createElement("p");
+      status.className = "diagram-status";
+      status.setAttribute("role", "status");
+      status.textContent = "正在加载图示…";
+      var canvas = document.createElement("div");
+      canvas.className = "mermaid";
+      pre.replaceWith(wrap);
+      wrap.appendChild(status);
+      wrap.appendChild(canvas);
+      wrap.appendChild(pre);
+      pre.hidden = true;
+
+      function showDiagramError(message) {
+        canvas.replaceChildren();
+        canvas.hidden = true;
+        pre.hidden = false;
+        status.textContent = message;
+        wrap.classList.add("diagram-error");
+      }
+
+      if (!diagramReady) {
+        showDiagramError("图示组件未能加载，已保留图示源码。");
+        return;
+      }
+      // Mermaid 自身串行处理 render 调用；各 Promise 独立捕获失败。
+      Promise.resolve().then(function () {
+        return mermaid.render("shelf-diagram-" + index, source, canvas);
+      }).then(function (result) {
+        canvas.innerHTML = result.svg;
+        var svg = canvas.querySelector("svg");
+        if (!svg) throw new Error("Missing diagram SVG");
+        var size = svg.viewBox.baseVal;
+        if (size.width && size.height) {
+          svg.setAttribute("width", size.width);
+          svg.setAttribute("height", size.height);
+        }
+        svg.style.maxWidth = "none";
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", label);
+        var zoom = document.createElement("button");
+        zoom.type = "button";
+        zoom.className = "diagram-zoom";
+        zoom.textContent = "放大图示";
+        zoom.setAttribute("aria-label", "放大图示：" + label);
+        zoom.addEventListener("click", function () {
+          var copy = svg.cloneNode(true);
+          copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+          var image = new Blob([new XMLSerializer().serializeToString(copy)], { type: "image/svg+xml;charset=utf-8" });
+          openLb(URL.createObjectURL(image), label, true);
+        });
+        wrap.appendChild(zoom);
+        status.remove();
+        pre.remove();
+      }).catch(function () {
+        showDiagramError("这张图示未能绘制，已保留源码；其他图示仍可阅读。");
+      });
+    });
+  });
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1285 @@
+{
+  "version": 1,
+  "schema_version": 2,
+  "status": "reviewed",
+  "source_notes": [
+    "主读取本 quality/source.md（源自 transcript.corrected.txt，B 站 ai-zh 字幕，覆盖率 96.3%，2224 段 / 5363s）。",
+    "字幕有明显同音误转：Cordis、DeepSeek Harness、GrokBot、Excalidraw、CLAUDE.md、PHP、梁文锋、Jeff Dean 等，已按 term_verification.md 校正；SuperApp、dsh-ui 标记保留存疑。",
+    "未做音画核验，只依据文本；画面演示部分（截帧）仅用于补足 UI 结构，不作为语义证据。",
+    "讲师口述中的时间、数字与预测（如推理速度 200→250 token/s、6 月 10 日首个提交）按讲师所述保留，未独立核实。"
+  ],
+  "reviewed_chunks": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09"
+  ],
+  "items": [
+    {
+      "id": "K01",
+      "priority": "A",
+      "topic": "开场：概念被重写，agent 让个人拥有公司级组织架构",
+      "kind": "opinion",
+      "why": "本课全部后续讨论的前提：为什么一个学生用上 agent 后就面对团队协作、版本控制与架构问题。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "你立即就拥有了一个和现代公司一样的架构"
+        },
+        {
+          "chunk": "S01",
+          "quote": "然后每个agent又可以带好多个sub agent"
+        }
+      ],
+      "must_preserve": [
+        "单独一个学生是单线程 agent，拥有 agent 之后相当于 CTO：下面有架构、产品、前端后端等多个 agent，每个 agent 又带 sub agent，形成组织架构",
+        "没有组织架构就无法管理复杂需求",
+        "交付物仍是产品，仍要仓库、版本控制，并经过 CI/CD 上线",
+        "讲师转述：Anthropic 上周说 Git 已经不够用（讲师认为这一天很自然会到来）"
+      ],
+      "terms": [
+        "agent",
+        "sub agent",
+        "版本控制",
+        "CI/CD"
+      ],
+      "key_terms": [
+        {
+          "term": "agent",
+          "definition": "能自己调用工具、多轮执行任务的模型程序，不只是问答",
+          "origin": "editor"
+        },
+        {
+          "term": "sub agent",
+          "definition": "由上层 agent 再派出去执行具体子任务的 agent",
+          "origin": "editor"
+        },
+        {
+          "term": "CI/CD",
+          "definition": "代码提交后自动构建、测试、部署上线的流水线",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "Anthropic 的原话与时点仅据讲师口述，未核实到原文。"
+    },
+    {
+      "id": "K02",
+      "priority": "A",
+      "topic": "多 agent 并发需要带类型的锁",
+      "kind": "speculation",
+      "why": "讲师提出的具体设计方向：把并发控制的锁概念引入 agent 的仓库操作，属于可迁移的工程判断。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "最好是给他加一个锁"
+        },
+        {
+          "chunk": "S01",
+          "quote": "就是先上锁"
+        }
+      ],
+      "must_preserve": [
+        "每个 agent 收到的是一个小 task，从 first principle 看它一定与 repository 的某些部分相关（重构某个 subsystem、加功能、影响若干模块）",
+        "锁可以有类型：只读锁、写锁、重构锁",
+        "小 fix 虽是写锁但不产生 breaking change，互相独立时可以并行执行",
+        "可借鉴操作系统的先上锁，与数据库的乐观/悲观并发和冲突检测两种做法",
+        "讲师说明这套方案尚未真正用起来，答案会从组织架构里慢慢浮现"
+      ],
+      "terms": [
+        "锁",
+        "只读锁",
+        "breaking change",
+        "乐观并发"
+      ],
+      "key_terms": [
+        {
+          "term": "锁",
+          "definition": "一处正在被改时先占住，避免别人同时改同一处的机制",
+          "origin": "editor"
+        },
+        {
+          "term": "breaking change",
+          "definition": "会让已有调用方或结构失效的改动",
+          "origin": "editor"
+        },
+        {
+          "term": "乐观并发",
+          "definition": "先各改各的，提交时再检测冲突，冲突才回退",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "讲师明确表示这是设想，尚未落地。"
+    },
+    {
+      "id": "K03",
+      "priority": "A",
+      "topic": "mini agent 生成南大仙林 3D 模型的案例：能力与来源数据",
+      "kind": "observation",
+      "why": "说明 150 行 agent harness 已经能完成不 trivial 的任务，同时暴露它靠外部数据源与烧 token 补精度。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "我要一个比例基本真实的"
+        },
+        {
+          "chunk": "S01",
+          "quote": "有一个网站叫open street map"
+        },
+        {
+          "chunk": "S01",
+          "quote": "十倍token"
+        }
+      ],
+      "must_preserve": [
+        "讲师在高铁上给一句话需求，让 agent 生成比例基本真实的南大仙林校区三维图",
+        "结果整体可用：图书馆建模与俯视几何形状较正确，计算机楼十层的高度明显不对",
+        "做法：从 OpenStreetMap 爬取细到篮球场边线的地图数据，再据此自行建模；地图上没信息的区域被标成绿地，大门被建成楼、门口铺满树",
+        "改进办法是要求逐区域划定、思考功能再精确建模，代价约十倍 token，在不错的基础上逐步修",
+        "网上很多 3D 生成效果都是同一套路：靠 skill 反复验证、烧 token 迭代",
+        "讲师认为这类三维模型可以作为做校园版 GTA 的起点：知道哪里可走、哪里可蹲点，就能搭游戏逻辑",
+        "但只能课上玩一把，不能当产品"
+      ],
+      "terms": [
+        "OpenStreetMap",
+        "token"
+      ],
+      "key_terms": [
+        {
+          "term": "token",
+          "definition": "模型读写文本的最小计费单位，烧 token 即多轮反复消耗算力",
+          "origin": "editor"
+        },
+        {
+          "term": "OpenStreetMap",
+          "definition": "开放协作的世界地图数据库，可自由下载矢量地图数据",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K04",
+      "priority": "A",
+      "topic": "网络中断暴露 accidental complexity：会话保存与恢复",
+      "kind": "observation",
+      "why": "从能跑的 demo 到产品之间最关键的一课，后面所有产品级需求（重试、状态机、持久化）都由它引出。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "假设了网络服务不会中断"
+        },
+        {
+          "chunk": "S02",
+          "quote": "是没有绘画保存的功能的"
+        }
+      ],
+      "must_preserve": [
+        "150 行 mini agent 默认假设网络服务不中断，一两轮对话感受不到问题",
+        "讲师在高铁上跑了较长时间、已有中间结果，网断后进程直接终止",
+        "该 agent 没有会话保存、没有恢复、没有断网后重连，只能从零重跑或整段重做",
+        "这属于 accidental complexity（偶然复杂度）：不是业务本身难，而是工程环境逼出来的复杂度"
+      ],
+      "terms": [
+        "accidental complexity",
+        "会话"
+      ],
+      "key_terms": [
+        {
+          "term": "accidental complexity",
+          "definition": "问题本身不难、由工具与环境带来的额外复杂度",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K05",
+      "priority": "A",
+      "topic": "重试策略：超时与指数退避为什么变复杂",
+      "kind": "opinion",
+      "why": "一个看似简单的“重连”如何成为设计问题，体现产品级 agent 的真实门槛。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "exponential back off"
+        },
+        {
+          "chunk": "S02",
+          "quote": "还是应该慢慢拉长这个时间的间距"
+        }
+      ],
+      "must_preserve": [
+        "重试要先定间隔：等间距重试，还是逐步拉长",
+        "网络有指数退避特性：连续失败说明短时间内大概率还失败，于是 1s → 2s → 4s → 8s 地退，直到分钟级",
+        "超时与重连时长取决于网络环境（美国数据中心直连，与国内多层代理访问，timeout 完全不同）",
+        "讲师自己的物理断网场景，恢复可能需要两三分钟"
+      ],
+      "terms": [
+        "指数退避",
+        "timeout"
+      ],
+      "key_terms": [
+        {
+          "term": "指数退避",
+          "definition": "失败后按 1、2、4、8 秒这样成倍拉长间隔再试",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K06",
+      "priority": "A",
+      "topic": "客户端与服务端不一致：未知状态的订单",
+      "kind": "observation",
+      "why": "说明 essential complexity（本质复杂度）无法用更聪明的代码消除，只能靠产品设计承接。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "你的服务端和客户端可能是不一致的"
+        },
+        {
+          "chunk": "S02",
+          "quote": "你的手机就断网了"
+        }
+      ],
+      "must_preserve": [
+        "客户端发起支付请求，服务端收到后要与其他系统（银行、航空公司）确认，无法等客户端回来再 commit，事务在服务端结束",
+        "订单发出后手机断网：应用不能崩，要转圈并告知网络中断，但订单处于“我不知道”的状态——可能成功也可能失败",
+        "因为与服务端缺少同步，客户端无法判定自己的状态",
+        "结论：这类 essential complexity 是系统设计里躲不掉的"
+      ],
+      "terms": [
+        "事务",
+        "commit",
+        "essential complexity"
+      ],
+      "key_terms": [
+        {
+          "term": "essential complexity",
+          "definition": "业务本身固有的复杂度，换个写法也消不掉",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K07",
+      "priority": "A",
+      "topic": "产品级需求清单：为什么直接让 agent 实现会 slop",
+      "kind": "observation",
+      "why": "给出 agent 产品的典型需求面，并说明 agent 的“直接完成”倾向为何导致劣质实现。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "你会有一个非常非常长的"
+        },
+        {
+          "chunk": "S02",
+          "quote": "就会陷入一个slop的状态"
+        },
+        {
+          "chunk": "S02",
+          "quote": "做一个产品和做一个MVP其实是不一样的"
+        }
+      ],
+      "must_preserve": [
+        "产品级 agent 需要：多工作目录并行、在项目间切换的 dashboard、项目相关工具与 skills、工具调用的沙箱与权限审批（对应 coding agent 里的 approve 交互）",
+        "让 AI 假想对标当时最火的交互式 agent（讲师举例 WorkBuddy）写需求，它会先想典型场景与用例（把文件夹里本周项目记录整理成周报、列延期事项、生成 Word），再列需求点：历史检索与任务复用、模板与偏好、执行预算与用量、账号与数据管理、外部内容与指令隔离、用户反馈与问题诊断，此外还有大量非功能需求",
+        "agent 有强烈倾向直接把任务完成，不会思考未来还会发生什么，直接实现大概率进入 slop（一堆能跑但没想清楚的实现）状态",
+        "MVP 的价值是让假设被不断验证：mini agent 假设网络与 API 稳定，这一点不成立，需求就随之膨胀"
+      ],
+      "terms": [
+        "MVP",
+        "slop",
+        "非功能性需求",
+        "沙箱"
+      ],
+      "key_terms": [
+        {
+          "term": "MVP",
+          "definition": "最小可用版本，用最少功能验证需求是否成立",
+          "origin": "editor"
+        },
+        {
+          "term": "slop",
+          "definition": "量大、能跑、但缺少判断的粗制实现",
+          "origin": "speaker"
+        },
+        {
+          "term": "非功能性需求",
+          "definition": "性能、安全、权限、成本这类不属于具体功能的约束",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K08",
+      "priority": "A",
+      "topic": "真正的挑战是需求改变：GrokBot 式交互推翻旧假设",
+      "kind": "opinion",
+      "why": "全课的问题主线：架构能否活下来取决于假设变化，而不是当前功能做到多好。",
+      "sources": [
+        {
+          "chunk": "S02",
+          "quote": "其实需求的改变"
+        },
+        {
+          "chunk": "S02",
+          "quote": "你只要改需求三次就可以了"
+        },
+        {
+          "chunk": "S02",
+          "quote": "就交互的模式那个根基崩塌了"
+        },
+        {
+          "chunk": "S03",
+          "quote": "是一个很成功的产品"
+        }
+      ],
+      "must_preserve": [
+        "场景：已按办公场景写完详尽的面向 WorkBuddy 的需求，带着 AI 写了 50 万行代码并上线",
+        "GrokBot 走红：把 agent 当人，每人有自己的记忆，可以拉群让两个 agent 协同，也可以规定每天某时做什么（routine）",
+        "交互方式一变，原来“左边栏项目、右边栏 pinpoint/任务视图”的需求前提全部作废",
+        "“怎么杀死一个程序员：改需求三次” —— 因为之前的假设全崩了，崩塌的是交互模式的根基",
+        "大厂即使架构在性能、功能/非功能需求上做到极致，遇到这种摧毁性变化也必然要重新拉通对齐、闭环沉淀复用，再进入下一版本",
+        "大厂的选择是优先保证交付质量，所以架构相对保守"
+      ],
+      "terms": [
+        "GrokBot",
+        "routine",
+        "非功能性需求"
+      ],
+      "key_terms": [
+        {
+          "term": "GrokBot",
+          "definition": "xAI 2026 年推出的多智能体产品，把 AI 当同事拉群协作",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "讲师对 GrokBot 的描述为课堂口述；产品能力细节以官方为准。"
+    },
+    {
+      "id": "K09",
+      "priority": "A",
+      "topic": "DSH bot 的光速复刻与 6 月 10 日的第一行提交",
+      "kind": "observation",
+      "why": "用对照说明“架构自由度决定跟需求的速度”，并把话题转入 DeepSeek Harness 的起源。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "像素级复刻"
+        },
+        {
+          "chunk": "S03",
+          "quote": "他就想做一个操作系统"
+        },
+        {
+          "chunk": "S03",
+          "quote": "Link m v p requirement analysis"
+        }
+      ],
+      "must_preserve": [
+        "GrokBot 走红后，很快有不止一个人发布了 DSH bot，界面像素级复刻：可设多个 bot、可建群、有群图标、能与 bot 聊天",
+        "讲师认为可以在其上外挂它没有的功能：GrokBot 面向普通人，不开放配置与提示词的编辑权限，而程序员想直接改配置文件和提示词",
+        "还可以做老板视角：左侧不是树状项目栏，而是代表部门层级的组织结构，右侧聊天压缩，甚至有老板坐在办公室里的情绪价值；这类需求很快有人实现",
+        "对照：2026 年 6 月 10 日晚 11 点，DeepSeek Harness 以一个空仓库启动，连当时为兼容多种 agent 需要的 CLAUDE.md 都没有；第一个需求分析就写明要做 microkernel 架构、要做操作系统",
+        "多 agent 并存时，项目要用各家 agent 都理解的方式组织文件（讲师提到今天已不必依赖 CLAUDE.md）"
+      ],
+      "terms": [
+        "microkernel",
+        "CLAUDE.md"
+      ],
+      "key_terms": [
+        {
+          "term": "microkernel",
+          "definition": "内核只做最小调度，其余能力全部外挂成可替换模块",
+          "origin": "editor"
+        },
+        {
+          "term": "CLAUDE.md",
+          "definition": "放在仓库里告诉 agent 项目规则与命令的说明文件",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "6 月 10 日的时间点为讲师口述，对应 2026 年。"
+    },
+    {
+      "id": "K10",
+      "priority": "A",
+      "topic": "对着需求做架构的默认倾向及其后果",
+      "kind": "opinion",
+      "why": "解释为什么“让 agent 照着需求文档设计架构”会得到大厂式架构，而这正是自由度的来源。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "为这个工作区做一个class"
+        },
+        {
+          "chunk": "S02",
+          "quote": "他就把这个订单给下了"
+        }
+      ],
+      "must_preserve": [
+        "对着需求文档让 agent 设计架构，注意力会落在需求上；它不能交一个空架构，于是会为“工作区”这样的名词建 class，再补上工作区与模型层、agent 层、session 的交互（session 里发 chat、agent 调工具、画布结果放回 session）",
+        "于是数据库存 session、模块间用消息队列，架构很快自然成形；这是大厂也常用的设计方式",
+        "但架构意味着没有免费的午餐：它是在受限与自由之间取平衡"
+      ],
+      "terms": [
+        "session",
+        "消息队列"
+      ],
+      "key_terms": [
+        {
+          "term": "session",
+          "definition": "一次持续对话的上下文容器，记录消息与工具调用",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K11",
+      "priority": "A",
+      "topic": "架构=边界=可并行开发，同时也限制了未来",
+      "kind": "opinion",
+      "why": "本课对架构价值最凝练的判断，也是后面评估 DSH 的标尺。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "架构就意味着没有免费的午餐"
+        },
+        {
+          "chunk": "S03",
+          "quote": "所以马上就可以启动大量的sub agent"
+        }
+      ],
+      "must_preserve": [
+        "架构定了，模块边界就有了；开发某模块时只需较少知道系统其余部分如何工作",
+        "好处：第一天就能把需求切成模块，立刻启动大量 sub agent 并行堆出产品",
+        "代价：限制即自由度损失；未来需求（如 GrokBot 式交互）不匹配时，会不断出现抽象泄露，项目难以维护",
+        "反过来做得太自由也不行（见 K12）"
+      ],
+      "terms": [
+        "抽象泄露",
+        "模块边界"
+      ],
+      "key_terms": [
+        {
+          "term": "抽象泄露",
+          "definition": "原本被封装好的细节被迫漏出来，调用方不得不关心它",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K12",
+      "priority": "A",
+      "topic": "过分自由的架构等于没有架构",
+      "kind": "opinion",
+      "why": "给出判断架构好坏的另一端：约束不是负担，而是可开发性的来源。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "每一个模块都是一个process"
+        },
+        {
+          "chunk": "S03",
+          "quote": "他就是个actor model"
+        },
+        {
+          "chunk": "S03",
+          "quote": "越容易越自由的东西就越不好开发"
+        }
+      ],
+      "must_preserve": [
+        "若把工作区、session、agent、UI 都做成进程、彼此随意 message passing，架构看起来非常干净自由，本质是 actor model",
+        "但它没有约束：消息何时发、发什么、怎么管理都没有规定，等于没有架构",
+        "对比之下，规定工作区与 agent 之间通过某个 API 或 session 消息队列交互，接口定下来就只能做这件事，反而容易开发",
+        "受限有受限的好处，自由有自由的好处，架构总在这条光谱上取舍"
+      ],
+      "terms": [
+        "process",
+        "message passing",
+        "actor model",
+        "RPC"
+      ],
+      "key_terms": [
+        {
+          "term": "actor model",
+          "definition": "每个单元都是独立进程、只能靠收发消息协作的模型",
+          "origin": "editor"
+        },
+        {
+          "term": "message passing",
+          "definition": "模块之间不直接调用函数，而是发消息通信",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "讲师另提到把模块函数调用改成 RPC 也能得到同样形态，语气为“理论上”。"
+    },
+    {
+      "id": "K13",
+      "priority": "B",
+      "topic": "同一条取舍光谱上的历史例证：进程、编程语言、LAMP、event sourcing",
+      "kind": "opinion",
+      "why": "用读者熟悉的旧案例支撑“架构=取舍”的判断，并解释假设变化后架构如何变成阻力。",
+      "sources": [
+        {
+          "chunk": "S03",
+          "quote": "每一个点都是瓶颈"
+        },
+        {
+          "chunk": "S04",
+          "quote": "叫强行毕业"
+        }
+      ],
+      "must_preserve": [
+        "进程是极好的抽象但非常自由，正因如此上层才能长出浏览器、coding agent、虚拟机；代价是“什么语言最好”这类争论持续几十年（含 PHP 是最好的语言这一老梗），以及 C 这类自由语言带来的内存泄漏等问题",
+        "LAMP/WordPress 架构在单机扛得住时最合适；要服务上亿人时每个点（单机、数据库）都是瓶颈，靠分库分表、拆服务器不断产生抽象泄露，最终演进到下一代架构",
+        "event sourcing 概念干净（只追加事实、其余都是派生），但代价是当前状态完全由历史推导：性能更难做，且想直接改当前状态（如教务员无理由让某学生强行毕业）就必须加一个特殊 event 和特殊处理规则，并且会留在可审计的历史里",
+        "总原则：架构与需求匹配就便利，假设变了架构就成为阻力；人类进步就是不断打破旧假设的过程，新旧交替时也有人被淘汰"
+      ],
+      "terms": [
+        "event sourcing",
+        "LAMP",
+        "抽象泄露"
+      ],
+      "key_terms": [
+        {
+          "term": "event sourcing",
+          "definition": "只记录发生过的事件，当前状态由事件重放算出来",
+          "origin": "editor"
+        },
+        {
+          "term": "LAMP",
+          "definition": "Linux+Apache+MySQL+PHP 这套经典建站组合",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "强行毕业为讲师举的假设性例子。"
+    },
+    {
+      "id": "K14",
+      "priority": "A",
+      "topic": "MapReduce：用限制编程模型换取规模与容错",
+      "kind": "observation",
+      "why": "讲师用来证明“主动限制自由度可以是巨大的架构胜利”，并交代限制的适用边界。",
+      "sources": [
+        {
+          "chunk": "S04",
+          "quote": "这篇文章叫叫map reduce"
+        },
+        {
+          "chunk": "S04",
+          "quote": "最多2000台机器"
+        },
+        {
+          "chunk": "S04",
+          "quote": "MAPREDUCE就没有办法支撑他们了"
+        }
+      ],
+      "must_preserve": [
+        "2004 年 Jeff Dean 与 Sanjay Ghemawat 发表 MapReduce 论文（大规模集群上的简化数据处理）",
+        "核心是限制编程模型：只允许 map（把一个 list 经函数变成另一个 list）与 reduce（用函数把元素逐个合并；若满足结合律还能并行分段 reduce 再合并）",
+        "系统替你处理按 key 排序的 shuffle、机器调度与容错：只需声明要多少台机器（如最多 2000 台、每任务 100MB 内存）即可跑完",
+        "它解决了 Google 的真实痛点：机器一多，跑全互联网索引几乎一定会有机器掉线；旧假设是“机器是好的”，学生大作业机器坏了可以找老师，Google 必须用系统抽象解决",
+        "限制也有代价：只适合离线任务，用起来不够方便；实时数据（如银行订单）也走向分布式时 MapReduce 撑不住，于是有了 Spark 计算引擎与 Flink 流处理"
+      ],
+      "terms": [
+        "map/reduce",
+        "shuffle",
+        "容错"
+      ],
+      "key_terms": [
+        {
+          "term": "map 和 reduce",
+          "definition": "把批量计算写成“逐个变换”加“逐步合并”两步的模式",
+          "origin": "editor"
+        },
+        {
+          "term": "shuffle",
+          "definition": "把中间结果按 key 重新分发排序的过程",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K15",
+      "priority": "A",
+      "topic": "DeepSeek Harness 的 first principle：Everything is a plugin",
+      "kind": "observation",
+      "why": "本课的核心对象：DSH 用操作系统类比定下的架构原则。",
+      "sources": [
+        {
+          "chunk": "S04",
+          "quote": "Everything is a plugin"
+        },
+        {
+          "chunk": "S05",
+          "quote": "他没有特权的内核"
+        }
+      ],
+      "must_preserve": [
+        "操作系统不需要知道每个进程在做什么，只要能把进程组合起来、彼此可互相使用；UNIX 诞生时还没有桌面浏览器和图形界面",
+        "DSH 的 first principle 是 everything is a plugin：所有东西都以插件解耦",
+        "把每个插件想成进程或人、彼此发消息，理论上可实现任意架构；关键是每个模块的 private state 封装在自己内部，交互只能发消息并得到返回",
+        "由此任何软件模块都能被提取成“进程”，把模块间函数调用换成 RPC 就得到同样形态",
+        "DSH 没有特权内核，所有东西都是 Cordis 插件"
+      ],
+      "terms": [
+        "plugin",
+        "private state",
+        "RPC"
+      ],
+      "key_terms": [
+        {
+          "term": "Everything is a plugin",
+          "definition": "可装卸的能力模块，装上即生效、卸下即撤销",
+          "origin": "editor"
+        },
+        {
+          "term": "RPC",
+          "definition": "像调本地函数一样调远端进程的函数",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K16",
+      "priority": "A",
+      "topic": "Cordis 负责什么：服务解析、依赖激活、插件装卸与副作用回滚",
+      "kind": "observation",
+      "why": "区分插件内核与产品层，避免把 Cordis 与 DSH 的全部抽象混为一谈。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "负责的是服务的解析"
+        },
+        {
+          "chunk": "S05",
+          "quote": "当我的这个插件unload的时候"
+        }
+      ],
+      "must_preserve": [
+        "讲师提到 DSH 先发布过一篇关于 Cordis 的论文，含大量公式；本课不展开这部分",
+        "Cordis 负责服务解析、依赖激活、插件的 load/unload",
+        "类比操作系统的进程管理：进程退出时其持有的资源应被回收——写 C 程序不必回收内存，因为操作系统会回收",
+        "插件可以声明所需依赖或副作用，依赖应被自动加载；插件 unload 时依赖最好自动卸载（讲师承认并非所有副作用都能自动回收）",
+        "Cordis 之外才是 DSH 自身的抽象（session、agent、slot 等）"
+      ],
+      "terms": [
+        "Cordis",
+        "side effect",
+        "依赖注入"
+      ],
+      "key_terms": [
+        {
+          "term": "Cordis",
+          "definition": "DSH 底下的插件内核，只管加载、卸载与依赖",
+          "origin": "editor"
+        },
+        {
+          "term": "side effect",
+          "definition": "插件装上后对系统产生的改动，卸载时要能撤销",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "论文名讲师念作 Cordis；未确认论文标题。"
+    },
+    {
+      "id": "K17",
+      "priority": "A",
+      "topic": "协同才是难点：世界模型、event bus 与 session 事件日志",
+      "kind": "observation",
+      "why": "本课对 DSH 架构最实质的描述：为什么“随便发消息”不行，以及事实日志如何成为唯一真相。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "但整个哈里斯设计真正的难点在于协同"
+        },
+        {
+          "chunk": "S05",
+          "quote": "session event日志是唯一的这个ground truth"
+        },
+        {
+          "chunk": "S05",
+          "quote": "他又做了一个event bus"
+        }
+      ],
+      "must_preserve": [
+        "如果插件之间可以随便发消息、随便协同，就等于全都在同一地址空间里互相调函数，没有任何好处；但不协同又没有用",
+        "真正有意思的设计是构建 agent harness 的世界模型：有一个所有进程共享的共享空间，关键数据结构存放在那里",
+        "DSH 没有特权内核，但在 Cordis 之上有更细一层的世界模型，例如 Cordis 之下的 session",
+        "LM agent 应用仍以大模型为中心：session 的 append-only 事件日志是唯一 ground truth；模型的历史不单独存储，而是从事件消息派生（即 event sourcing）",
+        "在进程基础上做 event bus，插件可以挂载、监听；在此之上是持久的历史，其他能力都长在这个地基上",
+        "配套机制：类型检查与服务定义（service definition 的 provider 与 consumer）、权限管理；事件作为扩展点按领域分类，不匹配类型时 TypeScript 直接不编译（用来禁止任意给别的插件发消息）",
+        "插件不仅能监听事件，还能收到事件并修改事件本身"
+      ],
+      "terms": [
+        "event bus",
+        "ground truth",
+        "append-only",
+        "投影"
+      ],
+      "key_terms": [
+        {
+          "term": "event bus",
+          "definition": "所有插件共用的消息通道，发布事件、订阅事件",
+          "origin": "editor"
+        },
+        {
+          "term": "ground truth",
+          "definition": "唯一可信的事实来源，其他数据都由它推导",
+          "origin": "editor"
+        },
+        {
+          "term": "append-only",
+          "definition": "只追加、不修改不删除的日志写法",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K18",
+      "priority": "A",
+      "topic": "open entry：流式 token 不进历史但可被观察",
+      "kind": "observation",
+      "why": "一个具体而精巧的设计细节，解释 UI 上实时思维链为何可能与持久事实分离。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "一个open的entry"
+        },
+        {
+          "chunk": "S05",
+          "quote": "然后这个状态就是不persist的了"
+        }
+      ],
+      "must_preserve": [
+        "大模型这次推理尚未结束的状态不 commit 到历史：history 里可以有一个 open entry 表示本轮未结束",
+        "模型不断往其中送新 token，该状态不持久化，但仍然可被观察到，因而能实时显示思维链的动态变化",
+        "这是实现层面的小技巧（trick）",
+        "插件（如 token 统计）据此统计 token 成本与 cache 命中，并通过 slot 抽象绑定到 UI 上"
+      ],
+      "terms": [
+        "open entry",
+        "cache 命中",
+        "slot"
+      ],
+      "key_terms": [
+        {
+          "term": "slot",
+          "definition": "UI 上预留给插件填充的插槽位置",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K19",
+      "priority": "A",
+      "topic": "白板一块：最小内核加第一方插件长出生态",
+      "kind": "observation",
+      "why": "解释 token 统计这类功能为何能零侵入实现，也说明内核抽象质量决定生态上限。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "就原声都是没"
+        },
+        {
+          "chunk": "S05",
+          "quote": "因为这是一个不侵入性的功能"
+        },
+        {
+          "chunk": "S05",
+          "quote": "整个session history的两种不同类型的投影"
+        },
+        {
+          "chunk": "S06",
+          "quote": "但这个特性对你debug很有用"
+        }
+      ],
+      "must_preserve": [
+        "内测版几乎什么都没有，就是白板一块；第一天就有开发者要求在插件群里加 token 与上下文统计",
+        "该插件只需观察 event bus 上 LM 吐 token 的情况并更新自身内部状态，不干扰系统任何其他部分",
+        "设计意图：大部分 state 留在插件内部，只有希望别人知道的事才以事件形式放到总线上",
+        "为此 DSH 对 LM 场景做了专门化抽象：session 是事件列表；agent 接收输入、推动执行；UI 用 slot 装配",
+        "聊天窗口本质是 message history 的一个投影：可以隐藏它、换成自定义呈现；trajectory 是同一个 session 历史的另一种投影，给开发者看工具调用参数、结果与额外信息，便于调试",
+        "结论：只要 event 与 session 的概念体系建得可靠，绝大多数插件只需 consume 极少量非侵入事件，虽然它们具备侵入能力"
+      ],
+      "terms": [
+        "第一方",
+        "投影",
+        "consume"
+      ],
+      "key_terms": [
+        {
+          "term": "投影",
+          "definition": "把同一份事实日志按不同需要呈现成不同视图",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K20",
+      "priority": "A",
+      "topic": "对外 API：append、监听、投影、以及可修改未持久事件",
+      "kind": "observation",
+      "why": "给出 DSH 给开发者的实际接口形态，以及“能改事件”为何是生态关键。",
+      "sources": [
+        {
+          "chunk": "S05",
+          "quote": "我可以在session上面append"
+        },
+        {
+          "chunk": "S06",
+          "quote": "叫agent下的PRESTEP"
+        }
+      ],
+      "must_preserve": [
+        "API 很小：session 上 append；注册某个 event 的 handler 并在 event bus 上监听；从事实生成投影（session 的 message、导出的 agent trajectory、chat）；向 agent 提交输入，可 follow up、inject、steer",
+        "inject 的时机是设计问题：等本轮全部工具完成再注入，还是每次模型 response 后立刻注入，或者按 ESC 中断再来",
+        "session.event 可以 hook 尚未 persist 的事件：不只是旁观后再推自己的事件，还能拦截、丢弃、改写",
+        "典型用法：agent 的 pre-step 之前挂 hook，往 agent loop 里注入 prompt——例如每一轮都注入当前时区、机器指纹等信息；这类需求本来写在 build context 里，用 hook 就能改",
+        "总体：插件挂在总线上，只有少量协作接口，状态留在本地，但每个插件都能感知全局 agent loop、session 与各种投影，按需取到 LM 推理进展和其他插件做了什么"
+      ],
+      "terms": [
+        "inject",
+        "steer",
+        "hook",
+        "build context"
+      ],
+      "key_terms": [
+        {
+          "term": "hook",
+          "definition": "在某个流程节点插入自己的处理逻辑",
+          "origin": "editor"
+        },
+        {
+          "term": "steer",
+          "definition": "模型正在跑时插入指令改变它的方向",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K21",
+      "priority": "B",
+      "topic": "用同一套事件做 Text UI、TUI clone 与其他形态",
+      "kind": "observation",
+      "why": "证明“事件与投影”抽象的可复用性：换界面不用动内核。",
+      "sources": [
+        {
+          "chunk": "S06",
+          "quote": "我甚至可以做一个web ui"
+        },
+        {
+          "chunk": "S06",
+          "quote": "然后TY被移除了"
+        }
+      ],
+      "must_preserve": [
+        "DSH 原生是 Web UI（其关键抽象是装 UI 的 slot）；要做 Text UI，只需丢掉所有 slot，只保留 session、agent 与 event bus 上能听到的 session 事件（包括正在吐 token 的 open chat completion），投射到终端",
+        "还可以做共享状态的 TUI clone：主界面运行时，另一个终端看到一模一样的内容",
+        "内测早期官方有 TUI，后来被从仓库移除，现在是第三方 TUI",
+        "PDF reader 之类也是 hook 生命周期事件：看到某类内容（如加载）时把 reader 注入进去"
+      ],
+      "terms": [
+        "TUI",
+        "slot"
+      ],
+      "key_terms": [
+        {
+          "term": "TUI",
+          "definition": "跑在终端里的文本界面程序",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K22",
+      "priority": "A",
+      "topic": "Creator 模式：把内核权限交出来，许愿式做插件",
+      "kind": "observation",
+      "why": "这是 DSH 与“预先规定好需求”的产品最根本的分岔，也是本课“核弹”比喻的来源。",
+      "sources": [
+        {
+          "chunk": "S06",
+          "quote": "他有个creator mode"
+        },
+        {
+          "chunk": "S06",
+          "quote": "这不就是cursor"
+        },
+        {
+          "chunk": "S07",
+          "quote": "就真正的许愿许愿式插件"
+        }
+      ],
+      "must_preserve": [
+        "普通 agent session 只有 agent 权限：工作目录读写、Bash，外面还套沙箱",
+        "Creator 模式给出 Cordis 权限：能看到整个运行世界，可以拆插件、加插件，agent 一边跑一边往 event bus 上挂东西",
+        "这种能力来自 Cordis 全动态的插件生命周期：像操作系统里随时启动或杀掉进程",
+        "演示：把界面改造成 VS Code 式的布局（左侧边栏、编辑器、浏览器、底部 terminal、git、side chat），本质上只是不断观察主 session 并维护自己的 UI 状态，与系统其余部分不冲突",
+        "对比 GrokBot 这类产品：预先定好一套需求，所有人在其框架内工作；Creator 模式则把权限交出去",
+        "讲师判断：看起来是白板，实际是核弹——白板上能长出什么取决于想象力"
+      ],
+      "terms": [
+        "Creator 模式",
+        "权限",
+        "沙箱"
+      ],
+      "key_terms": [
+        {
+          "term": "Creator 模式",
+          "definition": "给模型内核级权限、允许运行时增删插件的模式",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K23",
+      "priority": "A",
+      "topic": "插件生态的代价：语义冲突无法由架构解决",
+      "kind": "opinion",
+      "why": "防止把“everything is a plugin”当成万能解；这是对前面架构赞美的重要限定。",
+      "sources": [
+        {
+          "chunk": "S07",
+          "quote": "十次方就是一1‰"
+        },
+        {
+          "chunk": "S07",
+          "quote": "一个检查输入"
+        },
+        {
+          "chunk": "S07",
+          "quote": "插件不是万能的"
+        }
+      ],
+      "must_preserve": [
+        "统一了事件层（同一组事件、类型不匹配就不行），但插件自身状态仍在自己手里；不同插件产生的语义可能冲突",
+        "例：一个上下文压缩插件把每次上下文输出压到 1/2；若装十个，1/2 的十次方约千分之一，信息全丢",
+        "例：一个插件检查输入、一个改写输入，谁先谁后没有规定；两个 hook 一个要求停止、一个要求继续，冲突时谁先运行谁生效",
+        "这类语义冲突与应用语义相关，属于 essential complexity，架构不解决；可能需要额外机制（如再放一黑板 blackboard 共享状态）",
+        "结论：插件减少一部分 accidental complexity，让动态 UI 生成之类的事变容易，但不是万能；有这类需求时抽象就会泄露"
+      ],
+      "terms": [
+        "语义冲突",
+        "blackboard"
+      ],
+      "key_terms": [
+        {
+          "term": "blackboard",
+          "definition": "一块共享状态区，多个模块读写同一份数据来协调",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K24",
+      "priority": "A",
+      "topic": "发布一个 nothing：把剩余交给生态，方向一是超级应用桥接",
+      "kind": "opinion",
+      "why": "本课对“AI native 应用怎么做”的核心主张，附可操作的三步改造方案。",
+      "sources": [
+        {
+          "chunk": "S07",
+          "quote": "他release了一个nothing"
+        },
+        {
+          "chunk": "S07",
+          "quote": "我第一个想要接入的是super rap"
+        },
+        {
+          "chunk": "S09",
+          "quote": "画布等于session"
+        },
+        {
+          "chunk": "S08",
+          "quote": "我只需要把一些对象给锁住"
+        }
+      ],
+      "must_preserve": [
+        "常规路线是需求确定→发布→挣钱；DSH 发布时几乎只给了基础抽象与少量第一方插件，其余交给开源生态，因此外部成本低、可长出生态",
+        "北京出现过完全由开发者自发组织的线下活动，官方无人到场",
+        "讲师认为社区被“带歪”了：这么强的底座被用来做高达驾驶舱之类的小玩意，他会拿去做更了不起的整合（同时承认大学生有时间、脑洞多，Better Sidebar 就是好想法）",
+        "方向一：给已有超级应用（WPS、Excel、Blender、Excalidraw 这类可嵌网页的大应用）做 bridge，只需支持三步：把对象锁住（如锁定第 1、2 页不许编辑）；把锁定的对象 hand off 到模型上下文；把模型改完的对象拿回来替换原对象",
+        "演示用 Excalidraw：让 AI 在框里画一只 turtle，编辑照常进行但被锁对象不可动；做完后可以继续手改，甚至删掉不满意部分",
+        "讲师核对插件实现后总结：工具调用不直接改画布，只暂存；begin 时生成一个 job，把选区 id 锁在画布上；画布等于 session，编辑请求等于 tool call，提交等于回合结束的 commit；应用被做成 agent 宿主插件，对应用本身侵入很小",
+        "与 MCP 的关系：只需要一个很小的 protocol，甚至可以成为 DSH 原生插件"
+      ],
+      "terms": [
+        "bridge",
+        "hand off",
+        "SuperApp",
+        "MCP"
+      ],
+      "key_terms": [
+        {
+          "term": "bridge",
+          "definition": "把外部应用的对象与操作接到 agent 上的适配层",
+          "origin": "editor"
+        },
+        {
+          "term": "MCP",
+          "definition": "让模型统一接入外部工具与数据的协议",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "super rap 一词未能定位到具体产品，按“超级应用”理解（见 term_verification.md）。"
+    },
+    {
+      "id": "K25",
+      "priority": "A",
+      "topic": "方向二：生成式 UI——模型输出带 JS 的卡片并能回注交互",
+      "kind": "observation",
+      "why": "给出“UI 也可以由模型生成”的完整闭环，并交代当前演示的真实缺陷。",
+      "sources": [
+        {
+          "chunk": "S08",
+          "quote": "它会生成一段带JAVASCRIPT的代码"
+        },
+        {
+          "chunk": "S08",
+          "quote": "generative ui的呃一个应用吗"
+        },
+        {
+          "chunk": "S08",
+          "quote": "但是所有下棋落子都是模型思考以后做的"
+        }
+      ],
+      "must_preserve": [
+        "约定一个标记（讲师演示里是一个带特定名的 div），模型输出里出现该标记就以卡片方式渲染到界面任意 slot",
+        "卡片带 JS，意味着可以有按钮、输入框，甚至嵌入 Excalidraw、WPS 或复杂组件",
+        "允许某些 JS 往 event bus 注入事件，把点击与状态重新注回模型上下文，再指导 UI 更新——这就是生成式 UI",
+        "演示一：成语接龙（以“惊弓之鸟”开局），点击按钮后 JS 往上下文注入一句话，模型接“鸟语花香”并生成界面 patch",
+        "演示二：五子棋，棋盘状态在 UI 里，但所有落子由模型思考后决定",
+        "当前实现有缺陷：因为关闭了思考，出现过状态不同步、棋子下在线上等 bug；讲师强调这不是成熟产品",
+        "意义参照 GPT-3.5 时刻：当时又慢又不好用，但一旦看到“能做到一点”，就意味着有办法做得极好；生成式 UI 还能配合上下文压缩、管理、fork 等插件省 token"
+      ],
+      "terms": [
+        "生成式 UI",
+        "patch",
+        "上下文压缩"
+      ],
+      "key_terms": [
+        {
+          "term": "generative UI",
+          "definition": "界面本身由模型按需生成的代码拼出来",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "演示中的标记名按读音记为 dsh-ui，未从官方文档确认。"
+    },
+    {
+      "id": "K26",
+      "priority": "A",
+      "topic": "闭环案例：个人数据库插件替超级应用填表",
+      "kind": "observation",
+      "why": "把前面两个方向合起来，说明 agent 操作系统相对 computer use 的实际优势。",
+      "sources": [
+        {
+          "chunk": "S09",
+          "quote": "接了一个我的database的插件"
+        },
+        {
+          "chunk": "S09",
+          "quote": "不需要任何的computer use"
+        }
+      ],
+      "must_preserve": [
+        "场景：某表格要求填写 2021 年至今发表的所有论文",
+        "在插件生态里接一个个人 database 插件，向模型提供必要信息（个人信息、发表论文、指导学生等）",
+        "超级应用需要填表时，把任务丢到总线上，生态里的工具、本机、记忆与 bot 协作取回数据，一次填好",
+        "全程不需要 computer use、不需要多余 token、不需要疯狂截图",
+        "这才是操作系统的价值：很多事情能在生态内闭环完成"
+      ],
+      "terms": [
+        "computer use",
+        "database 插件"
+      ],
+      "key_terms": [
+        {
+          "term": "computer use",
+          "definition": "让模型看屏幕、动鼠标键盘来操作软件的方式",
+          "origin": "editor"
+        }
+      ],
+      "uncertainty": "无"
+    },
+    {
+      "id": "K27",
+      "priority": "B",
+      "topic": "生态两侧与 agent OS 展望",
+      "kind": "prediction",
+      "why": "收束全课：这类架构对产业的长期含义，含讲师本人项目的说明。",
+      "sources": [
+        {
+          "chunk": "S09",
+          "quote": "我们和d pc harness的思路其实有点像的"
+        },
+        {
+          "chunk": "S09",
+          "quote": "我到底是愿意用WPS还是愿意用这个呢"
+        }
+      ],
+      "must_preserve": [
+        "生态两侧：一侧是开发者（有脑洞、有时间，做出小玩意与好想法），另一侧是严肃厂商（是否愿意介入、能否挣到钱）",
+        "关键选择：一个只有 WPS 七八成功能、但原生具备 agent 能力、且接入你自己的 agent、数据库、记忆与内容生成器的办公工具，你是否愿意换",
+        "讲师说自己用 agent 管理个人数据库，因此可以把“需要填论文列表”这类任务交给生态闭环",
+        "讲师还谈到一个保密中的 agent OS 项目，思路与 everything is a plugin 相近，位于 DSH 下层、可与之并行并提供更多能力",
+        "预计未来所有东西都会发生根本性变化，这一天很快到来；下一讲继续讲 agent native 开发的细节"
+      ],
+      "terms": [
+        "agent OS"
+      ],
+      "key_terms": [],
+      "uncertainty": "均为讲师预测与个人项目披露，未核实。"
+    },
+    {
+      "id": "K28",
+      "priority": "C",
+      "topic": "口癖、等待与课堂走场",
+      "kind": "observation",
+      "why": "无学习信息，删除。",
+      "sources": [
+        {
+          "chunk": "S01",
+          "quote": "我已经说了1万遍了"
+        }
+      ],
+      "must_preserve": [],
+      "terms": [],
+      "uncertainty": ""
+    }
+  ],
+  "source_sweep": {
+    "chunks": [
+      "S01",
+      "S02",
+      "S03",
+      "S04",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S09"
+    ],
+    "windows": [
+      {
+        "chunk": "S01",
+        "disposition": "covered",
+        "item_ids": [
+          "K01",
+          "K02",
+          "K03"
+        ],
+        "reason": "开场铺垫（agent 组织架构、Git 不够用、锁的类型）、3D 建模案例与 OpenStreetMap 数据源全部入清单；口癖归入 K28。"
+      },
+      {
+        "chunk": "S02",
+        "disposition": "covered",
+        "item_ids": [
+          "K04",
+          "K05",
+          "K06",
+          "K07",
+          "K08"
+        ],
+        "reason": "断网与恢复、指数退避、支付状态不一致、需求文档膨胀与 slop、GrokBot 引发的需求变更均已入项。"
+      },
+      {
+        "chunk": "S03",
+        "disposition": "covered",
+        "item_ids": [
+          "K08",
+          "K09",
+          "K10",
+          "K11",
+          "K12",
+          "K13"
+        ],
+        "reason": "DSH bot 复刻、6 月 10 日首个提交、对着需求做架构、架构边界与自由度的两端取舍均入项。"
+      },
+      {
+        "chunk": "S04",
+        "disposition": "covered",
+        "item_ids": [
+          "K13",
+          "K14",
+          "K15"
+        ],
+        "reason": "event sourcing 代价、MapReduce 案例与边界、微内核 first principle 均入项。"
+      },
+      {
+        "chunk": "S05",
+        "disposition": "covered",
+        "item_ids": [
+          "K15",
+          "K16",
+          "K17",
+          "K18"
+        ],
+        "reason": "Cordis 职责、协同难点、session 事件日志作为唯一事实、open entry 与 slot 均入项。"
+      },
+      {
+        "chunk": "S06",
+        "disposition": "covered",
+        "item_ids": [
+          "K19",
+          "K20",
+          "K21",
+          "K22"
+        ],
+        "reason": "token 统计插件、trajectory 投影、对外 API 与可改事件、TUI、VS Code 化与 Creator 模式均入项。"
+      },
+      {
+        "chunk": "S07",
+        "disposition": "covered",
+        "item_ids": [
+          "K22",
+          "K23",
+          "K24"
+        ],
+        "reason": "许愿式插件演示、语义冲突的代价、发布 nothing 与超级应用桥接方向均入项。"
+      },
+      {
+        "chunk": "S08",
+        "disposition": "covered",
+        "item_ids": [
+          "K24",
+          "K25"
+        ],
+        "reason": "Excalidraw 桥接演示、生成式 UI 卡片与成语接龙/五子棋演示、当前缺陷与 GPT-3.5 类比均入项。"
+      },
+      {
+        "chunk": "S09",
+        "disposition": "covered",
+        "item_ids": [
+          "K24",
+          "K26",
+          "K27"
+        ],
+        "reason": "插件实现核对（无侵入、scope 限制、对象同一性过滤）、个人数据库填表案例、生态两侧与 agent OS 展望均入项。"
+      }
+    ],
+    "note": "九个窗口均完整读过；字幕无大段空白，覆盖率 96.3%。演示操作走场（等待模型输出、调整窗口大小）按 C 类删除，但其中的设计结论（如锁定对象、job 与锁 id、画布等于 session）已提升为 A 项保留。"
+  }
+}

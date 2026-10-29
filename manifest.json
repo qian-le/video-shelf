@@ -812,5 +812,29 @@
     "updated": "2026-10-21T20:55:35+08:00",
     "corrected": true,
     "corrected_html": true
+  },
+  "BV1Guxu6EERa": {
+    "folder": "软件的演化 (航母是怎么造出来的) [10-Raw／26生成式软件工程／NJU]",
+    "title": "软件的演化 (航母是怎么造出来的) [10-Raw/26生成式软件工程/NJU]",
+    "display_title": "软件的演化：航母是怎么造出来的",
+    "course": "26生成式软件工程",
+    "series": "NJU 生成式软件工程",
+    "author": "",
+    "uploader": "绿导师原谅你了",
+    "lecture_number": 10,
+    "summary": "从航母的演进理解软件的提交历史，沿简单版本追踪功能，辨析日常修复与架构取舍，并结合 DeepSeek Harness 的设计记录和检查规则，讨论过程轨迹、反例反馈与持续改进。",
+    "tags": [
+      "软件演化",
+      "架构",
+      "DeepSeek Harness",
+      "SWE-bench",
+      "RFC",
+      "ADR",
+      "反例反馈"
+    ],
+    "duration": 5993,
+    "updated": "2026-10-29T23:34:24+08:00",
+    "corrected": true,
+    "corrected_html": true
   }
 }

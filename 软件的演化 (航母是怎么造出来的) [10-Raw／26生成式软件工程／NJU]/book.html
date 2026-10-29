@@ -1,0 +1,2077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>软件的演化：航母是怎么造出来的</title>
+<style>
+/* Shelf design tokens — 单主题浅色暖纸 */
+:root {
+  --bg: #F4EFE6;
+  --surface: #FFFCF7;
+  --ink: #252A27;
+  --muted: #626862;
+  /* Secondary text still needs normal-text contrast on the warm paper surfaces. */
+  --faint: #656C65;
+  --accent: #0F766E;
+  --accent-soft: rgba(15, 118, 110, 0.08);
+  --accent-ink: #0B5C56;
+  --line: #E4DDD0;
+  --line-strong: #D2C9B8;
+  --code-bg: #F0EBE1;
+  --shadow: 0 1px 2px rgba(37, 42, 39, 0.04), 0 8px 24px rgba(37, 42, 39, 0.06);
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-read: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-mono: "Cascadia Code", Consolas, "Courier New", monospace;
+
+  --text-body: 18px;
+  --text-body-sm: 17px;
+  --lh-body: 1.85;
+  --measure: 720px;
+  --measure-wide: 780px;
+
+  --h1: clamp(1.9rem, 2.4vw, 2.35rem);
+  --h2: clamp(1.45rem, 1.8vw, 1.65rem);
+  --h3: clamp(1.2rem, 1.4vw, 1.32rem);
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-ctl: 6px;
+  --r-media: 10px;
+  --r-panel: 12px;
+
+  --topbar-h: 52px;
+  --toc-w: 260px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --text-body: var(--text-body-sm);
+  }
+}
+
+/* 阅读页 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+.book-body {
+  font-family: var(--font-read);
+  overflow-wrap: anywhere;
+}
+.book-shell { min-height: 100vh; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  min-height: var(--topbar-h);
+  background: rgba(244, 239, 230, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-in {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto; padding: var(--sp-2) var(--sp-5);
+  min-height: var(--topbar-h); display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-4);
+}
+.reader-breadcrumb {
+  min-width: 0; display: flex; align-items: center; flex-wrap: nowrap;
+  gap: var(--sp-2); font-family: var(--font-ui); font-size: 13px;
+  line-height: 1.35; color: var(--faint);
+}
+.reader-breadcrumb > * { min-width: 0; }
+.reader-breadcrumb .course-return,
+.reader-breadcrumb .reader-location {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.reader-breadcrumb .course-return {
+  color: var(--accent-ink); font-weight: 600; text-decoration: none;
+  max-width: min(34vw, 300px);
+}
+.reader-breadcrumb .course-return:hover { color: var(--accent); text-decoration: underline; }
+.reader-breadcrumb .reader-location { color: var(--muted); }
+.reader-breadcrumb .crumb-separator { color: var(--line-strong); user-select: none; }
+.back-link {
+  color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
+  font-family: var(--font-ui); min-height: 36px; display: inline-flex; align-items: center;
+}
+.back-link:hover { text-decoration: underline; }
+.back-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.topbar-right {
+  display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-3);
+  flex: 0 0 auto;
+}
+.reader-tools { min-width: max-content; }
+.reader-tools > a {
+  color: var(--accent-ink); font: 500 12px/1.4 var(--font-ui);
+  text-decoration: none; min-height: 36px; display: inline-flex; align-items: center;
+}
+.reader-tools > a:hover { text-decoration: underline; }
+.reader-tools > a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.font-resizer {
+  display: inline-flex; align-items: center;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-ctl); padding: 1px 3px; gap: 2px;
+}
+.btn-font {
+  background: transparent; border: 0; color: var(--muted);
+  font-family: var(--font-ui); font-size: 11.5px; font-weight: 600;
+  min-width: 36px; min-height: 36px; padding: 6px 7px; border-radius: 4px; cursor: pointer;
+  line-height: 1.2;
+}
+.btn-font:hover { color: var(--ink); background: var(--code-bg); }
+.btn-font:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn-font:disabled { color: var(--faint); background: transparent; cursor: not-allowed; opacity: .65; }
+
+.topbar-tag {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  color: var(--faint);
+}
+
+.reading-progress {
+  position: absolute; left: 0; right: 0; bottom: -1px; z-index: 41;
+  height: 3px; pointer-events: none; background: transparent;
+}
+.reading-progress > span {
+  display: block; width: 0; height: 100%; background: var(--accent);
+  transform-origin: left center;
+  transition: width .16s ease;
+}
+
+.layout {
+  max-width: calc(var(--toc-w) + var(--sp-8) + var(--measure-wide));
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-8);
+  display: grid;
+  grid-template-columns: var(--toc-w) minmax(0, 1fr);
+  gap: var(--sp-8);
+  align-items: start;
+}
+
+/* 目录 */
+.toc-panel {
+  position: sticky; top: calc(var(--topbar-h) + var(--sp-4));
+  max-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  overflow: auto;
+  font-family: var(--font-ui);
+  padding-right: var(--sp-2);
+}
+.toc-panel h2.toc-title {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 var(--sp-3); border: 0; padding: 0;
+}
+.toc-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.toc-close {
+  display: none; border: 1px solid var(--line); border-radius: var(--r-ctl);
+  background: var(--surface); color: var(--ink); font: 600 12px/1.2 var(--font-ui);
+  min-height: 32px; padding: 6px 9px; cursor: pointer;
+}
+.toc-close:hover { background: var(--code-bg); }
+.toc-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list a {
+  display: block; text-decoration: none; color: var(--muted);
+  font-size: 13.5px; line-height: 1.45; padding: 6px 0 6px 10px;
+  border-left: 2px solid transparent;
+}
+.toc-list a:hover { color: var(--ink); }
+.toc-list a.is-active {
+  color: var(--accent); border-left-color: var(--accent); font-weight: 600;
+}
+.toc-list .toc-h3 a { padding-left: 20px; font-size: 12.5px; }
+
+.toc-toggle {
+  display: none;
+  width: 100%; text-align: left; font-family: var(--font-ui);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-ctl);
+  color: var(--ink); padding: 8px 12px; font-size: 14px; cursor: pointer;
+  margin-bottom: var(--sp-4); min-height: 42px;
+}
+.toc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toc-toggle-label { flex: 0 0 auto; font-weight: 650; }
+.toc-toggle-current {
+  min-width: 0; max-width: min(62vw, 520px); margin-left: auto; padding-left: var(--sp-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--muted); font-size: 12px; font-weight: 500;
+}
+.toc-toggle-current::before { content: "·"; color: var(--line-strong); margin-right: 6px; }
+
+/* 正文栏 */
+.book-main { min-width: 0; max-width: var(--measure-wide); }
+.book-head { margin-bottom: var(--sp-7); max-width: var(--measure); }
+.course-line {
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  margin-bottom: var(--sp-3); letter-spacing: .02em;
+}
+.course-line strong { color: var(--accent-ink); font-weight: 600; }
+.book-head h1 {
+  font-family: var(--font-read);
+  font-size: var(--h1); font-weight: 700; line-height: 1.35;
+  color: var(--ink); margin: 0 0 var(--sp-4); text-wrap: balance;
+}
+.book-head h1::after {
+  content: ""; display: block; width: 36px; height: 3px; margin-top: var(--sp-4);
+  background: var(--accent); border-radius: 2px;
+}
+.book-summary {
+  font-family: var(--font-ui); font-size: 15px; color: var(--muted);
+  line-height: 1.65; margin-bottom: var(--sp-4);
+  max-width: 62ch;
+}
+.book-reading-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--sp-3);
+  margin-top: var(--sp-3); color: var(--faint); font: 12px/1.5 var(--font-ui);
+}
+.book-reading-meta > * { min-width: 0; }
+.book-reading-meta a { color: var(--accent-ink); text-decoration: none; font-weight: 600; }
+.book-reading-meta a:hover { color: var(--accent); text-decoration: underline; }
+.book-reading-meta > * + *::before {
+  content: "·"; color: var(--line-strong); margin-right: var(--sp-3);
+}
+.book-source-panel {
+  margin-top: var(--sp-4); max-width: 100%;
+  border: 1px solid var(--line); border-radius: var(--r-panel);
+  background: rgba(255, 252, 247, 0.62); color: var(--muted);
+  font: 12.5px/1.6 var(--font-ui);
+}
+.book-source-panel > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  min-height: 38px; padding: 8px 12px; color: var(--accent-ink);
+  font-weight: 650; cursor: pointer; list-style: none;
+}
+.book-source-panel > summary::-webkit-details-marker { display: none; }
+.book-source-panel > summary::after { content: "＋"; color: var(--faint); font-size: 15px; }
+.book-source-panel[open] > summary { border-bottom: 1px solid var(--line); }
+.book-source-panel[open] > summary::after { content: "−"; }
+.book-source-panel > summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--r-panel);
+}
+.book-source-content { padding: var(--sp-3) var(--sp-4); overflow-wrap: anywhere; }
+.book-source-content a { color: var(--accent); font-weight: 550; }
+.book-source-content > p { margin: 0; }
+.book-original-metadata { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.book-original-metadata .source-note {
+  margin: 0 0 var(--sp-2); color: var(--faint); font-size: 11px;
+  font-weight: 650; letter-spacing: .06em;
+}
+.book-original-metadata p { margin: 0 0 6px; }
+.book-original-metadata p:last-child { margin-bottom: 0; }
+.book-source-content .meta-actions,
+.book-source-panel .meta-actions {
+  display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-2);
+}
+.book-source-content .meta-actions a,
+.book-source-panel .meta-actions a { color: var(--accent); text-decoration: none; }
+.book-source-content .meta-actions a:hover,
+.book-source-panel .meta-actions a:hover { text-decoration: underline; }
+.book-meta-card {
+  font-family: var(--font-ui); font-size: 12.5px; color: var(--muted);
+  background: transparent; border: 0; border-top: 1px solid var(--line);
+  border-radius: 0; padding: var(--sp-3) 0 0; line-height: 1.6;
+}
+.book-meta-card a { color: var(--accent); font-weight: 500; }
+.book-meta-card .meta-actions {
+  margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-3);
+}
+
+/* 讲次导航：上一讲 / 下一讲 */
+.book-pager {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  font-family: var(--font-ui);
+}
+.book-pager:has(.pager-course) { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.pager-course {
+  align-self: center; justify-self: center; color: var(--accent-ink);
+  font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap;
+}
+.pager-course:hover { color: var(--accent); text-decoration: underline; }
+.pager-course:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: var(--r-ctl); }
+.pager-btn {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 72px; padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, background .15s ease;
+}
+.pager-btn:hover { border-color: rgba(15,118,110,.4); background: var(--accent-soft); }
+.pager-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pager-btn.next { text-align: right; align-items: flex-end; }
+.pager-btn.disabled {
+  opacity: .55; cursor: default; background: var(--bg);
+}
+.pager-btn.disabled:hover { border-color: var(--line); background: var(--bg); }
+.pager-label {
+  font-size: 12px; font-weight: 600; color: var(--accent-ink); letter-spacing: .04em;
+}
+.pager-title {
+  font-family: var(--font-read); font-size: 0.98em; font-weight: 600;
+  line-height: 1.4; color: var(--ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pager-btn.disabled .pager-title { font-weight: 500; color: var(--muted); font-family: var(--font-ui); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .book-pager { grid-template-columns: 1fr; }
+  .book-pager:has(.pager-course) { grid-template-columns: 1fr; }
+  .pager-course { order: -1; justify-self: start; }
+  .pager-btn.next { text-align: left; align-items: flex-start; }
+}
+
+/* 生成正文（markdown） — 作用域 .book-body */
+.book-body {
+  max-width: var(--measure);
+  font-family: var(--font-read);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--ink);
+}
+.book-body > *:first-child { margin-top: 0; }
+.book-body img { max-width: 100%; height: auto; }
+/* 隐藏重复的 H1 / 手写目录：由页头与 toc-panel 提供；禁止使用 + * 避免误伤正文导语 */
+.book-body > h1:first-child,
+.book-body > .md-toc-skip { display: none; }
+.book-body > h1 { font-size: var(--h1); margin: var(--sp-6) 0 var(--sp-4); line-height: 1.35; }
+.book-body > h1 + p,
+.book-body > h1 + blockquote { /* 页头已处理时可空 */ }
+.book-body h2 {
+  font-family: var(--font-read);
+  font-size: var(--h2); font-weight: 700; line-height: 1.4;
+  margin: var(--sp-7) 0 var(--sp-4);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body h3 {
+  font-family: var(--font-read);
+  font-size: var(--h3); font-weight: 650; color: var(--accent-ink);
+  margin: var(--sp-6) 0 var(--sp-3);
+  scroll-margin-top: calc(var(--topbar-h) + var(--sp-4));
+}
+.book-body p { margin: 0 0 var(--sp-4); }
+.book-body strong { font-weight: 700; color: var(--ink); }
+.book-body em { color: var(--muted); }
+.book-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.book-body a:hover { border-bottom-color: var(--accent); }
+.book-body a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.book-body ul, .book-body ol { margin: 0 0 var(--sp-4) 1.4em; }
+.book-body li { margin: 6px 0; }
+.book-body hr { border: 0; height: 1px; background: var(--line); margin: var(--sp-7) 0; }
+.book-body blockquote {
+  margin: var(--sp-5) 0; padding: var(--sp-4) var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-media) var(--r-media) 0;
+  color: var(--muted); font-family: var(--font-ui); font-size: 0.94em;
+}
+.book-body blockquote p { margin: 0; }
+
+/* 章前先验 · 学生向 */
+.book-body .prereq {
+  margin: 0 0 var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-panel);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.book-body .prereq::before {
+  content: attr(data-label);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  color: var(--accent-ink);
+  margin-bottom: 6px;
+}
+.book-body .prereq ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.book-body .prereq li { margin: 4px 0; }
+
+/* 概念补给卡片 */
+.book-body h2[id*="概念补给"] {
+  margin-top: var(--sp-8);
+}
+.book-body h2[id*="概念补给"] ~ h3 {
+  font-family: var(--font-ui);
+  color: var(--accent-ink);
+  margin-top: var(--sp-5);
+}
+.book-body h2[id*="概念补给"] ~ p {
+  font-family: var(--font-ui);
+  font-size: 0.95em;
+  color: var(--muted);
+}
+.book-body h2[id*="概念补给"] ~ p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.book-body code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: .86em; color: var(--accent-ink);
+}
+.book-body pre {
+  position: relative;
+  margin: var(--sp-4) 0; padding: var(--sp-4);
+  background: var(--code-bg); border: 1px solid var(--line);
+  border-radius: var(--r-media); overflow-x: auto;
+}
+.book-body pre code { background: none; padding: 0; color: var(--ink); font-size: .88em; }
+.btn-copy-code {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--surface); border: 1px solid var(--line);
+  color: var(--muted); font-family: var(--font-ui); font-size: 11px;
+  padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  opacity: 0; transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  line-height: 1.3;
+}
+.book-body pre:hover .btn-copy-code,
+.btn-copy-code:focus-visible {
+  opacity: 1;
+}
+.btn-copy-code:hover {
+  color: var(--ink); border-color: var(--line-strong);
+}
+.btn-copy-code.copied {
+  color: var(--accent); border-color: var(--accent); font-weight: 600;
+}
+
+/* 参考时间穿透锚点 */
+.time-anchor {
+  display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: var(--sp-2) 0 var(--sp-4); padding: 3px 12px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; font-family: var(--font-mono); font-size: 12px;
+  color: var(--muted); width: fit-content; max-width: 100%;
+}
+.time-anchor .ta-label {
+  font-family: var(--font-ui); font-size: 11px; font-weight: 600;
+  color: var(--faint); letter-spacing: .04em;
+}
+.time-anchor .ta-ts {
+  color: var(--accent-ink); text-decoration: none; font-weight: 600;
+  border-bottom: 1px dashed var(--accent);
+}
+.time-anchor .ta-ts:hover {
+  color: var(--accent); border-bottom-style: solid;
+}
+.time-anchor .ta-sep { color: var(--line-strong); }
+.time-anchor .ta-vid {
+  color: var(--muted); text-decoration: none; font-family: var(--font-ui);
+  font-size: 11.5px; font-weight: 500;
+}
+.time-anchor .ta-vid:hover { color: var(--accent); }
+.book-body .table-wrap {
+  width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  margin: var(--sp-5) 0; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-media);
+}
+.book-body table {
+  border-collapse: collapse; margin: var(--sp-5) 0;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  display: block; width: 100%; max-width: 100%;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  font-family: var(--font-ui); font-size: .92em;
+}
+.book-body .table-wrap > table {
+  margin: 0; border: 0; border-radius: 0;
+  display: table; width: 100%; min-width: 520px; overflow: visible;
+}
+.book-body th, .book-body td {
+  padding: 10px 14px; text-align: left; border-top: 1px solid var(--line);
+}
+.book-body th { background: var(--code-bg); color: var(--accent-ink); font-weight: 600; }
+.book-body tr:hover td { background: rgba(15, 118, 110, 0.04); }
+
+/* 截图 / 视频卡片 */
+.video-card, .screenshot-card {
+  margin: var(--sp-5) 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-media);
+  overflow: hidden;
+}
+.video-card img, .screenshot-card img {
+  display: block; width: 100%; height: auto; cursor: zoom-in;
+}
+.video-wrapper {
+  position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #111;
+}
+.video-wrapper iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-caption {
+  padding: var(--sp-3) var(--sp-4);
+  font-family: var(--font-ui); font-size: 13px; color: var(--muted);
+  line-height: 1.55; margin: 0;
+}
+.video-caption .cap-text { display: block; }
+.video-caption .cap-time {
+  display: inline-block; margin-top: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.video-caption a { color: var(--accent); font-weight: 500; }
+.video-card.fallback { padding: var(--sp-4); text-align: center; font-family: var(--font-ui); font-size: 14px; }
+
+.mermaid-wrap {
+  margin: var(--sp-5) 0; padding: var(--sp-4);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-media); min-width: 0;
+}
+.mermaid {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.mermaid svg { display: block; margin: 0 auto; }
+.diagram-status {
+  font-family: var(--font-ui); font-size: 14px; color: var(--muted);
+}
+.diagram-zoom {
+  display: block; margin: var(--sp-3) 0 0 auto; min-height: 40px;
+  padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line-strong);
+  border-radius: var(--r-ctl); background: var(--surface);
+  color: var(--accent-ink); font: 500 13px var(--font-ui); cursor: pointer;
+}
+.diagram-zoom:hover { background: var(--accent-soft); }
+.diagram-zoom:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.diagram-error pre { margin-bottom: 0; }
+.mermaid-wrap [hidden] { display: none; }
+
+/* 图示按原尺寸查看，宽图与长图均可滚动，保留截图预览原有尺寸。 */
+.lightbox.lightbox-diagram {
+  display: none; overflow: auto; padding: var(--sp-8) var(--sp-5) var(--sp-8);
+}
+.lightbox.lightbox-diagram.open { display: block; }
+.lightbox.lightbox-diagram img {
+  display: block; max-width: none; max-height: none; margin: 0 auto;
+  background: var(--surface); cursor: default;
+}
+.lightbox-diagram .lightbox-close, .lightbox-diagram .lightbox-caption { position: fixed; }
+
+/* Lightbox */
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(37, 42, 39, 0.88); padding: var(--sp-5);
+  cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 96vw; max-height: 90vh; border-radius: var(--r-media); }
+.lightbox-close {
+  position: absolute; top: 16px; right: 20px; z-index: 102;
+  width: 38px; height: 38px; border: 0; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18); color: #fff;
+  font-size: 26px; line-height: 1; display: flex;
+  align-items: center; justify-content: center; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.32); }
+.lightbox-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lightbox-caption {
+  position: absolute; bottom: 18px; left: 0; right: 0; text-align: center;
+  color: #E7E2D8; font-family: var(--font-ui); font-size: 13px; padding: 0 16px;
+}
+
+/* 阅读位置恢复轻提示 */
+.shelf-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: #F4EFE6; padding: 8px 18px;
+  border-radius: 999px; font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22); z-index: 90;
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.shelf-toast.show {
+  opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto;
+}
+.shelf-toast-btn {
+  background: transparent; border: 0; color: #5EEAD4;
+  cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 0; margin-left: 2px; text-decoration: underline;
+}
+
+.toc-backdrop { display: none; }
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .toc-toggle {
+    position: sticky; top: calc(var(--topbar-h) + var(--sp-2)); z-index: 30;
+    display: inline-flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(37, 42, 39, 0.05);
+  }
+  .book-body h2, .book-body h3 {
+    scroll-margin-top: calc(var(--topbar-h) + 42px + var(--sp-4));
+  }
+  .toc-backdrop {
+    position: fixed; inset: 0; z-index: 48;
+    background: rgba(37, 42, 39, 0.45);
+    backdrop-filter: blur(2px);
+    display: none;
+  }
+  .toc-backdrop.open { display: block; }
+  .toc-panel {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 49;
+    width: min(320px, 85vw); max-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    box-shadow: 0 0 24px rgba(37, 42, 39, 0.15);
+    padding: var(--sp-5) var(--sp-4);
+    transform: translateX(-100%);
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    display: block !important;
+    overflow-y: auto;
+  }
+  .toc-close { display: inline-flex; align-items: center; justify-content: center; }
+  .toc-panel.open {
+    transform: translateX(0);
+  }
+}
+@media (max-width: 640px) {
+  .layout { padding: var(--sp-5) var(--sp-4) var(--sp-7); }
+  .topbar-in { padding: var(--sp-2) var(--sp-4); gap: var(--sp-2); }
+  .reader-breadcrumb { flex: 1 1 auto; gap: 6px; font-size: 12px; }
+  .reader-breadcrumb .course-return { max-width: 34vw; }
+  .reader-breadcrumb .reader-location { max-width: 7em; }
+  .topbar-tag { display: none; }
+  .topbar-right { gap: var(--sp-2); }
+  .btn-font { min-width: 36px; min-height: 36px; }
+  .book-head { margin-bottom: var(--sp-6); }
+  .book-head h1 { font-size: clamp(26px, 7vw, 28px); }
+  .book-source-panel { margin-top: var(--sp-3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .pager-btn, .lightbox-close, .shelf-toast, .toc-panel, .reading-progress > span {
+    transition: none !important;
+  }
+}
+
+@media print {
+  .topbar, .toc-panel, .toc-toggle, .toc-backdrop, .book-pager, .lightbox,
+  .meta-actions, .time-anchor .ta-vid, .btn-copy-code, .shelf-toast, .diagram-zoom {
+    display: none !important;
+  }
+  .layout {
+    display: block !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important;
+  }
+  .book-main, .book-body {
+    max-width: 100% !important;
+  }
+  .book-body {
+    font-size: 11pt !important; line-height: 1.6 !important; color: #000 !important;
+  }
+  .screenshot-card { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+}
+
+/* quality gate badges (local preview only) */
+
+/* Contextual reading assistance uses the existing warm-paper tokens. */
+.assist-launch, .assist-close, .assist-button, .assist-selection-action {
+  font: 600 13px/1.4 var(--font-ui); cursor: pointer; min-height: 36px;
+  padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line-strong);
+  border-radius: var(--r-ctl); color: var(--accent-ink); background: var(--surface);
+}
+.assist-launch:hover, .assist-close:hover, .assist-button:hover { background: var(--accent-soft); }
+.reader-breadcrumb .back-link { white-space: nowrap; flex-shrink: 0; }
+.assist-launch:focus-visible, .assist-close:focus-visible, .assist-button:focus-visible,
+.assist-selection-action:focus-visible, .assist-source-link:focus-visible, #assist-section:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px;
+}
+.assist-button.primary, .assist-selection-action { color: var(--surface); background: var(--accent); border-color: var(--accent); }
+.assist-button:disabled { cursor: not-allowed; opacity: .55; }
+.assist-selection-action { position: fixed; bottom: var(--sp-5); left: 50%; transform: translateX(-50%); z-index: 45; box-shadow: var(--shadow); }
+.assist-selection-action[hidden], .assist-dialog [hidden] { display: none; }
+.assist-dialog {
+  position: fixed; inset: 0 0 0 auto; margin: 0; padding: 0;
+  width: min(460px, 48vw); max-width: 100%; height: 100dvh; max-height: 100dvh;
+  border: 0; border-left: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: 14px/1.75 var(--font-ui); box-shadow: var(--shadow); overflow: hidden;
+}
+.assist-dialog[open] { display: flex; flex-direction: column; }
+.assist-dialog::backdrop { background: rgba(37,42,39,.22); }
+.assist-head {
+  flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-4);
+  padding: var(--sp-5); border-bottom: 1px solid var(--line);
+}
+.assist-head h2 { font: 600 20px/1.4 var(--font-ui); margin: 0 0 var(--sp-1); }
+.assist-head p, .assist-selection-help, .assist-scope { color: var(--muted); font-size: 12px; }
+.assist-content { padding: var(--sp-5); overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+.assist-label { display: block; font-weight: 600; margin-bottom: var(--sp-2); }
+#assist-section { width: 100%; min-width: 0; min-height: 42px; font: inherit; color: var(--ink); padding: var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-ctl); background: var(--surface); }
+.assist-quote { margin: var(--sp-4) 0; padding: var(--sp-3); border-left: 3px solid var(--accent); background: var(--accent-soft); max-height: 160px; overflow: auto; overflow-wrap: anywhere; font-size: 13px; }
+.assist-selection-help { margin-top: var(--sp-3); }
+.assist-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-4) 0; }
+.assist-status { font-size: 13px; color: var(--muted); min-height: 2em; }
+.assist-error { color: #9B3624; }
+.assist-result { border-top: 1px solid var(--line); margin-top: var(--sp-5); padding-top: var(--sp-5); }
+.assist-result h3 { font: 600 15px/1.5 var(--font-ui); margin-bottom: var(--sp-3); }
+.assist-answer, .assist-extra div { white-space: pre-wrap; overflow-wrap: anywhere; }
+.assist-sources, .assist-extra { margin-top: var(--sp-5); }
+.assist-sources ul { list-style: none; display: grid; gap: var(--sp-2); }
+.assist-source-link { width: 100%; text-align: left; font: inherit; font-size: 12px; line-height: 1.7; color: var(--accent-ink); background: var(--accent-soft); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: var(--sp-3); cursor: pointer; overflow-wrap: anywhere; }
+.assist-source-link:hover { border-color: var(--accent); }
+.assist-scope { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--line); }
+.reading-source-highlight { outline: 2px solid var(--accent); outline-offset: 5px; background: var(--accent-soft); }
+[data-reading-block] { scroll-margin-top: 160px; }
+@media (max-width: 960px) {
+  .assist-dialog { inset: auto 0 0; width: 100%; height: min(86dvh, 780px); max-height: 92dvh; border: 1px solid var(--line); border-bottom: 0; border-radius: var(--r-panel) var(--r-panel) 0 0; }
+  .assist-head { padding: var(--sp-4); }
+  .assist-content { padding: var(--sp-4); padding-bottom: calc(var(--sp-5) + env(safe-area-inset-bottom)); }
+  .assist-selection-action { bottom: calc(var(--sp-4) + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 480px) {
+  .reader-tools { gap: var(--sp-1); }
+  .assist-launch { padding: var(--sp-2); }
+  .topbar-in { gap: var(--sp-2); }
+  .reader-breadcrumb { gap: var(--sp-1); }
+}
+
+</style>
+</head>
+<body data-course="26生成式软件工程">
+<div class="book-shell">
+  <header class="topbar">
+    <div class="topbar-in">
+      <nav class="reader-breadcrumb" aria-label="当前位置">
+        <a class="back-link" href="../index.html">书架</a><span aria-hidden="true">/</span>
+        <a class="course-return" href="../courses/26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B/index.html" title="26生成式软件工程">26生成式软件工程</a>
+        <span aria-hidden="true">/</span><span class="reader-location">第 10 讲</span>
+      </nav>
+      <div class="topbar-right reader-tools">
+        <div class="font-resizer" role="group" aria-label="字号调节">
+          <button type="button" class="btn-font font-dec" aria-label="减小字号">A-</button>
+          <button type="button" class="btn-font font-inc" aria-label="增大字号">A+</button>
+        </div>
+      </div>
+    </div>
+    <div class="reading-progress" role="progressbar" aria-label="阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%"><span></span></div>
+  </header>
+  <div class="layout">
+    <button class="toc-toggle" type="button" aria-expanded="false" aria-controls="toc-panel">目录</button>
+    <div class="toc-backdrop" aria-hidden="true"></div>
+    <aside id="toc-panel" class="toc-panel" aria-label="目录" tabindex="-1">
+      <div class="toc-panel-head">
+        <h2 class="toc-title">目录</h2>
+        <button class="toc-close" type="button" aria-label="关闭目录">关闭</button>
+      </div>
+      <ul class="toc-list"></ul>
+    </aside>
+    <main class="book-main">
+      <header class="book-head">
+        <p class="course-line">NJU 生成式软件工程 · 第 10 讲</p>
+        <h1>软件的演化：航母是怎么造出来的</h1>
+        <p class="book-summary">从航母的演进理解软件的提交历史，沿简单版本追踪功能，辨析日常修复与架构取舍，并结合 DeepSeek Harness 的设计记录和检查规则，讨论过程轨迹、反例反馈与持续改进。</p>
+        <div class="book-reading-meta"><span>预计阅读约 23 分钟</span><a href="transcript.corrected.html">字幕对照</a></div>
+        <details class="book-source-panel" id="book-source"><summary>视频与来源</summary><div class="book-source-content"><p><a href="https://www.bilibili.com/video/BV1Guxu6EERa/" target="_blank" rel="noopener">打开原视频 ↗</a> · 视频时长 1h39m · 正文约 9,109 个阅读单位 · 标签：软件演化、架构、DeepSeek Harness、SWE-bench、RFC、ADR、反例反馈</p></div></details>
+      </header>
+      <article class="book-body" data-book-id="BV1Guxu6EERa" data-content-version="8503309464a4531d7f2a25da9973b88c1b9d4c043910c95f0aa61811125aa926">
+<span id="section-intro" class="reading-section-marker" aria-hidden="true"></span><blockquote id="block-5264657a0fd6" data-reading-block="block-5264657a0fd6" data-reading-section="section-intro">
+<p>南京大学《生成式软件工程》2026 · 第 10 讲<br />
+讲师：蒋炎岩 · 视频发布账号：绿导师原谅你了<br />
+<a href="https://www.bilibili.com/video/BV1Guxu6EERa/">原视频</a> · 时长约 100 分钟 · <a href="https://jyywiki.cn/GSE/2026/lect10.md">课程讲义</a></p>
+</blockquote>
+<p id="block-b018387f4f90" data-reading-block="block-b018387f4f90" data-reading-section="section-intro">上一讲从 DeepSeek Harness（承载模型、工具与插件的智能体运行系统）的代码结构理解架构。这一讲把时间轴展开：复杂系统最初怎样起步，哪些小修改逐渐积累成今天的形态，哪些时刻需要重新设计，以及生成代码变快之后，人还需要作出什么判断。</p>
+<h2 id="_1" data-reading-section="_1">一、我们熟悉的抽象，覆盖了多少真实世界</h2>
+<h3 id="_2" data-reading-section="_2">从计算复杂性新闻说起</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-00-24" title="在字幕对照页定位此段">00:00:24–00:06:27</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=24" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-af929535cdf5" data-reading-block="block-af929535cdf5" data-reading-section="_2">课堂开场提到，OpenAI 声称找到了否定 ETH（指数时间假说，对某些计算问题所需时间下界的一种猜想）的算法。讲师强调，这与找到多项式时间算法仍有区别。编者核对的<a href="https://openai.com/index/building-scientific-understanding-with-academic-communities/">发布公告</a>也把相关文稿视为仍需学术共同体理解的研究材料；这里保留发布方声称与独立检验之间的距离。</p>
+<p id="block-c495dbd46ff3" data-reading-block="block-c495dbd46ff3" data-reading-section="_2">这引出一个更基础的问题：为什么理论计算机科学用 P（可在多项式时间内求解的问题类）描述高效计算？NP（候选答案可在多项式时间内验证的问题类）中的 N 来自 nondeterministic，即非确定性，并非“不是 P”。这些是帮助理解课堂讨论的基础释义。按课堂所强调的区别，否定 ETH 不能直接理解成已经证明 P 等于 NP。</p>
+<p id="block-109bd38ea073" data-reading-block="block-109bd38ea073" data-reading-section="_2">把运行时间为 n² 和 n¹⁰⁰ 的算法放在同一类，对实际运行来说非常粗糙。后者即使输入规模不大，也可能根本跑不出来。多项式时间之所以方便，有一个重要的结构理由：多项式时间的程序在执行过程中，只能产生多项式长度的输入；调用另一个多项式时间程序以后，整体仍在多项式时间内。这种对程序复合的封闭性，让我们可以组合已有算法，也使理论推导更容易组织。</p>
+<p id="block-9d6e238e59ba" data-reading-block="block-9d6e238e59ba" data-reading-section="_2">讲师认为，这种抽象也反映了人类的理解能力有限。我们真正关心的，可以是更细的问题：给定一台形式化的计算机、一个明确的问题和 k 步执行机会，究竟能完成什么？在 RAM 模型（把内存访问等操作按给定代价计算的抽象计算机）中，指令、数据排布和压缩方式都可能改变有限步数内能做的事；只看“是否为多项式”，许多差异就被抹平了。近似线性时间的网络流算法之所以令人惊讶，也提醒我们：熟悉的分类没有穷尽问题内部的结构。</p>
+<h3 id="_3" data-reading-section="_3">分类、对称与智能：一组思想实验</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-06-27" title="在字幕对照页定位此段">00:06:27–00:08:56</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=387" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-c7c46f89c690" data-reading-block="block-c7c46f89c690" data-reading-section="_3">生物分类提供了类似的例子。猫和狗很容易区分，但观察更微观的生命与谱系关系时，整齐的树状分类可能不够；关系甚至需要用图来表达。讲师明确说自己并非这方面专家，借此讨论的是人类偏爱干净模型的倾向。</p>
+<p id="block-02b29cbb85a5" data-reading-block="block-02b29cbb85a5" data-reading-section="_3">他进一步提出一种猜想：也许真实世界的结构远比我们习惯的理论复杂，我们只是恰好处在一个相对“平坦”、规律可以复用的区域。规律可以被压缩成经验，经验又能帮助预测与行动，于是智能才有形成的机会。课堂还借对称性与守恒量展开联想。这里应保留为关于理解、压缩和智能的思想实验，不能读成已经证明的物理学或智能理论。</p>
+<h2 id="_4" data-reading-section="_4">二、用学习的过程展示自己的能力</h2>
+<h3 id="_5" data-reading-section="_5">从一份作品，追到产生作品的轨迹</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-08-55" title="在字幕对照页定位此段">00:08:56–00:13:38</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=536" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-ab5fedf3c79f" data-reading-block="block-ab5fedf3c79f" data-reading-section="_5">过去常见的教育循环是：家庭投入教育，大学培养人才，企业购买劳动。讲师担心，当有经验的人借助智能体就能完成更多工作，企业可能更不愿承担培养新人的成本。这是他对就业变化的判断，并非对所有企业招聘行为的统计结论。</p>
+<p id="block-d3e40af0a7f4" data-reading-block="block-d3e40af0a7f4" data-reading-section="_5">他的建议是保存 AI trajectory（人与模型协作时留下的问题、反馈、操作和产出轨迹）。轨迹可以去掉冗长的工具调用输出，保留有意义的图片、代码等产物，整理成个人时间轴。真正值得看的包括：你提出了什么问题，模型给了什么回答，哪些想法来自你，你如何纠正回答，以及最后的代码是否能运行。</p>
+<p id="block-24bb7e7306df" data-reading-block="block-24bb7e7306df" data-reading-section="_5">轨迹还给面试提供了新的切入点。用人单位可以随机挑一天的讨论，追问当时为什么这样判断、今天又会怎样看待。讲师认为，过程记录加上随机追问，比只看精修后的成品更难临时伪造。这是关于评估方式的设想，不意味着日志天然真实，也不意味着拥有日志就能准确预测一个人的未来。</p>
+<p id="block-1cae35a52796" data-reading-block="block-1cae35a52796" data-reading-section="_5">同样的入学分数，可能对应完全不同的成长曲线。有人此后很少继续学习，有人不断发现更好的协作方法，把经验沉淀成 skill（可复用的一组操作方法与约定），下一次处理同类问题就发生改变。轨迹的价值，正在于展示这些变化，而不只是累积做过多少件事。</p>
+<h3 id="_6" data-reading-section="_6">优势、隐私和新一轮竞争</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-13-37" title="在字幕对照页定位此段">00:13:38–00:19:34</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=818" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-991c0f1ce7e7" data-reading-block="block-991c0f1ce7e7" data-reading-section="_6">轨迹越完整，对人的刻画也越深入。它可能暴露兴趣、判断习惯、生活安排和尚未成形的想法。讲师用“出卖灵魂”的强烈比喻，表达获得协作优势与交出隐私之间的矛盾：一方面，模型持续提供帮助与正反馈；另一方面，服务提供方也掌握越来越多关于使用者的信息。</p>
+<p id="block-c1edf18f7245" data-reading-block="block-c1edf18f7245" data-reading-section="_6">他还设想，让双方的智能体先比较轨迹，找到观点一致与分歧之处，再由人继续讨论；甚至把这种方法用来匹配朋友或伴侣。这些是带有玩笑成分的产品设想。模型帮助补充知识、寻找论文和检查想法的作用，与模型能够完整理解人格，是不同强度的判断。</p>
+<p id="block-ec081d139d81" data-reading-block="block-ec081d139d81" data-reading-section="_6">把轨迹投射成简历或个人网站，可能带来阶段性优势。但讲师也提醒，一旦大家都这么做，就会出现新的内卷和 reward hacking（迎合评价指标而偏离原本目标）。保存过程不自动等于真诚学习；竞争也可能反过来塑造记录的内容。</p>
+<p id="block-6c68fb85dc50" data-reading-block="block-6c68fb85dc50" data-reading-section="_6">“上学是期货投资”指的是今天投入青春、学费与放弃的工作收入，押注几年后技能仍有市场。他顺着这个比喻提出“贷款上班、先交保证金证明能超过 AI”的尖锐设想，追问技能贬值和再训练成本由谁承担；又设想过类似限制能力继续增长的协议。这些是课堂的预测与反问，不能作为已经存在的就业制度来理解。</p>
+<h2 id="_7" data-reading-section="_7">三、平台的未来，长在它的使用方式里</h2>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-19-33" title="在字幕对照页定位此段">00:19:34–00:23:36</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=1174" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-36d1d26c40df" data-reading-block="block-36d1d26c40df" data-reading-section="_7">DeepSeek Harness 延续了“一切皆插件”的思路。可以把它类比成操作系统：操作系统通过进程、文件和句柄等接口让程序组织能力；Harness 则通过事件总线（让不同组件发布和接收事件的通道）及插件约定，连接智能体、模型上下文与各类能力。具体功能逐渐由这个共同基础承载。</p>
+<p id="block-830b3d736a79" data-reading-block="block-830b3d736a79" data-reading-section="_7">讲师把它比作一艘刚能起降飞机的航母：平台已经搭起，上面究竟会长出哪些“飞机”，还在试验。最终成功的平台未必就是今天的 DeepSeek Harness，但围绕智能体形成的生态值得期待。课堂提到可能出现移动端连接常开个人电脑的用法，让任务继续在自己的电脑后台执行；这是当时的产品消息与使用设想，本书没有把它当作已完成的实际测试。</p>
+<p id="block-af1e994f6437" data-reading-block="block-af1e994f6437" data-reading-section="_7">“实时简历”也是一种插件设想。监听人与插件、插件与上下文的交互，保留合适的模型调用记录，就可能把轨迹投射成不断更新的个人页面。GitHub 的贡献墙是容易理解的参照：颜色反映提交活动，但提交次数可以被机器放大，因此活动量也不能直接代表个人能力。</p>
+<p id="block-3d4a04aa7581" data-reading-block="block-3d4a04aa7581" data-reading-section="_7">UNIX 的创建者不会预先知道几十年后的全部组合方式。原来用于翻页阅读的管道，也能接入新的语言模型工具。一个平台能否持续生长，要在后来的人如何组合它、如何引入新能力中观察。提前断言哪个产品会胜出，超出了课堂论证能支持的范围。</p>
+<h2 id="_8" data-reading-section="_8">四、把航母的时间轴展开</h2>
+<h3 id="_9" data-reading-section="_9">最终成品里，藏着长期积累的知识</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-23-32-2" title="在字幕对照页定位此段">00:23:36–00:27:51</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=1416" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-1201a7f50e83" data-reading-block="block-1201a7f50e83" data-reading-section="_9">2019 年，讲师在圣迭戈参观 USS Midway（中途岛号）博物馆。管线、蒸汽、电力、通信和损管系统交织在一起，让他惊讶于人如何能构建如此复杂的机器。战争环境又要求系统在局部受损后仍有可执行的应对办法。</p>
+<p id="block-012c3d805074" data-reading-block="block-012c3d805074" data-reading-section="_9">他回忆，一位曾在舰上服役的志愿者解释，操作人员不必重新推导整舰设计，而是通过操作手册知道某种故障出现时应处理哪个阀门、采取什么动作。设计者的推演被转化成流程，由不同岗位的人共同执行。复杂系统的能力因此同时存在于设备、接口和人的工作方法中。</p>
+<p id="block-23a03ab75de5" data-reading-block="block-23a03ab75de5" data-reading-section="_9">真正给他启发的是展示历代航母的陈列：如果只看成品，复杂性像是凭空出现；追到早期状态，再逐步看变化，就能理解知识怎样积累。课堂对 Midway 服役年代的个别回忆不够精确，本书取其工程论证，不据口述重建舰史年表。</p>
+<h3 id="_10" data-reading-section="_10">从远航帆船，到把机场搬上船</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-27-51" title="在字幕对照页定位此段">00:27:51–00:35:44</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=1671" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-2be760e38f00" data-reading-block="block-2be760e38f00" data-reading-section="_10">课堂先看 Santa María（圣玛丽亚号）帆船：1492 年，它成为哥伦布首次航行的旗舰。帆、索具和机械配合虽已复杂，仍容易让人追索各部分的作用。随后看到 1811 年的 New Orleans（新奥尔良号）汽船，以及它在 1812 年抵达新奥尔良的故事。早期汽船以外露的明轮推进，与今天隐藏在水下的螺旋桨有明显差别。</p>
+<p id="block-72b7d1913669" data-reading-block="block-72b7d1913669" data-reading-section="_10">变化通常来自小的增量：发现某个结构有效就加入，发现不再需要就移除。有时旧技术和新技术还会并存。桨与帆曾共同使用，后来远航条件改变，某些部件退出；“轮船”这个名称却可能在推进方式变化后继续保留。</p>
+<p id="block-fa3722aa708d" data-reading-block="block-fa3722aa708d" data-reading-section="_10">USS Langley（兰利号）的例子把这种变化推到新的用途：一艘运煤船已有承载重量的能力，如果把上层改成木质飞行甲板，能否把机场搬到海上？一个短句提出了新目标，随后却要解决一连串具体问题：跑道多大，飞机存在哪里，有限的船体空间如何安排，怎样把飞机从下层送到甲板。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_31_50.png" alt="课堂展示运煤船改装与兰利号飞行甲板的关系" loading="lazy"><p class="video-caption"><span class="cap-text">课堂展示运煤船改装与兰利号飞行甲板的关系</span><span class="cap-time"><a href="transcript.corrected.html#t-00-31-50" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=1910" target="_blank" rel="noopener">在 B 站打开 (00:31:50)</a></span></p></div>
+
+<p id="block-84ad4aba556a" data-reading-block="block-84ad4aba556a" data-reading-section="_10">升降机连接机库与甲板，但飞机能否及时被送上来，又影响起飞效率。课堂画面还展示一个具体接口问题：兰利号的升降机降到底后仍高于主甲板，飞机需要经临时滑道、吊架与人员配合转运。于是，新功能牵动空间、运输设备与操作流程，不能靠“加一块甲板”就宣布完成。到更复杂的航母，系统之间的配合也越来越密集。</p>
+<div class="video-card screenshot-card"><img src="images/shot_00_33_50.png" alt="课堂展示早期航母升降机及甲板空间的安排" loading="lazy"><p class="video-caption"><span class="cap-text">课堂展示早期航母升降机及甲板空间的安排</span><span class="cap-time"><a href="transcript.corrected.html#t-00-33-50" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=2030" target="_blank" rel="noopener">在 B 站打开 (00:33:50)</a></span></p></div>
+
+<p id="block-6715a1e3939d" data-reading-block="block-6715a1e3939d" data-reading-section="_10">这种演化同时包含不同尺度的工作。把运输船改成起降平台，是显著的架构变化；调整管线位置、避免高温蒸汽影响邻近设备，则可能只是局部修正。小修改与大变更共同塑造成品。课堂把这些船放在一起，是为了理解能力如何积累，并非断言它们组成一条直接的船型继承谱系。</p>
+<h3 id="_11" data-reading-section="_11">生成式开发改变了试验的步幅</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-35-43" title="在字幕对照页定位此段">00:35:44–00:40:51</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=2144" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-75633288b8da" data-reading-block="block-75633288b8da" data-reading-section="_11">讲师也用“造航母”形容自己的平台探索。在传统工程中，试一个想法常要付出很高实现成本；如今可以先借助模型做 MVP（用来验证关键想法的最小可行产品），观察效果，再回到早期状态把结构与细节重新做好。原型允许跨较大的步幅，后续仍需要严格的整理和验证。</p>
+<p id="block-efffce64e9f1" data-reading-block="block-efffce64e9f1" data-reading-section="_11">这也带来新问题。模型第一次搭出的架构可能很漂亮，随着需求和本质复杂性增加，却越来越难修改。早期成功的软件往往从一个解决真实问题的简单想法出发；能跑通原型，尚不足以证明最初架构适合长期维护。讲师借此把人的顿悟、知识积累与系统演化联系起来：今天的状态，需要放回它形成的过程理解。</p>
+<h2 id="_12" data-reading-section="_12">五、学习复杂系统，可以先回到自己看得懂的版本</h2>
+<h3 id="_13" data-reading-section="_13">简单版本保留了理解的入口</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-40-51" title="在字幕对照页定位此段">00:40:51–00:45:02</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=2451" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-cc1594b30b01" data-reading-block="block-cc1594b30b01" data-reading-section="_13">Python 2 的 <code>print</code> 可以作为语句使用，Python 3 则把它变成函数。一个早期设计后来会与整套语言和生态发生联系，修改也就不再只是改一个语法点。讲师同时说，课件里调度器、Python 和 Kubernetes 等例子，并没有完全表达他在航母故事中感受到的演化过程；阅读时应保留这份判断，不把课件上的每个点都扩写成课堂已经充分论证的案例。</p>
+<p id="block-db9807e9f081" data-reading-block="block-db9807e9f081" data-reading-section="_13">对初学者来说，直接面对今天的 Linux 容易只看到无穷的复杂性。Linux 0.11、较早的 2.6，或教学系统 xv6（为了学习而精简的类 UNIX 操作系统），提供了较容易掌握的起点。编译器、数据库也可以从类似的简化实现入手。当前学习模型系统时，nanoGPT、nano-vLLM 这样的精简项目，同样承担了理解核心机制的作用。</p>
+<p id="block-7e88c9f41335" data-reading-block="block-7e88c9f41335" data-reading-section="_13">讲师自己在 Linux 2.6 时期进入这一领域，后来仍会问：如果放在那个较简单的模型中，这件事应该怎样实现？先在可理解的系统里想清楚，再追踪是什么让今天的做法发生变化，就有了进入复杂系统的路径。</p>
+<h3 id="_14" data-reading-section="_14">把一个功能沿历史向后迁移</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-45-00" title="在字幕对照页定位此段">00:45:02–00:50:36</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=2702" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-2dcce5a5e42f" data-reading-block="block-2dcce5a5e42f" data-reading-section="_14">课堂以获取系统信息为例：应用想知道时间、所在 CPU 等信息，是否每次都必须进入操作系统？可以设想一页由内核与应用共享的数据，内核更新，应用只读。先在简单系统中思考它的权限、更新与读取，再看后来的机制会怎样影响它。这是用于理解的简化例子，不能据此断言现代内核仅按课堂几句话实现全部细节。</p>
+<p id="block-e1d5b953e7f0" data-reading-block="block-e1d5b953e7f0" data-reading-section="_14">接下来可以在思维中做一次 git rebase（把一组修改迁移到另一段版本历史之上）。假设早期版本加入了这个功能，再沿着提交历史向后走：新的调度算法是否影响它？新机制是否与它冲突？如果无关，就继续；遇到真正冲突，才仔细研究当时为何这样解决。</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[在简单版本理解功能] --&gt;|沿历史向后迁移| B[&quot;考察当前提交&lt;br/&gt;有影响：理解冲突及解法&lt;br/&gt;无影响：直接继续&quot;]
+    B --&gt;|带着已有约束| C[继续考察后续提交]
+</code></pre>
+<p id="block-6a203ce473a6" data-reading-block="block-6a203ce473a6" data-reading-section="_14">图注：依据 00:45:02–00:49:42 整理。箭头表示学习时的考察顺序；这是理解历史的方法，不要求实际重放所有提交。</p>
+<p id="block-5bb4e8369af8" data-reading-block="block-5bb4e8369af8" data-reading-section="_14">这种方法依赖系统对复杂性的分解：一个功能通常只与少数部分紧密交互。如果每次变化都牵动所有地方，维护本身就难以持续。因此，重点是找出少数关键交互，理解简单模型在什么地方失效。</p>
+<p id="block-e1b5f1bd8008" data-reading-block="block-e1b5f1bd8008" data-reading-section="_14">讲师认为，Git 历史保存了人类创造软件的过程，是值得研究的资料。他进一步设想，把数学或其他工程的发现、分支和重新组合也整理成可追索的历史。这个愿景尚不是课堂交付的知识系统。对学生更直接的启发是：无论做操作系统、编译器、数据库，还是在 nanoGPT、nano-vLLM 上尝试多卡或小设备推理，都可以同时追问功能的来源和演化。</p>
+<h2 id="_15" data-reading-section="_15">六、小任务评测为什么有分量</h2>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-50-36" title="在字幕对照页定位此段">00:50:36–00:57:50</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=3036" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-ae975db9fc24" data-reading-block="block-ae975db9fc24" data-reading-section="_15">如果演化由一系列提交组成，而多数提交是修 bug 或小功能，那么模型能否把“一件小事”做好，就成为关键问题。SWE-bench（让模型在真实仓库中解决 GitHub 问题的评测集）把现有代码、问题描述、修复与测试联系起来。它考察的是进入已有项目完成一次修改，而非只生成一段孤立程序。</p>
+<p id="block-52103101c189" data-reading-block="block-52103101c189" data-reading-section="_15">课堂回看早期论文时，展示了低个位数的解决率，并指出当时的模型输入与今天能调用工具反复执行的工作流还有差别。讲师据此强调这项评测的远见：如果软件演化中大量琐碎任务都能自动完成，工程工作的分工就会改变。他关于初级工种受到冲击的强烈表达，是从这种任务结构推导出的判断，不是评测本身已经证明的就业结论。</p>
+<p id="block-ff76617902fe" data-reading-block="block-ff76617902fe" data-reading-section="_15">这种评测也有局限。测试只给出一组可执行的反馈，不能代表所有工程价值。有的 bug 持续出现，是因为两个模块在早期没有分清职责；人可能会重构整个模块，让这类问题消失，而不是继续修补局部。但在一个既定 issue（项目中记录的待解决问题）任务里，局部补丁往往更容易被明确判定对错。</p>
+<p id="block-cc0ea11ee7a2" data-reading-block="block-cc0ea11ee7a2" data-reading-section="_15">课堂还提到 SWE-bench 的不同后续版本以及 Terminal-Bench（考察终端环境任务的评测）。这些名称说明评测在扩展，不能把不同数据集、模型和运行设置的成绩混为一个通用能力数字。本书保留课堂关于早期低解决率的结论，未把它当作今天排行榜的现状，也未替课堂中辨读不清的小数补造精确值。</p>
+<h2 id="_16" data-reading-section="_16">七、架构取舍需要更丰富的反馈</h2>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-00-56-12" title="在字幕对照页定位此段">00:56:12–01:04:33</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=3372" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-c1706520314a" data-reading-block="block-c1706520314a" data-reading-section="_16">什么没有被小任务评测充分覆盖？首先是项目的起点：决定要造什么，建立仓库，放下初始计划。其次是演化中的大事：什么时候应停止补丁式修改，重构哪个子系统，要采用怎样的新结构。</p>
+<p id="block-2f83e496c666" data-reading-block="block-2f83e496c666" data-reading-section="_16">架构存在于不同尺度。顶层架构约束系统整体，子系统内部也有自己的边界，甚至一个函数采用何种组织方式，也体现局部设计。课堂以 Bun（执行 JavaScript 等程序的运行时）从 Zig 向 Rust 的迁移说明大范围改变带来的惊讶，并提醒：能否迁移与项目结构有关，不能从一个案例推及任意大型数据库。本书没有把课堂的惊讶解释成“迁移绝无缺陷”；<a href="https://claude.com/resources/articles/ai-code-migration">发布方后来的说明</a>也记录了合并后的回归问题。</p>
+<p id="block-43d26acd876e" data-reading-block="block-43d26acd876e" data-reading-section="_16">重大变化既少，又不一定存在唯一最佳答案。它们的反馈比大量日常修复稀疏。讲师因此关心 few-shot learning（从极少案例中获得可迁移能力）：模型能否像人从一个案例中顿悟那样，改变自己理解问题的方法？课堂提到内核子系统重构，也是在追问为何当时必须改变、为什么那条路线可行，而非给出适用于所有项目的重构时间表。</p>
+<p id="block-406036452fb0" data-reading-block="block-406036452fb0" data-reading-section="_16">他把需要的评测暂称为 taste bench（评估设计判断和取舍能力的基准设想）。小任务常可由测试给出通过与否；架构决策则可能同时面对性能、工期、改动范围、迁移成本和风险。换成事件溯源（把发生过的事件保存下来，再据此恢复状态的设计方式）也许能解决某些问题，却增加迁移规模；更保守的改法也许降低一次改动的风险，却拉长达到目标所需的时间。</p>
+<p id="block-9c0578d5c754" data-reading-block="block-9c0578d5c754" data-reading-section="_16">这些选择需要多维比较。把一切压成总分，会像只看考试总分而看不到各科能力一样，遮住项目真正需要的能力组合。讲师还提醒，围绕评测进行训练与策略调整，会影响分数的意义；得到更高分，需要继续追问究竟学会了什么。taste bench 在本讲中是一项研究方向，尚不是已经建立并验证的标准。</p>
+<h2 id="deepseek-harness" data-reading-section="deepseek-harness">八、在 DeepSeek Harness 的历史里寻找设计理由</h2>
+<h3 id="_17" data-reading-section="_17">从提交时间轴看到关键转折</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-04-33" title="在字幕对照页定位此段">01:04:33–01:11:33</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=3873" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-d737578d0110" data-reading-block="block-d737578d0110" data-reading-section="_17">DeepSeek Harness 公开的提交历史，让课堂可以把“航母怎么长成”落到真实项目。讲师展示从 2026 年 6 月 10 日初始提交开始的早期历史，并让模型总结其中的重要机制与决策。模型沿用航母比喻作出的解释，不全是他想要的结果；他也提醒，摘要仍可能漏掉有趣的变化。</p>
+<p id="block-12f11218f17a" data-reading-block="block-12f11218f17a" data-reading-section="_17">早期一个关键动作是引入 Cordis（管理插件、服务及其生命周期的框架）。课堂说，它起源于作者管理 QQ 机器人插件时对加载、卸载问题的整理；DeepSeek Harness 并非从零发明所有能力，而是把已有框架带进来，再逐步实现模型推理与智能体循环。这个故事本身又有一条更早的演化历史。</p>
+<p id="block-d843e0560290" data-reading-block="block-d843e0560290" data-reading-section="_17">课堂展示的总结，还把可回放的会话记录、循环与适配器的分离、进程和文件等资源抽象，以及超时、取消、输出溢出等约束，视为让系统从“能跑”走向真实机器可用的工作。这里记录的是课堂对历史的阅读，未逐个检验整仓的提交结论。</p>
+<p id="block-6b02d2a7ca2d" data-reading-block="block-6b02d2a7ca2d" data-reading-section="_17">另一个被强调的转折是从终端界面走向浏览器。浏览器及 DOM 树（网页元素组成的结构）使界面扩展有了不同基础。关键不只是多了一个界面，而是平台能承载怎样的扩展随之变化。哪些阶段和日期值得关注，应继续沿具体提交核对，不能把模型生成的时间轴当作没有遗漏的史实。</p>
+<h3 id="_18" data-reading-section="_18">把提案、决策和实现状态分清</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-11-31" title="在字幕对照页定位此段">01:11:33–01:16:08</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=4293" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-9247b6553cb3" data-reading-block="block-9247b6553cb3" data-reading-section="_18">RFC（请求讨论、尚可修改的设计提案）让团队在改代码前，把重要选择摊开。它承认提案可能有错，也让其他成员补充意见。团队可以先在共享文档中评论，必要时开会，还可以在独立分支上试一个原型，再决定正式方案。</p>
+<p id="block-e8084111a4a6" data-reading-block="block-e8084111a4a6" data-reading-section="_18">讨论收敛后，ADR（记录已经作出的架构决策及其理由的文档）保存为何选择这条路线。随后才进入实现完成等状态。把提案、决策、实现分开，能让后来者看出一个想法究竟处在什么阶段。</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[RFC：提出设计并征求意见] --&gt;|讨论与必要的原型验证| B[ADR：记录决定与理由]
+    B --&gt;|按已确认决定实现| C[实现完成的状态]
+</code></pre>
+<p id="block-f7286155c1d8" data-reading-block="block-f7286155c1d8" data-reading-section="_18">图注：依据 01:11:33–01:16:08 整理。箭头表示课堂介绍的推进关系；原型验证按需要进行，不是每份提案的强制步骤。</p>
+<p id="block-eccde7be6cf8" data-reading-block="block-eccde7be6cf8" data-reading-section="_18">课堂给出的具体问题是 system prompt（规定模型角色与行为的系统消息）与其他消息的存储不统一：前者放在请求头，其他消息进入会话事件。新增“对话中途替换系统消息”的需求后，原有表示就难以容纳，需要讨论是否改成统一抽象，并记录决策后再实现。一个看起来只涉及消息的小改动，对上下文管理子系统已经是重要设计变化。</p>
+<div class="video-card screenshot-card"><img src="images/shot_01_14_50.png" alt="课堂追问系统消息存储方案的 RFC 与 ADR 变化" loading="lazy"><p class="video-caption"><span class="cap-text">课堂追问系统消息存储方案的 RFC 与 ADR 变化</span><span class="cap-time"><a href="transcript.corrected.html#t-01-14-49" title="在字幕对照页定位此段">字幕对照</a> · <a href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=4490" target="_blank" rel="noopener">在 B 站打开 (01:14:50)</a></span></p></div>
+
+<h3 id="_19" data-reading-section="_19">协作方式也会随规模改变</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-16-07" title="在字幕对照页定位此段">01:16:08–01:17:49</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=4568" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-fb867cdae9e5" data-reading-block="block-fb867cdae9e5" data-reading-section="_19">讲师展示当时约 2.2 万次提交，并联系自己小团队采用线性历史的经验：没有合并节点时，每个变化较容易单独追踪。但若外部开发者增多，主线每次前进都要求各分支重新迁移，再触发持续集成（CI，提交后自动运行的一组检查），成本就会上升。</p>
+<p id="block-4e38198b4958" data-reading-block="block-4e38198b4958" data-reading-section="_19">这里没有一种永远正确的协作模型。团队规模、贡献来源和验证成本改变后，工作方法也需要演化。课堂同时提到逐文件覆盖要求、真实产品与发布产物的验收层次；这些层次回答不同问题，不能只凭某一项覆盖率就认定产品完整可靠。</p>
+<h2 id="_20" data-reading-section="_20">九、把已知错误变成能够执行的约束</h2>
+<h3 id="_21" data-reading-section="_21">检查规则的收益，也有维护代价</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-17-49" title="在字幕对照页定位此段">01:17:49–01:22:42</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=4669" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-d54cac9aac30" data-reading-block="block-d54cac9aac30" data-reading-section="_21">严密的流程仍不能保证模型生成的所有内容都合适。讲师观察到，模型有时不断追问，有时自行猜测，还有时在实验性工作中加入过量测试和文档，使后续修改更复杂。最终仍需要人把握项目的目标和轻重。</p>
+<p id="block-17413f463d30" data-reading-block="block-17413f463d30" data-reading-section="_21">国际化文档就是一个具体取舍。i18n（让产品支持多种语言的工作）要求中英文 README 同步。用额外的 YAML（以文本保存结构化数据的格式）文件记录对应关系，能帮助检查不一致，却增加仓库里的文件与关联负担。讲师认为，目录和文件未必是保存全部项目关系的理想方式；眼前方案仍可能只是权宜之计。</p>
+<p id="block-dab11154c63a" data-reading-block="block-dab11154c63a" data-reading-section="_21">文档本身也会制造这种负担。模型把“做了 A、做了 B、不要 C”等实现过程都写进文档后，这些陈述就与代码形成同步修改关系。实现迭代时，A、B 可能已经删除，一条过时的“不要 C”却留下来。文字越多，需要维持一致的关系也越多。课堂查看的写作规范因此要求去掉推理过程、重复和无用修饰，把读者真正需要的内容留下。</p>
+<h3 id="_22" data-reading-section="_22">从经验中逐项建立检查</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-20-00" title="在字幕对照页定位此段">01:20:00–01:30:50</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=4800" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-306e77a426e1" data-reading-block="block-306e77a426e1" data-reading-section="_22">课堂总结的办法是：遇到一种已知坏特征，就尽可能写成可执行的验证规则，在提交、推送或持续集成中阻止它进入项目。这是随着经验不断补充的防线，不能穷尽所有坏设计。</p>
+<table id="block-0fe2ed1235a6" data-reading-block="block-0fe2ed1235a6" data-reading-section="_22">
+<thead>
+<tr>
+<th>检查对象</th>
+<th>课堂中的具体问题与作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代码</td>
+<td>统一 lint（自动检查代码规范和常见问题的工具）与类型规则；接口改变后，调用方也必须跟着改；不同用途的字符串 ID 不应随意混用。</td>
+</tr>
+<tr>
+<td>异步</td>
+<td>检查未处理的 Promise（代表异步操作结果的对象）、未回收资源、危险断言、废弃接口及未使用变量。未使用变量可能暴露变量名写错等低级错误。</td>
+</tr>
+<tr>
+<td>架构</td>
+<td>检查浏览器代码是否误依赖宿主实现、客户端依赖是否越界、控制流是否经过规定的插件机制。功能运行成功，也可能仍破坏结构。</td>
+</tr>
+<tr>
+<td>数据</td>
+<td>持久化与兼容性检查约束保存下来的数据、运行时边界及后续变化必须遵循的合同；课堂列出这一检查类别，未逐条展开其全部实现。</td>
+</tr>
+<tr>
+<td>文档</td>
+<td>检查文档导出说明、硬编码界面文案以及中英文配对关系，减少代码与说明脱节。</td>
+</tr>
+<tr>
+<td>交付</td>
+<td>构建和类型检查之外，还要分别确认真实产品及发布产物；自动检查与评审共同进入工作流程。</td>
+</tr>
+</tbody>
+</table>
+<p id="block-58b1af35058d" data-reading-block="block-58b1af35058d" data-reading-section="_22">有些严格规则与项目阶段有关。个人试验可以暂时使用某些不安全能力；正式项目如果规定某个包禁止 Rust 的 <code>unsafe</code>（允许程序员承担部分安全证明责任的代码区域），就可以把约定变成工具检查。试验版本先验证想法，进入正式版本前再满足约束。</p>
+<p id="block-ccebdd60914d" data-reading-block="block-ccebdd60914d" data-reading-section="_22">规则还要安排到合适的时机。pre-commit（生成提交前的本地检查）可以验证文档配对等约定；pre-push（推送前的检查）可以运行类型检查；CI 再执行适合集中运行的更多验证。这里描述的是课堂查看的分层方法，不要求每个项目机械复制全部规则。</p>
+<p id="block-cd6de3f6693d" data-reading-block="block-cd6de3f6693d" data-reading-section="_22">一个典型失误是：模型实现新功能时，另写一套逻辑，再在核心代码中直接加一行函数调用。功能可能已经可用，却绕开“一切皆插件”的约定。团队既可以把规则写进说明，也可以检查控制流是否由插件发起。前者占用上下文、增加阅读负担；后者需要把经验转成可判定的约束。网络调用是否绕过用户代理、浏览器请求怎样解析地址、第三方代码如何更新，也有类似的项目特定边界。</p>
+<p id="block-3d7622b9e280" data-reading-block="block-3d7622b9e280" data-reading-section="_22">对学习者来说，可迁移的方法是：选一个自己确实需要的项目，整理它的提交时间轴，再查看文档质量、依赖边界和发布验证如何演化。具体规则会随语言和业务改变，追问规则为什么出现，才有助于理解项目。</p>
+<h2 id="_23" data-reading-section="_23">十、反例反馈之后，还要寻找更一般的原则</h2>
+<h3 id="_24" data-reading-section="_24">一条条禁止，为什么会让上下文膨胀</h3>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-30-50" title="在字幕对照页定位此段">01:30:50–01:36:49</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=5450" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-742b8a5bc997" data-reading-block="block-742b8a5bc997" data-reading-section="_24">模型有时过分自信，有时过度谨慎；用户一纠正，它又可能把“不要这样”分别写进文档和代码注释。上下文不断膨胀后，局部禁令会抢占注意力。讲师用番茄炒蛋举例：“不要放蒜”可能只是在修正一次错误，模型却未必理解同样无关的香菜、韭菜和蘑菇也不需要出现。</p>
+<p id="block-4ce32c02711e" data-reading-block="block-4ce32c02711e" data-reading-section="_24">程序合成（根据规格或例子自动寻找满足要求的程序）早已遇到类似问题。Excel 智能填充的经典例子，是用少量输入输出示范，把不同写法的电话号码统一拆成区号和号码。Programming by Examples（从输入输出例子推断程序）与 Programming by Demonstration（从操作示范推断程序）提供了不同表达意图的方式。讲师认为今天的大模型已使这类任务容易许多；这仍是对能力趋势的课堂判断。</p>
+<p id="block-fbacea6de75d" data-reading-block="block-fbacea6de75d" data-reading-section="_24">CEGIS（用反例不断约束候选程序的合成方法）提供了另一种联系：先给规格，生成一个候选，再用不满足预期的例子反馈，推动下一轮修改。困难是，有限样本可能对应很多程序。再给一个例子，模型也可能只加一条特殊判断，碰巧覆盖该输入，却没有获得你真正想要的规律。</p>
+<p id="block-52f824d05b8c" data-reading-block="block-52f824d05b8c" data-reading-section="_24">写作的去套话规则也有这种倾向。发现反复使用某些词、过重的宣传口吻或“not just X but Y”句式，就逐条禁止；但新变体仍会出现。课堂列出的 ensuring、highlighting、showcase 等表达，意在观察模型的固定偏好，并非宣布这些英文词在所有学术写作中都不应使用。更难的任务，是从反例抽出一个能覆盖更多情形、又符合作者意图的原则。</p>
+<h2 id="skill" data-reading-section="skill">十一、怎样判断一个 skill 是否真的在进步</h2>
+<div class="time-anchor"><span class="ta-label">参考时间</span> <a class="ta-ts" href="transcript.corrected.html#t-01-36-48" title="在字幕对照页定位此段">01:36:49–01:39:53</a> <span class="ta-sep">·</span> <a class="ta-vid" href="https://www.bilibili.com/video/BV1Guxu6EERa/?t=5809" target="_blank" rel="noopener" title="直接在原视频播放">原视频 ↗</a></div>
+
+<p id="block-539dbbec5fae" data-reading-block="block-539dbbec5fae" data-reading-section="skill">讲师用自动回复邮件说明这个问题。他发现，即使把自己过去回复的邮件放进上下文，模型也未必能写出符合自己习惯的长回复。单纯提供很多样本，还不足以保证模型提炼出所需的风格。</p>
+<p id="block-d8cb14f74ac5" data-reading-block="block-d8cb14f74ac5" data-reading-section="skill">他的尝试是构建递归改进循环：让一个写邮件的 skill 面对过去的来信生成回复，生成时不看对应的真实回复；再以真实回复作为对照，检查回复长度、词频、句长和标点使用等指标，观察候选是否更接近目标。如果更近就保留；如果更远，就要求从失败中提炼一条更一般的指导原则，放回 skill，再试下一轮。</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[&quot;用当前 skill 生成回复&lt;br/&gt;不看对应真实回复&quot;] --&gt;|生成后再对照| B[比较长度与词频等特征]
+    B --&gt;|根据比较结果| C[&quot;更近：保留改进&lt;br/&gt;更远：提炼原则，更新后重试&quot;]
+</code></pre>
+<p id="block-e8eefd201da7" data-reading-block="block-e8eefd201da7" data-reading-section="skill">图注：依据 01:37:06–01:39:53 整理。箭头表示课堂描述的条件反馈；统计特征只覆盖风格的一部分，不能单独证明文字质量全面提高。</p>
+<p id="block-27b6814354da" data-reading-block="block-27b6814354da" data-reading-section="skill">这里想得到的，是能解释多种反例的原则。例如，一次“不要放蒜”背后，可能需要约束的是加入无关内容；但究竟应归纳出什么，仍必须回到任务和更多实例检验。讲师明确说，今天这件事还做不到他期望的程度，同时对今后的改进保持乐观。</p>
+<p id="block-a28cbe0a3aad" data-reading-block="block-a28cbe0a3aad" data-reading-section="skill">这一结尾又回到软件的时间轴：日常小修改已有清楚的反馈，大方向的改变则需要更丰富的判断与证据。能否建立一个持续改进的循环，让系统在做好小事的同时学会处理大事，是本讲留下的问题。</p>
+<hr />
+<p id="block-548c30fc0eaa" data-reading-block="block-548c30fc0eaa" data-reading-section="skill">来源说明：正文以本讲完整可用字幕为主，结合课程主页及明确列出的官方材料校正专名。平台字幕存在少量无覆盖区间和识别错误；存疑的小数、个别舰史回忆及未充分展开的架构例子保留边界。课堂截图对应所标时间，概念图为依据相邻讲述整理。课程讲义标注 <a href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a>，原课程与讲义归属保留。</p>
+      </article>
+      <nav class="book-pager" aria-label="讲次导航"><a class="pager-btn prev" href="../DeepSeek%20Harness%20%281%29%20%5B09-Raw%EF%BC%8F26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B%EF%BC%8FNJU%5D/book.html"><span class="pager-label">← 上一讲</span><span class="pager-title">DeepSeek Harness（一）：需求、架构与生态</span></a><a class="pager-course" href="../courses/26%E7%94%9F%E6%88%90%E5%BC%8F%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B/index.html">返回课程目录</a><span class="pager-btn next disabled"><span class="pager-label">下一讲 →</span><span class="pager-title">已是最后一讲</span></span></nav>
+    </main>
+  </div>
+</div>
+<script id="reading-context" type="application/json">{"schemaVersion":1,"bookId":"BV1Guxu6EERa","contentVersion":"8503309464a4531d7f2a25da9973b88c1b9d4c043910c95f0aa61811125aa926","sections":[{"id":"section-intro","title":"前言","blockIds":["block-5264657a0fd6","block-b018387f4f90"]},{"id":"_1","title":"一、我们熟悉的抽象，覆盖了多少真实世界","blockIds":[]},{"id":"_2","title":"从计算复杂性新闻说起","blockIds":["block-af929535cdf5","block-c495dbd46ff3","block-109bd38ea073","block-9d6e238e59ba"]},{"id":"_3","title":"分类、对称与智能：一组思想实验","blockIds":["block-c7c46f89c690","block-02b29cbb85a5"]},{"id":"_4","title":"二、用学习的过程展示自己的能力","blockIds":[]},{"id":"_5","title":"从一份作品，追到产生作品的轨迹","blockIds":["block-ab5fedf3c79f","block-d3e40af0a7f4","block-24bb7e7306df","block-1cae35a52796"]},{"id":"_6","title":"优势、隐私和新一轮竞争","blockIds":["block-991c0f1ce7e7","block-c1edf18f7245","block-ec081d139d81","block-6c68fb85dc50"]},{"id":"_7","title":"三、平台的未来，长在它的使用方式里","blockIds":["block-36d1d26c40df","block-830b3d736a79","block-af1e994f6437","block-3d4a04aa7581"]},{"id":"_8","title":"四、把航母的时间轴展开","blockIds":[]},{"id":"_9","title":"最终成品里，藏着长期积累的知识","blockIds":["block-1201a7f50e83","block-012c3d805074","block-23a03ab75de5"]},{"id":"_10","title":"从远航帆船，到把机场搬上船","blockIds":["block-2be760e38f00","block-72b7d1913669","block-fa3722aa708d","block-84ad4aba556a","block-6715a1e3939d"]},{"id":"_11","title":"生成式开发改变了试验的步幅","blockIds":["block-75633288b8da","block-efffce64e9f1"]},{"id":"_12","title":"五、学习复杂系统，可以先回到自己看得懂的版本","blockIds":[]},{"id":"_13","title":"简单版本保留了理解的入口","blockIds":["block-cc1594b30b01","block-db9807e9f081","block-7e88c9f41335"]},{"id":"_14","title":"把一个功能沿历史向后迁移","blockIds":["block-2dcce5a5e42f","block-e1d5b953e7f0","block-6a203ce473a6","block-5bb4e8369af8","block-e1b5f1bd8008"]},{"id":"_15","title":"六、小任务评测为什么有分量","blockIds":["block-ae975db9fc24","block-52103101c189","block-ff76617902fe","block-cc0ea11ee7a2"]},{"id":"_16","title":"七、架构取舍需要更丰富的反馈","blockIds":["block-c1706520314a","block-2f83e496c666","block-43d26acd876e","block-406036452fb0","block-9c0578d5c754"]},{"id":"deepseek-harness","title":"八、在 DeepSeek Harness 的历史里寻找设计理由","blockIds":[]},{"id":"_17","title":"从提交时间轴看到关键转折","blockIds":["block-d737578d0110","block-12f11218f17a","block-d843e0560290","block-6b02d2a7ca2d"]},{"id":"_18","title":"把提案、决策和实现状态分清","blockIds":["block-9247b6553cb3","block-e8084111a4a6","block-f7286155c1d8","block-eccde7be6cf8"]},{"id":"_19","title":"协作方式也会随规模改变","blockIds":["block-fb867cdae9e5","block-4e38198b4958"]},{"id":"_20","title":"九、把已知错误变成能够执行的约束","blockIds":[]},{"id":"_21","title":"检查规则的收益，也有维护代价","blockIds":["block-d54cac9aac30","block-17413f463d30","block-dab11154c63a"]},{"id":"_22","title":"从经验中逐项建立检查","blockIds":["block-306e77a426e1","block-0fe2ed1235a6","block-58b1af35058d","block-ccebdd60914d","block-cd6de3f6693d","block-3d7622b9e280"]},{"id":"_23","title":"十、反例反馈之后，还要寻找更一般的原则","blockIds":[]},{"id":"_24","title":"一条条禁止，为什么会让上下文膨胀","blockIds":["block-742b8a5bc997","block-4ce32c02711e","block-fbacea6de75d","block-52f824d05b8c"]},{"id":"skill","title":"十一、怎样判断一个 skill 是否真的在进步","blockIds":["block-539dbbec5fae","block-d8cb14f74ac5","block-e8eefd201da7","block-27b6814354da","block-a28cbe0a3aad","block-548c30fc0eaa"]}],"blocks":[{"id":"block-5264657a0fd6","sectionId":"section-intro","text":"南京大学《生成式软件工程》2026 · 第 10 讲 讲师：蒋炎岩 · 视频发布账号：绿导师原谅你了 原视频 · 时长约 100 分钟 · 课程讲义"},{"id":"block-b018387f4f90","sectionId":"section-intro","text":"上一讲从 DeepSeek Harness（承载模型、工具与插件的智能体运行系统）的代码结构理解架构。这一讲把时间轴展开：复杂系统最初怎样起步，哪些小修改逐渐积累成今天的形态，哪些时刻需要重新设计，以及生成代码变快之后，人还需要作出什么判断。"},{"id":"block-af929535cdf5","sectionId":"_2","text":"课堂开场提到，OpenAI 声称找到了否定 ETH（指数时间假说，对某些计算问题所需时间下界的一种猜想）的算法。讲师强调，这与找到多项式时间算法仍有区别。编者核对的发布公告也把相关文稿视为仍需学术共同体理解的研究材料；这里保留发布方声称与独立检验之间的距离。"},{"id":"block-c495dbd46ff3","sectionId":"_2","text":"这引出一个更基础的问题：为什么理论计算机科学用 P（可在多项式时间内求解的问题类）描述高效计算？NP（候选答案可在多项式时间内验证的问题类）中的 N 来自 nondeterministic，即非确定性，并非“不是 P”。这些是帮助理解课堂讨论的基础释义。按课堂所强调的区别，否定 ETH 不能直接理解成已经证明 P 等于 NP。"},{"id":"block-109bd38ea073","sectionId":"_2","text":"把运行时间为 n² 和 n¹⁰⁰ 的算法放在同一类，对实际运行来说非常粗糙。后者即使输入规模不大，也可能根本跑不出来。多项式时间之所以方便，有一个重要的结构理由：多项式时间的程序在执行过程中，只能产生多项式长度的输入；调用另一个多项式时间程序以后，整体仍在多项式时间内。这种对程序复合的封闭性，让我们可以组合已有算法，也使理论推导更容易组织。"},{"id":"block-9d6e238e59ba","sectionId":"_2","text":"讲师认为，这种抽象也反映了人类的理解能力有限。我们真正关心的，可以是更细的问题：给定一台形式化的计算机、一个明确的问题和 k 步执行机会，究竟能完成什么？在 RAM 模型（把内存访问等操作按给定代价计算的抽象计算机）中，指令、数据排布和压缩方式都可能改变有限步数内能做的事；只看“是否为多项式”，许多差异就被抹平了。近似线性时间的网络流算法之所以令人惊讶，也提醒我们：熟悉的分类没有穷尽问题内部的结构。"},{"id":"block-c7c46f89c690","sectionId":"_3","text":"生物分类提供了类似的例子。猫和狗很容易区分，但观察更微观的生命与谱系关系时，整齐的树状分类可能不够；关系甚至需要用图来表达。讲师明确说自己并非这方面专家，借此讨论的是人类偏爱干净模型的倾向。"},{"id":"block-02b29cbb85a5","sectionId":"_3","text":"他进一步提出一种猜想：也许真实世界的结构远比我们习惯的理论复杂，我们只是恰好处在一个相对“平坦”、规律可以复用的区域。规律可以被压缩成经验，经验又能帮助预测与行动，于是智能才有形成的机会。课堂还借对称性与守恒量展开联想。这里应保留为关于理解、压缩和智能的思想实验，不能读成已经证明的物理学或智能理论。"},{"id":"block-ab5fedf3c79f","sectionId":"_5","text":"过去常见的教育循环是：家庭投入教育，大学培养人才，企业购买劳动。讲师担心，当有经验的人借助智能体就能完成更多工作，企业可能更不愿承担培养新人的成本。这是他对就业变化的判断，并非对所有企业招聘行为的统计结论。"},{"id":"block-d3e40af0a7f4","sectionId":"_5","text":"他的建议是保存 AI trajectory（人与模型协作时留下的问题、反馈、操作和产出轨迹）。轨迹可以去掉冗长的工具调用输出，保留有意义的图片、代码等产物，整理成个人时间轴。真正值得看的包括：你提出了什么问题，模型给了什么回答，哪些想法来自你，你如何纠正回答，以及最后的代码是否能运行。"},{"id":"block-24bb7e7306df","sectionId":"_5","text":"轨迹还给面试提供了新的切入点。用人单位可以随机挑一天的讨论，追问当时为什么这样判断、今天又会怎样看待。讲师认为，过程记录加上随机追问，比只看精修后的成品更难临时伪造。这是关于评估方式的设想，不意味着日志天然真实，也不意味着拥有日志就能准确预测一个人的未来。"},{"id":"block-1cae35a52796","sectionId":"_5","text":"同样的入学分数，可能对应完全不同的成长曲线。有人此后很少继续学习，有人不断发现更好的协作方法，把经验沉淀成 skill（可复用的一组操作方法与约定），下一次处理同类问题就发生改变。轨迹的价值，正在于展示这些变化，而不只是累积做过多少件事。"},{"id":"block-991c0f1ce7e7","sectionId":"_6","text":"轨迹越完整，对人的刻画也越深入。它可能暴露兴趣、判断习惯、生活安排和尚未成形的想法。讲师用“出卖灵魂”的强烈比喻，表达获得协作优势与交出隐私之间的矛盾：一方面，模型持续提供帮助与正反馈；另一方面，服务提供方也掌握越来越多关于使用者的信息。"},{"id":"block-c1edf18f7245","sectionId":"_6","text":"他还设想，让双方的智能体先比较轨迹，找到观点一致与分歧之处，再由人继续讨论；甚至把这种方法用来匹配朋友或伴侣。这些是带有玩笑成分的产品设想。模型帮助补充知识、寻找论文和检查想法的作用，与模型能够完整理解人格，是不同强度的判断。"},{"id":"block-ec081d139d81","sectionId":"_6","text":"把轨迹投射成简历或个人网站，可能带来阶段性优势。但讲师也提醒，一旦大家都这么做，就会出现新的内卷和 reward hacking（迎合评价指标而偏离原本目标）。保存过程不自动等于真诚学习；竞争也可能反过来塑造记录的内容。"},{"id":"block-6c68fb85dc50","sectionId":"_6","text":"“上学是期货投资”指的是今天投入青春、学费与放弃的工作收入，押注几年后技能仍有市场。他顺着这个比喻提出“贷款上班、先交保证金证明能超过 AI”的尖锐设想，追问技能贬值和再训练成本由谁承担；又设想过类似限制能力继续增长的协议。这些是课堂的预测与反问，不能作为已经存在的就业制度来理解。"},{"id":"block-36d1d26c40df","sectionId":"_7","text":"DeepSeek Harness 延续了“一切皆插件”的思路。可以把它类比成操作系统：操作系统通过进程、文件和句柄等接口让程序组织能力；Harness 则通过事件总线（让不同组件发布和接收事件的通道）及插件约定，连接智能体、模型上下文与各类能力。具体功能逐渐由这个共同基础承载。"},{"id":"block-830b3d736a79","sectionId":"_7","text":"讲师把它比作一艘刚能起降飞机的航母：平台已经搭起，上面究竟会长出哪些“飞机”，还在试验。最终成功的平台未必就是今天的 DeepSeek Harness，但围绕智能体形成的生态值得期待。课堂提到可能出现移动端连接常开个人电脑的用法，让任务继续在自己的电脑后台执行；这是当时的产品消息与使用设想，本书没有把它当作已完成的实际测试。"},{"id":"block-af1e994f6437","sectionId":"_7","text":"“实时简历”也是一种插件设想。监听人与插件、插件与上下文的交互，保留合适的模型调用记录，就可能把轨迹投射成不断更新的个人页面。GitHub 的贡献墙是容易理解的参照：颜色反映提交活动，但提交次数可以被机器放大，因此活动量也不能直接代表个人能力。"},{"id":"block-3d4a04aa7581","sectionId":"_7","text":"UNIX 的创建者不会预先知道几十年后的全部组合方式。原来用于翻页阅读的管道，也能接入新的语言模型工具。一个平台能否持续生长，要在后来的人如何组合它、如何引入新能力中观察。提前断言哪个产品会胜出，超出了课堂论证能支持的范围。"},{"id":"block-1201a7f50e83","sectionId":"_9","text":"2019 年，讲师在圣迭戈参观 USS Midway（中途岛号）博物馆。管线、蒸汽、电力、通信和损管系统交织在一起，让他惊讶于人如何能构建如此复杂的机器。战争环境又要求系统在局部受损后仍有可执行的应对办法。"},{"id":"block-012c3d805074","sectionId":"_9","text":"他回忆，一位曾在舰上服役的志愿者解释，操作人员不必重新推导整舰设计，而是通过操作手册知道某种故障出现时应处理哪个阀门、采取什么动作。设计者的推演被转化成流程，由不同岗位的人共同执行。复杂系统的能力因此同时存在于设备、接口和人的工作方法中。"},{"id":"block-23a03ab75de5","sectionId":"_9","text":"真正给他启发的是展示历代航母的陈列：如果只看成品，复杂性像是凭空出现；追到早期状态，再逐步看变化，就能理解知识怎样积累。课堂对 Midway 服役年代的个别回忆不够精确，本书取其工程论证，不据口述重建舰史年表。"},{"id":"block-2be760e38f00","sectionId":"_10","text":"课堂先看 Santa María（圣玛丽亚号）帆船：1492 年，它成为哥伦布首次航行的旗舰。帆、索具和机械配合虽已复杂，仍容易让人追索各部分的作用。随后看到 1811 年的 New Orleans（新奥尔良号）汽船，以及它在 1812 年抵达新奥尔良的故事。早期汽船以外露的明轮推进，与今天隐藏在水下的螺旋桨有明显差别。"},{"id":"block-72b7d1913669","sectionId":"_10","text":"变化通常来自小的增量：发现某个结构有效就加入，发现不再需要就移除。有时旧技术和新技术还会并存。桨与帆曾共同使用，后来远航条件改变，某些部件退出；“轮船”这个名称却可能在推进方式变化后继续保留。"},{"id":"block-fa3722aa708d","sectionId":"_10","text":"USS Langley（兰利号）的例子把这种变化推到新的用途：一艘运煤船已有承载重量的能力，如果把上层改成木质飞行甲板，能否把机场搬到海上？一个短句提出了新目标，随后却要解决一连串具体问题：跑道多大，飞机存在哪里，有限的船体空间如何安排，怎样把飞机从下层送到甲板。"},{"id":"block-84ad4aba556a","sectionId":"_10","text":"升降机连接机库与甲板，但飞机能否及时被送上来，又影响起飞效率。课堂画面还展示一个具体接口问题：兰利号的升降机降到底后仍高于主甲板，飞机需要经临时滑道、吊架与人员配合转运。于是，新功能牵动空间、运输设备与操作流程，不能靠“加一块甲板”就宣布完成。到更复杂的航母，系统之间的配合也越来越密集。"},{"id":"block-6715a1e3939d","sectionId":"_10","text":"这种演化同时包含不同尺度的工作。把运输船改成起降平台，是显著的架构变化；调整管线位置、避免高温蒸汽影响邻近设备，则可能只是局部修正。小修改与大变更共同塑造成品。课堂把这些船放在一起，是为了理解能力如何积累，并非断言它们组成一条直接的船型继承谱系。"},{"id":"block-75633288b8da","sectionId":"_11","text":"讲师也用“造航母”形容自己的平台探索。在传统工程中，试一个想法常要付出很高实现成本；如今可以先借助模型做 MVP（用来验证关键想法的最小可行产品），观察效果，再回到早期状态把结构与细节重新做好。原型允许跨较大的步幅，后续仍需要严格的整理和验证。"},{"id":"block-efffce64e9f1","sectionId":"_11","text":"这也带来新问题。模型第一次搭出的架构可能很漂亮，随着需求和本质复杂性增加，却越来越难修改。早期成功的软件往往从一个解决真实问题的简单想法出发；能跑通原型，尚不足以证明最初架构适合长期维护。讲师借此把人的顿悟、知识积累与系统演化联系起来：今天的状态，需要放回它形成的过程理解。"},{"id":"block-cc1594b30b01","sectionId":"_13","text":"Python 2 的 print 可以作为语句使用，Python 3 则把它变成函数。一个早期设计后来会与整套语言和生态发生联系，修改也就不再只是改一个语法点。讲师同时说，课件里调度器、Python 和 Kubernetes 等例子，并没有完全表达他在航母故事中感受到的演化过程；阅读时应保留这份判断，不把课件上的每个点都扩写成课堂已经充分论证的案例。"},{"id":"block-db9807e9f081","sectionId":"_13","text":"对初学者来说，直接面对今天的 Linux 容易只看到无穷的复杂性。Linux 0.11、较早的 2.6，或教学系统 xv6（为了学习而精简的类 UNIX 操作系统），提供了较容易掌握的起点。编译器、数据库也可以从类似的简化实现入手。当前学习模型系统时，nanoGPT、nano-vLLM 这样的精简项目，同样承担了理解核心机制的作用。"},{"id":"block-7e88c9f41335","sectionId":"_13","text":"讲师自己在 Linux 2.6 时期进入这一领域，后来仍会问：如果放在那个较简单的模型中，这件事应该怎样实现？先在可理解的系统里想清楚，再追踪是什么让今天的做法发生变化，就有了进入复杂系统的路径。"},{"id":"block-2dcce5a5e42f","sectionId":"_14","text":"课堂以获取系统信息为例：应用想知道时间、所在 CPU 等信息，是否每次都必须进入操作系统？可以设想一页由内核与应用共享的数据，内核更新，应用只读。先在简单系统中思考它的权限、更新与读取，再看后来的机制会怎样影响它。这是用于理解的简化例子，不能据此断言现代内核仅按课堂几句话实现全部细节。"},{"id":"block-e1d5b953e7f0","sectionId":"_14","text":"接下来可以在思维中做一次 git rebase（把一组修改迁移到另一段版本历史之上）。假设早期版本加入了这个功能，再沿着提交历史向后走：新的调度算法是否影响它？新机制是否与它冲突？如果无关，就继续；遇到真正冲突，才仔细研究当时为何这样解决。"},{"id":"block-6a203ce473a6","sectionId":"_14","text":"图注：依据 00:45:02–00:49:42 整理。箭头表示学习时的考察顺序；这是理解历史的方法，不要求实际重放所有提交。"},{"id":"block-5bb4e8369af8","sectionId":"_14","text":"这种方法依赖系统对复杂性的分解：一个功能通常只与少数部分紧密交互。如果每次变化都牵动所有地方，维护本身就难以持续。因此，重点是找出少数关键交互，理解简单模型在什么地方失效。"},{"id":"block-e1b5f1bd8008","sectionId":"_14","text":"讲师认为，Git 历史保存了人类创造软件的过程，是值得研究的资料。他进一步设想，把数学或其他工程的发现、分支和重新组合也整理成可追索的历史。这个愿景尚不是课堂交付的知识系统。对学生更直接的启发是：无论做操作系统、编译器、数据库，还是在 nanoGPT、nano-vLLM 上尝试多卡或小设备推理，都可以同时追问功能的来源和演化。"},{"id":"block-ae975db9fc24","sectionId":"_15","text":"如果演化由一系列提交组成，而多数提交是修 bug 或小功能，那么模型能否把“一件小事”做好，就成为关键问题。SWE-bench（让模型在真实仓库中解决 GitHub 问题的评测集）把现有代码、问题描述、修复与测试联系起来。它考察的是进入已有项目完成一次修改，而非只生成一段孤立程序。"},{"id":"block-52103101c189","sectionId":"_15","text":"课堂回看早期论文时，展示了低个位数的解决率，并指出当时的模型输入与今天能调用工具反复执行的工作流还有差别。讲师据此强调这项评测的远见：如果软件演化中大量琐碎任务都能自动完成，工程工作的分工就会改变。他关于初级工种受到冲击的强烈表达，是从这种任务结构推导出的判断，不是评测本身已经证明的就业结论。"},{"id":"block-ff76617902fe","sectionId":"_15","text":"这种评测也有局限。测试只给出一组可执行的反馈，不能代表所有工程价值。有的 bug 持续出现，是因为两个模块在早期没有分清职责；人可能会重构整个模块，让这类问题消失，而不是继续修补局部。但在一个既定 issue（项目中记录的待解决问题）任务里，局部补丁往往更容易被明确判定对错。"},{"id":"block-cc0ea11ee7a2","sectionId":"_15","text":"课堂还提到 SWE-bench 的不同后续版本以及 Terminal-Bench（考察终端环境任务的评测）。这些名称说明评测在扩展，不能把不同数据集、模型和运行设置的成绩混为一个通用能力数字。本书保留课堂关于早期低解决率的结论，未把它当作今天排行榜的现状，也未替课堂中辨读不清的小数补造精确值。"},{"id":"block-c1706520314a","sectionId":"_16","text":"什么没有被小任务评测充分覆盖？首先是项目的起点：决定要造什么，建立仓库，放下初始计划。其次是演化中的大事：什么时候应停止补丁式修改，重构哪个子系统，要采用怎样的新结构。"},{"id":"block-2f83e496c666","sectionId":"_16","text":"架构存在于不同尺度。顶层架构约束系统整体，子系统内部也有自己的边界，甚至一个函数采用何种组织方式，也体现局部设计。课堂以 Bun（执行 JavaScript 等程序的运行时）从 Zig 向 Rust 的迁移说明大范围改变带来的惊讶，并提醒：能否迁移与项目结构有关，不能从一个案例推及任意大型数据库。本书没有把课堂的惊讶解释成“迁移绝无缺陷”；发布方后来的说明也记录了合并后的回归问题。"},{"id":"block-43d26acd876e","sectionId":"_16","text":"重大变化既少，又不一定存在唯一最佳答案。它们的反馈比大量日常修复稀疏。讲师因此关心 few-shot learning（从极少案例中获得可迁移能力）：模型能否像人从一个案例中顿悟那样，改变自己理解问题的方法？课堂提到内核子系统重构，也是在追问为何当时必须改变、为什么那条路线可行，而非给出适用于所有项目的重构时间表。"},{"id":"block-406036452fb0","sectionId":"_16","text":"他把需要的评测暂称为 taste bench（评估设计判断和取舍能力的基准设想）。小任务常可由测试给出通过与否；架构决策则可能同时面对性能、工期、改动范围、迁移成本和风险。换成事件溯源（把发生过的事件保存下来，再据此恢复状态的设计方式）也许能解决某些问题，却增加迁移规模；更保守的改法也许降低一次改动的风险，却拉长达到目标所需的时间。"},{"id":"block-9c0578d5c754","sectionId":"_16","text":"这些选择需要多维比较。把一切压成总分，会像只看考试总分而看不到各科能力一样，遮住项目真正需要的能力组合。讲师还提醒，围绕评测进行训练与策略调整，会影响分数的意义；得到更高分，需要继续追问究竟学会了什么。taste bench 在本讲中是一项研究方向，尚不是已经建立并验证的标准。"},{"id":"block-d737578d0110","sectionId":"_17","text":"DeepSeek Harness 公开的提交历史，让课堂可以把“航母怎么长成”落到真实项目。讲师展示从 2026 年 6 月 10 日初始提交开始的早期历史，并让模型总结其中的重要机制与决策。模型沿用航母比喻作出的解释，不全是他想要的结果；他也提醒，摘要仍可能漏掉有趣的变化。"},{"id":"block-12f11218f17a","sectionId":"_17","text":"早期一个关键动作是引入 Cordis（管理插件、服务及其生命周期的框架）。课堂说，它起源于作者管理 QQ 机器人插件时对加载、卸载问题的整理；DeepSeek Harness 并非从零发明所有能力，而是把已有框架带进来，再逐步实现模型推理与智能体循环。这个故事本身又有一条更早的演化历史。"},{"id":"block-d843e0560290","sectionId":"_17","text":"课堂展示的总结，还把可回放的会话记录、循环与适配器的分离、进程和文件等资源抽象，以及超时、取消、输出溢出等约束，视为让系统从“能跑”走向真实机器可用的工作。这里记录的是课堂对历史的阅读，未逐个检验整仓的提交结论。"},{"id":"block-6b02d2a7ca2d","sectionId":"_17","text":"另一个被强调的转折是从终端界面走向浏览器。浏览器及 DOM 树（网页元素组成的结构）使界面扩展有了不同基础。关键不只是多了一个界面，而是平台能承载怎样的扩展随之变化。哪些阶段和日期值得关注，应继续沿具体提交核对，不能把模型生成的时间轴当作没有遗漏的史实。"},{"id":"block-9247b6553cb3","sectionId":"_18","text":"RFC（请求讨论、尚可修改的设计提案）让团队在改代码前，把重要选择摊开。它承认提案可能有错，也让其他成员补充意见。团队可以先在共享文档中评论，必要时开会，还可以在独立分支上试一个原型，再决定正式方案。"},{"id":"block-e8084111a4a6","sectionId":"_18","text":"讨论收敛后，ADR（记录已经作出的架构决策及其理由的文档）保存为何选择这条路线。随后才进入实现完成等状态。把提案、决策、实现分开，能让后来者看出一个想法究竟处在什么阶段。"},{"id":"block-f7286155c1d8","sectionId":"_18","text":"图注：依据 01:11:33–01:16:08 整理。箭头表示课堂介绍的推进关系；原型验证按需要进行，不是每份提案的强制步骤。"},{"id":"block-eccde7be6cf8","sectionId":"_18","text":"课堂给出的具体问题是 system prompt（规定模型角色与行为的系统消息）与其他消息的存储不统一：前者放在请求头，其他消息进入会话事件。新增“对话中途替换系统消息”的需求后，原有表示就难以容纳，需要讨论是否改成统一抽象，并记录决策后再实现。一个看起来只涉及消息的小改动，对上下文管理子系统已经是重要设计变化。"},{"id":"block-fb867cdae9e5","sectionId":"_19","text":"讲师展示当时约 2.2 万次提交，并联系自己小团队采用线性历史的经验：没有合并节点时，每个变化较容易单独追踪。但若外部开发者增多，主线每次前进都要求各分支重新迁移，再触发持续集成（CI，提交后自动运行的一组检查），成本就会上升。"},{"id":"block-4e38198b4958","sectionId":"_19","text":"这里没有一种永远正确的协作模型。团队规模、贡献来源和验证成本改变后，工作方法也需要演化。课堂同时提到逐文件覆盖要求、真实产品与发布产物的验收层次；这些层次回答不同问题，不能只凭某一项覆盖率就认定产品完整可靠。"},{"id":"block-d54cac9aac30","sectionId":"_21","text":"严密的流程仍不能保证模型生成的所有内容都合适。讲师观察到，模型有时不断追问，有时自行猜测，还有时在实验性工作中加入过量测试和文档，使后续修改更复杂。最终仍需要人把握项目的目标和轻重。"},{"id":"block-17413f463d30","sectionId":"_21","text":"国际化文档就是一个具体取舍。i18n（让产品支持多种语言的工作）要求中英文 README 同步。用额外的 YAML（以文本保存结构化数据的格式）文件记录对应关系，能帮助检查不一致，却增加仓库里的文件与关联负担。讲师认为，目录和文件未必是保存全部项目关系的理想方式；眼前方案仍可能只是权宜之计。"},{"id":"block-dab11154c63a","sectionId":"_21","text":"文档本身也会制造这种负担。模型把“做了 A、做了 B、不要 C”等实现过程都写进文档后，这些陈述就与代码形成同步修改关系。实现迭代时，A、B 可能已经删除，一条过时的“不要 C”却留下来。文字越多，需要维持一致的关系也越多。课堂查看的写作规范因此要求去掉推理过程、重复和无用修饰，把读者真正需要的内容留下。"},{"id":"block-306e77a426e1","sectionId":"_22","text":"课堂总结的办法是：遇到一种已知坏特征，就尽可能写成可执行的验证规则，在提交、推送或持续集成中阻止它进入项目。这是随着经验不断补充的防线，不能穷尽所有坏设计。"},{"id":"block-0fe2ed1235a6","sectionId":"_22","text":"检查对象 课堂中的具体问题与作用 代码 统一 lint（自动检查代码规范和常见问题的工具）与类型规则；接口改变后，调用方也必须跟着改；不同用途的字符串 ID 不应随意混用。 异步 检查未处理的 Promise（代表异步操作结果的对象）、未回收资源、危险断言、废弃接口及未使用变量。未使用变量可能暴露变量名写错等低级错误。 架构 检查浏览器代码是否误依赖宿主实现、客户端依赖是否越界、控制流是否经过规定的插件机制。功能运行成功，也可能仍破坏结构。 数据 持久化与兼容性检查约束保存下来的数据、运行时边界及后续变化必须遵循的合同；课堂列出这一检查类别，未逐条展开其全部实现。 文档 检查文档导出说明、硬编码界面文案以及中英文配对关系，减少代码与说明脱节。 交付 构建和类型检查之外，还要分别确认真实产品及发布产物；自动检查与评审共同进入工作流程。"},{"id":"block-58b1af35058d","sectionId":"_22","text":"有些严格规则与项目阶段有关。个人试验可以暂时使用某些不安全能力；正式项目如果规定某个包禁止 Rust 的 unsafe（允许程序员承担部分安全证明责任的代码区域），就可以把约定变成工具检查。试验版本先验证想法，进入正式版本前再满足约束。"},{"id":"block-ccebdd60914d","sectionId":"_22","text":"规则还要安排到合适的时机。pre-commit（生成提交前的本地检查）可以验证文档配对等约定；pre-push（推送前的检查）可以运行类型检查；CI 再执行适合集中运行的更多验证。这里描述的是课堂查看的分层方法，不要求每个项目机械复制全部规则。"},{"id":"block-cd6de3f6693d","sectionId":"_22","text":"一个典型失误是：模型实现新功能时，另写一套逻辑，再在核心代码中直接加一行函数调用。功能可能已经可用，却绕开“一切皆插件”的约定。团队既可以把规则写进说明，也可以检查控制流是否由插件发起。前者占用上下文、增加阅读负担；后者需要把经验转成可判定的约束。网络调用是否绕过用户代理、浏览器请求怎样解析地址、第三方代码如何更新，也有类似的项目特定边界。"},{"id":"block-3d7622b9e280","sectionId":"_22","text":"对学习者来说，可迁移的方法是：选一个自己确实需要的项目，整理它的提交时间轴，再查看文档质量、依赖边界和发布验证如何演化。具体规则会随语言和业务改变，追问规则为什么出现，才有助于理解项目。"},{"id":"block-742b8a5bc997","sectionId":"_24","text":"模型有时过分自信，有时过度谨慎；用户一纠正，它又可能把“不要这样”分别写进文档和代码注释。上下文不断膨胀后，局部禁令会抢占注意力。讲师用番茄炒蛋举例：“不要放蒜”可能只是在修正一次错误，模型却未必理解同样无关的香菜、韭菜和蘑菇也不需要出现。"},{"id":"block-4ce32c02711e","sectionId":"_24","text":"程序合成（根据规格或例子自动寻找满足要求的程序）早已遇到类似问题。Excel 智能填充的经典例子，是用少量输入输出示范，把不同写法的电话号码统一拆成区号和号码。Programming by Examples（从输入输出例子推断程序）与 Programming by Demonstration（从操作示范推断程序）提供了不同表达意图的方式。讲师认为今天的大模型已使这类任务容易许多；这仍是对能力趋势的课堂判断。"},{"id":"block-fbacea6de75d","sectionId":"_24","text":"CEGIS（用反例不断约束候选程序的合成方法）提供了另一种联系：先给规格，生成一个候选，再用不满足预期的例子反馈，推动下一轮修改。困难是，有限样本可能对应很多程序。再给一个例子，模型也可能只加一条特殊判断，碰巧覆盖该输入，却没有获得你真正想要的规律。"},{"id":"block-52f824d05b8c","sectionId":"_24","text":"写作的去套话规则也有这种倾向。发现反复使用某些词、过重的宣传口吻或“not just X but Y”句式，就逐条禁止；但新变体仍会出现。课堂列出的 ensuring、highlighting、showcase 等表达，意在观察模型的固定偏好，并非宣布这些英文词在所有学术写作中都不应使用。更难的任务，是从反例抽出一个能覆盖更多情形、又符合作者意图的原则。"},{"id":"block-539dbbec5fae","sectionId":"skill","text":"讲师用自动回复邮件说明这个问题。他发现，即使把自己过去回复的邮件放进上下文，模型也未必能写出符合自己习惯的长回复。单纯提供很多样本，还不足以保证模型提炼出所需的风格。"},{"id":"block-d8cb14f74ac5","sectionId":"skill","text":"他的尝试是构建递归改进循环：让一个写邮件的 skill 面对过去的来信生成回复，生成时不看对应的真实回复；再以真实回复作为对照，检查回复长度、词频、句长和标点使用等指标，观察候选是否更接近目标。如果更近就保留；如果更远，就要求从失败中提炼一条更一般的指导原则，放回 skill，再试下一轮。"},{"id":"block-e8eefd201da7","sectionId":"skill","text":"图注：依据 01:37:06–01:39:53 整理。箭头表示课堂描述的条件反馈；统计特征只覆盖风格的一部分，不能单独证明文字质量全面提高。"},{"id":"block-27b6814354da","sectionId":"skill","text":"这里想得到的，是能解释多种反例的原则。例如，一次“不要放蒜”背后，可能需要约束的是加入无关内容；但究竟应归纳出什么，仍必须回到任务和更多实例检验。讲师明确说，今天这件事还做不到他期望的程度，同时对今后的改进保持乐观。"},{"id":"block-a28cbe0a3aad","sectionId":"skill","text":"这一结尾又回到软件的时间轴：日常小修改已有清楚的反馈，大方向的改变则需要更丰富的判断与证据。能否建立一个持续改进的循环，让系统在做好小事的同时学会处理大事，是本讲留下的问题。"},{"id":"block-548c30fc0eaa","sectionId":"skill","text":"来源说明：正文以本讲完整可用字幕为主，结合课程主页及明确列出的官方材料校正专名。平台字幕存在少量无覆盖区间和识别错误；存疑的小数、个别舰史回忆及未充分展开的架构例子保留边界。课堂截图对应所标时间，概念图为依据相邻讲述整理。课程讲义标注 CC BY-NC 4.0，原课程与讲义归属保留。"}]}</script>
+<script src="mermaid.min.js"></script>
+<script>
+(function (root) {
+  "use strict";
+
+  // 阅读记录只保存本地的、可验证版本的轻量状态。这个文件在书架页和
+  // 阅读页都会先于各自页面脚本内联，因此不依赖模块加载器或网络请求。
+  var STORAGE_KEY = "shelf_reading_v1";
+  var MAX_RECORDS = 1000;
+
+  function storage() {
+    try {
+      return root && root.localStorage ? root.localStorage : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function text(value, max) {
+    if (value === null || value === undefined) return "";
+    var result = String(value).trim();
+    return max ? result.slice(0, max) : result;
+  }
+
+  function percent(value) {
+    var number = Number(value);
+    if (!Number.isFinite(number)) return 0;
+    return Math.round(Math.max(0, Math.min(100, number)) * 10) / 10;
+  }
+
+  function validTimestamp(value) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      var date = new Date(value);
+      if (Number.isFinite(date.getTime())) return date.toISOString();
+    }
+    if (typeof value === "string" && value.trim()) {
+      var parsed = new Date(value.trim());
+      if (Number.isFinite(parsed.getTime())) return parsed.toISOString();
+    }
+    return null;
+  }
+
+  function normalize(bookId, value, forSave) {
+    var source = value && typeof value === "object" ? value : {};
+    var id = text(bookId, 512);
+    var version = text(source.version, 128);
+    // 旧版本没有内容版本号，无法证明它仍对应当前正文，直接忽略。
+    if (!id || !version) return null;
+    var chapterId = text(source.chapterId, 256);
+    var chapterTitle = text(source.chapterTitle, 240);
+    var hasTimestamp = Object.prototype.hasOwnProperty.call(source, "updatedAt");
+    var updatedAt = validTimestamp(source.updatedAt);
+    if (!updatedAt && (!forSave || hasTimestamp)) return null;
+    return {
+      bookId: id,
+      version: version,
+      percent: percent(source.percent),
+      chapterId: chapterId || null,
+      chapterTitle: chapterTitle || null,
+      updatedAt: updatedAt || new Date().toISOString(),
+    };
+  }
+
+  function readRaw() {
+    var store = storage();
+    if (!store) return [];
+    try {
+      var raw = store.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && Array.isArray(parsed.records)) return parsed.records;
+    } catch (e) {
+      // 隐私模式、损坏数据和禁用存储都不应阻断阅读页。
+    }
+    return [];
+  }
+
+  function readAll() {
+    var seen = Object.create(null);
+    var records = [];
+    readRaw().forEach(function (item) {
+      var record = normalize(item && item.bookId, item, false);
+      if (!record) return;
+      if (seen[record.bookId] !== undefined) {
+        records[seen[record.bookId]] = record;
+        return;
+      }
+      seen[record.bookId] = records.length;
+      records.push(record);
+    });
+    return records;
+  }
+
+  function get(bookId) {
+    var id = text(bookId, 512);
+    if (!id) return null;
+    var records = readAll();
+    for (var i = 0; i < records.length; i += 1) {
+      if (records[i].bookId === id) return records[i];
+    }
+    return null;
+  }
+
+  function write(records) {
+    var store = storage();
+    if (!store) return false;
+    try {
+      store.setItem(STORAGE_KEY, JSON.stringify(records.slice(-MAX_RECORDS)));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function save(bookId, value) {
+    var record = normalize(bookId, value, true);
+    if (!record) return null;
+    var records = readAll().filter(function (item) {
+      return item.bookId !== record.bookId;
+    });
+    records.push(record);
+    write(records);
+    return record;
+  }
+
+  root.ShelfReadingState = {
+    key: STORAGE_KEY,
+    readAll: readAll,
+    get: get,
+    save: save,
+  };
+})(typeof window !== "undefined" ? window : this);
+
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    function prefersReducedMotion() {
+      return typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    var body = document.querySelector(".book-body");
+    var panel = document.querySelector(".toc-panel");
+    var list = document.querySelector(".toc-list");
+    var toggle = document.querySelector(".toc-toggle");
+    var backdrop = document.querySelector(".toc-backdrop");
+    var closeButton = panel ? panel.querySelector(".toc-close") : null;
+    var mainH1 = document.querySelector(".book-head h1");
+    var readingState = window.ShelfReadingState || null;
+    var readingBookId = body ? (body.getAttribute("data-book-id") || "").trim() : "";
+    var readingVersion = body ? (body.getAttribute("data-content-version") || "").trim() : "";
+    var currentChapter = null;
+    var toggleCurrent = null;
+
+    if (toggle && !toggle.querySelector(".toc-toggle-label") && !toggle.querySelector(".toc-toggle-current")) {
+      var toggleText = (toggle.textContent || "目录").trim() || "目录";
+      toggle.textContent = "";
+      var toggleLabel = document.createElement("span");
+      toggleLabel.className = "toc-toggle-label";
+      toggleLabel.textContent = toggleText === "目录" ? "章节目录" : toggleText;
+      toggleCurrent = document.createElement("span");
+      toggleCurrent.className = "toc-toggle-current";
+      toggleCurrent.textContent = "当前小节";
+      toggle.appendChild(toggleLabel);
+      toggle.appendChild(toggleCurrent);
+    } else if (toggle) {
+      toggleCurrent = toggle.querySelector(".toc-toggle-current");
+    }
+
+    if (body && mainH1) {
+      // 页外已展示 H1 时隐藏正文内重复 H1
+      var firstH1 = body.querySelector(":scope > h1");
+      if (firstH1 && firstH1.textContent.trim() === mainH1.textContent.trim()) {
+        firstH1.style.display = "none";
+      }
+    }
+
+    if (body && list) {
+      var heads = body.querySelectorAll("h2, h3");
+      var used = {};
+      var frag = document.createDocumentFragment();
+      heads.forEach(function (h) {
+        if (h.offsetParent === null && h.style.display === "none") return;
+        var text = h.textContent.trim();
+        if (!text) return;
+        var id = h.id || "";
+        if (!id) {
+          id = "sec-" + text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w一-鿿-]/g, "");
+          var base = id; var n = 1;
+          while (used[id] || document.getElementById(id)) {
+            id = base + "-" + n++;
+          }
+          h.id = id;
+        }
+        used[id] = true;
+        var li = document.createElement("li");
+        li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+        var a = document.createElement("a");
+        a.href = "#" + id;
+        a.textContent = text;
+        a.dataset.target = id;
+        li.appendChild(a);
+        frag.appendChild(li);
+      });
+      list.appendChild(frag);
+    }
+
+    // 移动端侧边抽屉式目录。关闭时必须从辅助技术和 tab 顺序中移除，
+    // 打开时将焦点限制在目录内，并在关闭后还给触发按钮。
+    var drawerMobile = window.innerWidth <= 960;
+    var drawerBodyOverflow = "";
+    var drawerHtmlOverflow = "";
+    var drawerFocusOrigin = null;
+    var focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    function isDrawerMobile() {
+      return window.innerWidth <= 960;
+    }
+
+    function drawerFocusables() {
+      if (!panel) return [];
+      return Array.prototype.filter.call(panel.querySelectorAll(focusableSelector), function (el) {
+        return !el.hidden && el.getAttribute("aria-hidden") !== "true";
+      });
+    }
+
+    function setDrawerA11y(open) {
+      if (!panel) return;
+      if (isDrawerMobile()) {
+        panel.setAttribute("aria-hidden", open ? "false" : "true");
+        if (open) {
+          panel.removeAttribute("inert");
+          panel.setAttribute("role", "dialog");
+          panel.setAttribute("aria-modal", "true");
+        } else {
+          panel.setAttribute("inert", "");
+          panel.removeAttribute("role");
+          panel.removeAttribute("aria-modal");
+        }
+      } else {
+        panel.removeAttribute("aria-hidden");
+        panel.removeAttribute("inert");
+        panel.removeAttribute("role");
+        panel.removeAttribute("aria-modal");
+      }
+      if (toggle) toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+
+    function lockDrawerScroll() {
+      drawerBodyOverflow = document.body.style.overflow;
+      drawerHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    }
+
+    function unlockDrawerScroll() {
+      document.body.style.overflow = drawerBodyOverflow;
+      document.documentElement.style.overflow = drawerHtmlOverflow;
+    }
+
+    function openDrawer() {
+      if (!panel || !toggle || !isDrawerMobile()) return;
+      drawerFocusOrigin = document.activeElement;
+      panel.classList.add("open");
+      if (backdrop) backdrop.classList.add("open");
+      setDrawerA11y(true);
+      lockDrawerScroll();
+      var first = drawerFocusables()[0];
+      (first || panel).focus({ preventScroll: true });
+    }
+
+    function closeDrawer(restoreFocus) {
+      if (!panel) return;
+      var wasOpen = panel.classList.contains("open");
+      panel.classList.remove("open");
+      if (backdrop) backdrop.classList.remove("open");
+      setDrawerA11y(false);
+      if (wasOpen) unlockDrawerScroll();
+      if (restoreFocus !== false && wasOpen) {
+        var target = (toggle && toggle.isConnected) ? toggle : drawerFocusOrigin;
+        if (target && target.focus) target.focus({ preventScroll: true });
+      }
+      drawerFocusOrigin = null;
+    }
+
+    function syncDrawerBreakpoint() {
+      var mobile = isDrawerMobile();
+      if (mobile === drawerMobile) return;
+      var focusInsidePanel = panel && panel.contains(document.activeElement);
+      if (!mobile && panel && panel.classList.contains("open")) closeDrawer(false);
+      drawerMobile = mobile;
+      setDrawerA11y(false);
+      // 桌面目录内的焦点跨到移动断点后，目录会变为 inert；把焦点交还给
+      // 唯一可见的入口，避免焦点停留在已从 tab 顺序移除的面板中。
+      if (mobile && focusInsidePanel && toggle) {
+        toggle.focus({ preventScroll: true });
+      } else if (!mobile && focusInsidePanel && panel) {
+        // 关闭按钮在桌面断点隐藏；把跨断点焦点落到仍可见的目录面板。
+        panel.focus({ preventScroll: true });
+      }
+    }
+
+    if (toggle && panel) {
+      toggle.addEventListener("click", function () {
+        if (panel.classList.contains("open")) closeDrawer(true);
+        else openDrawer();
+      });
+    }
+    if (backdrop) {
+      backdrop.addEventListener("click", function () { closeDrawer(true); });
+    }
+    if (closeButton) {
+      closeButton.addEventListener("click", function () { closeDrawer(true); });
+    }
+    if (list) {
+      list.addEventListener("click", function (e) {
+        var anchor = e.target && e.target.closest ? e.target.closest("a") : null;
+        if (anchor && list.contains(anchor) && isDrawerMobile()) {
+          closeDrawer(true);
+        }
+      });
+    }
+    setDrawerA11y(false);
+    window.addEventListener("resize", syncDrawerBreakpoint, { passive: true });
+
+    // 当前章节高亮与非侵入式目录自动跟随
+    var links = list ? list.querySelectorAll("a[data-target]") : [];
+    var lastActiveLink = null;
+    function setActive() {
+      updateReadingProgress();
+      if (!links.length) return;
+      var current = null;
+      links.forEach(function (a) {
+        var el = document.getElementById(a.dataset.target);
+        if (!el) return;
+        var top = el.getBoundingClientRect().top;
+        if (top <= 80) current = a;
+      });
+      if (!current && links.length) current = links[0];
+      currentChapter = current ? {
+        id: current.dataset.target || "",
+        title: (current.textContent || "").trim()
+      } : null;
+      if (toggleCurrent) {
+        var currentLabel = currentChapter && currentChapter.title ? currentChapter.title : "当前小节";
+        toggleCurrent.textContent = currentLabel;
+        toggleCurrent.title = currentChapter && currentChapter.title ? currentChapter.title : "";
+      }
+      links.forEach(function (a) {
+        var active = a === current;
+        a.classList.toggle("is-active", active);
+        if (active) a.setAttribute("aria-current", "location");
+        else a.removeAttribute("aria-current");
+      });
+
+      // 仅在当前章节改变且目录项超出容器时，微调目录面板 scrollTop，不干扰正文滚动
+      if (current && current !== lastActiveLink && panel && window.innerWidth > 960) {
+        lastActiveLink = current;
+        var pRect = panel.getBoundingClientRect();
+        var cRect = current.getBoundingClientRect();
+        if (cRect.top < pRect.top + 24 || cRect.bottom > pRect.bottom - 24) {
+          var targetTop = panel.scrollTop + (cRect.top - pRect.top) - (panel.clientHeight / 2 - cRect.height / 2);
+          panel.scrollTo({
+            top: Math.max(0, targetTop),
+            behavior: prefersReducedMotion() ? "auto" : "smooth"
+          });
+        }
+      }
+    }
+    var progress = document.querySelector(".reading-progress");
+    var progressFill = progress ? progress.querySelector("span") : null;
+    function readingPercent() {
+      if (!body) return 0;
+      var rect = body.getBoundingClientRect();
+      var scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+      var viewport = window.innerHeight || document.documentElement.clientHeight || 1;
+      var start = rect.top + scrollY;
+      var end = Math.max(start + 1, rect.bottom + scrollY - viewport * 0.35);
+      return Math.max(0, Math.min(100, ((scrollY - start) / (end - start)) * 100));
+    }
+    function updateReadingProgress() {
+      var percent = Math.round(readingPercent());
+      if (!progress) return percent;
+      if (progressFill) progressFill.style.width = percent + "%";
+      progress.setAttribute("aria-valuenow", String(percent));
+      progress.setAttribute("aria-valuetext", percent + "%");
+      return percent;
+    }
+    window.addEventListener("scroll", setActive, { passive: true });
+    window.addEventListener("resize", updateReadingProgress, { passive: true });
+    window.addEventListener("load", updateReadingProgress, { once: true });
+    updateReadingProgress();
+    setActive();
+
+    // 字号微调 (A- / A+)
+    var fontDec = document.querySelector(".font-dec");
+    var fontInc = document.querySelector(".font-inc");
+    var minFontSize = 15;
+    var maxFontSize = 22;
+    var currentFontSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--text-body"));
+    if (!Number.isFinite(currentFontSize)) {
+      currentFontSize = parseFloat(getComputedStyle(document.body).fontSize);
+    }
+    if (!Number.isFinite(currentFontSize)) currentFontSize = 18;
+    var hasSavedFont = false;
+    try {
+      var savedFont = localStorage.getItem("shelf_font_size");
+      if (savedFont) {
+        var parsedFont = parseInt(savedFont, 10);
+        if (Number.isFinite(parsedFont) && parsedFont >= minFontSize && parsedFont <= maxFontSize) {
+          currentFontSize = parsedFont;
+          hasSavedFont = true;
+        } else {
+          localStorage.removeItem("shelf_font_size");
+        }
+      }
+    } catch (e) {}
+
+    function syncFontButtons() {
+      if (fontDec) fontDec.disabled = currentFontSize <= minFontSize;
+      if (fontInc) fontInc.disabled = currentFontSize >= maxFontSize;
+    }
+
+    function setFontSize(val) {
+      currentFontSize = Math.max(minFontSize, Math.min(maxFontSize, parseInt(val, 10) || 18));
+      document.documentElement.style.setProperty("--text-body", currentFontSize + "px");
+      try { localStorage.setItem("shelf_font_size", currentFontSize); } catch (e) {}
+      syncFontButtons();
+    }
+    if (hasSavedFont) {
+      document.documentElement.style.setProperty("--text-body", currentFontSize + "px");
+    }
+    syncFontButtons();
+    if (fontDec) fontDec.addEventListener("click", function () { setFontSize(currentFontSize - 1); });
+    if (fontInc) fontInc.addEventListener("click", function () { setFontSize(currentFontSize + 1); });
+
+    // 代码块一键复制
+    document.querySelectorAll(".book-body pre").forEach(function (pre) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-copy-code";
+      btn.textContent = "复制";
+      btn.setAttribute("aria-label", "复制代码");
+      function copyState(text, copied) {
+        btn.textContent = text;
+        btn.setAttribute("aria-label", copied ? "已复制代码" : "复制代码失败，请检查剪贴板权限");
+        btn.classList.toggle("copied", !!copied);
+        setTimeout(function () {
+          btn.textContent = "复制";
+          btn.setAttribute("aria-label", "复制代码");
+          btn.classList.remove("copied");
+        }, 1800);
+      }
+      btn.addEventListener("click", function () {
+        var code = pre.querySelector("code");
+        var text = (code ? code.textContent : pre.textContent) || "";
+        var write;
+        try {
+          if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error("clipboard unavailable");
+          write = navigator.clipboard.writeText(text);
+        } catch (e) {
+          copyState("复制失败", false);
+          return;
+        }
+        Promise.resolve(write).then(function () {
+          copyState("已复制 ✓", true);
+        }, function () {
+          copyState("复制失败", false);
+        });
+      });
+      pre.appendChild(btn);
+    });
+
+    // 记忆阅读位置与静默恢复
+    var storageKey = "shelf_pos_" + window.location.pathname;
+    var saveTimer = null;
+    var readingSaveTimer = null;
+
+    function saveReadingState() {
+      if (!readingState || typeof readingState.save !== "function" || !readingBookId || !readingVersion) return;
+      try {
+        readingState.save(readingBookId, {
+          version: readingVersion,
+          percent: updateReadingProgress(),
+          chapterId: currentChapter ? currentChapter.id : null,
+          chapterTitle: currentChapter ? currentChapter.title : null,
+          updatedAt: new Date().toISOString()
+        });
+      } catch (e) {
+        // 阅读状态是增强功能；存储受限时不影响正文阅读。
+      }
+    }
+
+    function scheduleReadingStateSave() {
+      if (!readingState || !readingBookId || !readingVersion) return;
+      if (readingSaveTimer) clearTimeout(readingSaveTimer);
+      readingSaveTimer = setTimeout(function () {
+        readingSaveTimer = null;
+        saveReadingState();
+      }, 500);
+    }
+
+    window.addEventListener("scroll", function () {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        if (scrollY > 120) {
+          try { localStorage.setItem(storageKey, scrollY); } catch (e) {}
+        } else {
+          try { localStorage.removeItem(storageKey); } catch (e) {}
+        }
+      }, 250);
+      scheduleReadingStateSave();
+    }, { passive: true });
+    window.addEventListener("pagehide", saveReadingState);
+
+    function showToast(msg) {
+      var toast = document.getElementById("shelf-toast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "shelf-toast";
+        toast.className = "shelf-toast";
+        toast.setAttribute("role", "status");
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = htmlEscape(msg) + ' <button type="button" class="shelf-toast-btn" id="toast-to-top">回到顶部</button>';
+      toast.classList.add("show");
+      var toTop = toast.querySelector("#toast-to-top");
+      if (toTop) {
+        toTop.addEventListener("click", function () {
+          window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+          toast.classList.remove("show");
+        });
+      }
+      setTimeout(function () { toast.classList.remove("show"); }, 3800);
+    }
+    function htmlEscape(s) {
+      return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    var savedReading = null;
+    var readingVersionMismatch = false;
+    if (readingState && readingBookId && readingVersion) {
+      try {
+        savedReading = readingState.get(readingBookId);
+        readingVersionMismatch = !!(
+          savedReading && savedReading.version && savedReading.version !== readingVersion
+        );
+      } catch (e) {
+        savedReading = null;
+      }
+    }
+
+    var restoredPosition = false;
+    try {
+      var savedPos = localStorage.getItem(storageKey);
+      if (savedPos && !window.location.hash && !readingVersionMismatch) {
+        var pos = parseInt(savedPos, 10);
+        if (pos > 160) {
+          restoredPosition = true;
+          setTimeout(function () {
+            window.scrollTo({ top: pos, behavior: "auto" });
+            showToast("已恢复上次阅读位置");
+          }, 60);
+        }
+      }
+    } catch (e) {}
+
+    // 新记录只在正文版本一致时恢复。若发现同书但版本不一致，连旧的
+    // shelf_pos_* 像素位置也不恢复；完全没有可验证版本记录时才保留旧用户迁移兼容。
+    if (!restoredPosition && !readingVersionMismatch && !window.location.hash &&
+        readingState && readingBookId && readingVersion) {
+      try {
+        if (savedReading && savedReading.version === readingVersion && savedReading.percent > 0) {
+          setTimeout(function () {
+            var targetY = null;
+            var chapter = savedReading.chapterId ? document.getElementById(savedReading.chapterId) : null;
+            if (chapter && body && body.contains(chapter)) {
+              targetY = chapter.getBoundingClientRect().top + (window.pageYOffset || 0) - 72;
+            } else if (body) {
+              var rect = body.getBoundingClientRect();
+              var scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+              var start = rect.top + scrollY;
+              var viewport = window.innerHeight || document.documentElement.clientHeight || 1;
+              var end = Math.max(start + 1, rect.bottom + scrollY - viewport * 0.35);
+              targetY = start + (savedReading.percent / 100) * (end - start);
+            }
+            if (targetY !== null) {
+              window.scrollTo({ top: Math.max(0, targetY), behavior: "auto" });
+              setActive();
+              showToast("已恢复课程阅读进度");
+            }
+          }, 60);
+        }
+      } catch (e) {}
+    }
+
+    // Lightbox：显式关闭按钮与键盘焦点管理
+    var lb = document.getElementById("lightbox");
+    if (!lb) {
+      lb = document.createElement("div");
+      lb.id = "lightbox";
+      lb.className = "lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.setAttribute("aria-label", "图片预览");
+      lb.setAttribute("tabindex", "-1");
+      lb.innerHTML = '<button type="button" class="lightbox-close" aria-label="关闭预览">&times;</button><img alt=""><div class="lightbox-caption"></div>';
+      document.body.appendChild(lb);
+    }
+    var lbImg = lb.querySelector("img");
+    var lbCap = lb.querySelector(".lightbox-caption");
+    var lbClose = lb.querySelector(".lightbox-close");
+    var lastFocus = null;
+    var lastScrollX = 0;
+    var lastScrollY = 0;
+    var lastOverflow = "";
+    var lbObjectUrl = null;
+
+    function openLb(src, alt, isDiagram) {
+      lastFocus = document.activeElement;
+      lastScrollX = window.pageXOffset;
+      lastScrollY = window.pageYOffset;
+      lastOverflow = document.body.style.overflow;
+      lbObjectUrl = isDiagram ? src : null;
+      lbImg.src = src;
+      lbImg.alt = alt || "";
+      lbCap.textContent = alt || "";
+      lb.setAttribute("aria-label", isDiagram ? "图示预览" : "图片预览");
+      lb.classList.toggle("lightbox-diagram", !!isDiagram);
+      lb.classList.add("open");
+      document.body.style.overflow = "hidden";
+      if (lbClose) lbClose.focus({ preventScroll: true });
+      else lb.focus({ preventScroll: true });
+    }
+    function closeLb() {
+      lb.classList.remove("open");
+      lb.classList.remove("lightbox-diagram");
+      lbImg.removeAttribute("src");
+      if (lbObjectUrl) URL.revokeObjectURL(lbObjectUrl);
+      lbObjectUrl = null;
+      document.body.style.overflow = lastOverflow;
+      if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+      window.scrollTo({ left: lastScrollX, top: lastScrollY, behavior: "instant" });
+    }
+    if (lbClose) {
+      lbClose.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeLb();
+      });
+    }
+    document.querySelectorAll(".screenshot-card img, .video-card img").forEach(function (img) {
+      img.setAttribute("tabindex", "0");
+      img.setAttribute("role", "button");
+      img.addEventListener("click", function () { openLb(img.src, img.alt); });
+      img.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openLb(img.src, img.alt);
+        }
+      });
+    });
+    lb.addEventListener("click", function (e) {
+      if (e.target === lb || e.target === lbClose) closeLb();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        if (lb.classList.contains("open")) {
+          closeLb();
+          e.preventDefault();
+        } else if (panel && panel.classList.contains("open")) {
+          closeDrawer(true);
+          e.preventDefault();
+        }
+      } else if (e.key === "Tab" && lb.classList.contains("open")) {
+        e.preventDefault();
+        if (lbClose) lbClose.focus();
+      } else if (e.key === "Tab" && panel && panel.classList.contains("open") && isDrawerMobile()) {
+        var focusables = drawerFocusables();
+        if (!focusables.length) {
+          e.preventDefault();
+          panel.focus();
+          return;
+        }
+        var first = focusables[0];
+        var last = focusables[focusables.length - 1];
+        if (!panel.contains(document.activeElement)) {
+          e.preventDefault();
+          (e.shiftKey ? last : first).focus();
+        } else if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+
+    // 只处理明确标记的 Mermaid 围栏，不把普通代码猜成图示。
+    var diagrams = document.querySelectorAll(".book-body pre > code.language-mermaid");
+    var diagramReady = false;
+    if (diagrams.length && window.mermaid) {
+      try {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "neutral",
+          securityLevel: "strict",
+          fontFamily: getComputedStyle(document.body).getPropertyValue("--font-ui").trim(),
+          flowchart: { htmlLabels: false },
+          secure: ["securityLevel", "startOnLoad", "maxTextSize", "maxEdges", "flowchart"]
+        });
+        diagramReady = true;
+      } catch (e) { /* 每张图保留源码并显示加载失败 */ }
+    }
+
+    diagrams.forEach(function (node, index) {
+      var source = node.textContent.trim();
+      var pre = node.parentNode;
+      var previous = pre.previousElementSibling;
+      while (previous && !/^H[23]$/.test(previous.tagName)) previous = previous.previousElementSibling;
+      var label = previous ? previous.textContent.trim() + " · 图示" : "图示 " + (index + 1);
+      var wrap = document.createElement("div");
+      wrap.className = "mermaid-wrap";
+      var status = document.createElement("p");
+      status.className = "diagram-status";
+      status.setAttribute("role", "status");
+      status.textContent = "正在加载图示…";
+      var canvas = document.createElement("div");
+      canvas.className = "mermaid";
+      pre.replaceWith(wrap);
+      wrap.appendChild(status);
+      wrap.appendChild(canvas);
+      wrap.appendChild(pre);
+      pre.hidden = true;
+
+      function showDiagramError(message) {
+        canvas.replaceChildren();
+        canvas.hidden = true;
+        pre.hidden = false;
+        status.textContent = message;
+        wrap.classList.add("diagram-error");
+      }
+
+      if (!diagramReady) {
+        showDiagramError("图示组件未能加载，已保留图示源码。");
+        return;
+      }
+      // Mermaid 自身串行处理 render 调用；各 Promise 独立捕获失败。
+      Promise.resolve().then(function () {
+        return mermaid.render("shelf-diagram-" + index, source, canvas);
+      }).then(function (result) {
+        canvas.innerHTML = result.svg;
+        var svg = canvas.querySelector("svg");
+        if (!svg) throw new Error("Missing diagram SVG");
+        var size = svg.viewBox.baseVal;
+        if (size.width && size.height) {
+          svg.setAttribute("width", size.width);
+          svg.setAttribute("height", size.height);
+        }
+        svg.style.maxWidth = "none";
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", label);
+        var zoom = document.createElement("button");
+        zoom.type = "button";
+        zoom.className = "diagram-zoom";
+        zoom.textContent = "放大图示";
+        zoom.setAttribute("aria-label", "放大图示：" + label);
+        zoom.addEventListener("click", function () {
+          var copy = svg.cloneNode(true);
+          copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+          var image = new Blob([new XMLSerializer().serializeToString(copy)], { type: "image/svg+xml;charset=utf-8" });
+          openLb(URL.createObjectURL(image), label, true);
+        });
+        wrap.appendChild(zoom);
+        status.remove();
+        pre.remove();
+      }).catch(function () {
+        showDiagramError("这张图示未能绘制，已保留源码；其他图示仍可阅读。");
+      });
+    });
+  });
+})();
+
+(function () {
+  function ready(fn) {
+    if (document.readyState !== "loading") fn();
+    else document.addEventListener("DOMContentLoaded", fn);
+  }
+
+  ready(function () {
+    var article = document.querySelector(".book-body");
+    var contextNode = document.getElementById("reading-context");
+    var tools = document.querySelector(".reader-tools");
+    if (!article || !contextNode || !tools || typeof HTMLDialogElement === "undefined") return;
+    var context;
+    try { context = JSON.parse(contextNode.textContent); } catch (_) { return; }
+    if (context.schemaVersion !== 1 || !Array.isArray(context.sections) || !Array.isArray(context.blocks)) return;
+    if (context.bookId !== article.dataset.bookId || context.contentVersion !== article.dataset.contentVersion) return;
+    var blocks = new Map(context.blocks.map(function (b) { return [b.id, b]; }));
+    var sections = context.sections.filter(function (s) { return s.blockIds && s.blockIds.length; });
+    if (!sections.length) return;
+    var chosen = null;
+    var controller = null;
+    var requestId = 0;
+    var available = false;
+    var returnFocus = null;
+    var oldOverflow = "";
+    var highlightTimer = null;
+    var highlighted = null;
+
+    function normalize(text) { return text.normalize("NFKC").replace(/\s+/g, " ").trim(); }
+    function make(tag, className, text) {
+      var node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text) node.textContent = text;
+      return node;
+    }
+    function button(className, text) {
+      var node = make("button", className, text);
+      node.type = "button";
+      return node;
+    }
+
+    var launch = button("assist-launch", "导读");
+    launch.setAttribute("aria-label", "打开阅读辅助");
+    launch.setAttribute("aria-haspopup", "dialog");
+    launch.setAttribute("aria-controls", "reading-assist");
+    tools.insertBefore(launch, tools.firstChild);
+    var selectionAction = button("assist-selection-action", "解释选中文字");
+    selectionAction.hidden = true;
+    document.body.appendChild(selectionAction);
+
+    var dialog = make("dialog", "assist-dialog");
+    dialog.id = "reading-assist";
+    dialog.setAttribute("aria-labelledby", "assist-title");
+    dialog.innerHTML = '<div class="assist-head"><div><h2 id="assist-title" tabindex="-1">阅读辅助</h2><p>围绕当前内容，理解后继续阅读</p></div></div>' +
+      '<div class="assist-content"><label class="assist-label" for="assist-section">当前小节</label><select id="assist-section"></select>' +
+      '<blockquote class="assist-quote" hidden></blockquote><p class="assist-selection-help">选中正文中的一段文字，可以解释这段内容。</p>' +
+      '<div class="assist-actions"></div><p class="assist-status" role="status" aria-live="polite"></p>' +
+      '<div class="assist-result" hidden><h3 class="assist-answer-title"></h3><div class="assist-answer"></div>' +
+      '<section class="assist-sources"><h3>本书依据</h3><ul></ul></section>' +
+      '<section class="assist-extra" hidden><h3>补充说明</h3><div></div></section></div>' +
+      '<p class="assist-scope">只使用所选文字与当前小节。回答供理解参考，可点击依据回到原文核对。</p></div>';
+    var closeButton = button("assist-close", "关闭");
+    closeButton.setAttribute("aria-label", "关闭阅读辅助");
+    dialog.querySelector(".assist-head").appendChild(closeButton);
+    var guide = button("assist-button primary", "导读这一节");
+    var explain = button("assist-button", "解释选中文字");
+    var stop = button("assist-button", "停止等待");
+    stop.hidden = true;
+    var retryStatus = button("assist-button", "重试连接");
+    retryStatus.hidden = true;
+    dialog.querySelector(".assist-actions").append(guide, explain, stop, retryStatus);
+    document.body.appendChild(dialog);
+    var sectionSelect = dialog.querySelector("#assist-section");
+    var quote = dialog.querySelector(".assist-quote");
+    var status = dialog.querySelector(".assist-status");
+    var result = dialog.querySelector(".assist-result");
+    sections.forEach(function (section) {
+      var option = make("option", "", section.title || "开篇");
+      option.value = section.id;
+      sectionSelect.appendChild(option);
+    });
+
+    function activeSection() {
+      var current = sections[0];
+      sections.forEach(function (section) {
+        var node = document.getElementById(section.id);
+        if (node && node.getBoundingClientRect().top <= 150) current = section;
+      });
+      return current.id;
+    }
+    function setStatus(message, error) {
+      status.textContent = message;
+      status.classList.toggle("assist-error", !!error);
+    }
+    function updateControls() {
+      var busy = !!controller;
+      sectionSelect.disabled = busy;
+      guide.disabled = busy || !available;
+      explain.disabled = busy || !available || !chosen || chosen.sectionId !== sectionSelect.value;
+      guide.classList.toggle("primary", !chosen);
+      explain.classList.toggle("primary", !!chosen);
+      stop.hidden = !busy;
+      dialog.setAttribute("aria-busy", busy ? "true" : "false");
+    }
+    function updateSelection() {
+      quote.hidden = !chosen;
+      quote.textContent = chosen ? chosen.selection : "";
+      dialog.querySelector(".assist-selection-help").hidden = !!chosen;
+      selectionAction.hidden = !chosen || dialog.open;
+      updateControls();
+    }
+    document.addEventListener("selectionchange", function () {
+      if (dialog.open) return;
+      var selection = window.getSelection();
+      chosen = null;
+      if (selection && !selection.isCollapsed && selection.rangeCount === 1) {
+        var range = selection.getRangeAt(0);
+        var text = normalize(selection.toString());
+        if (article.contains(range.startContainer) && article.contains(range.endContainer) && text.length > 0 && text.length <= 2000) {
+          var selected = [];
+          article.querySelectorAll("[data-reading-block]").forEach(function (node) {
+            var block = blocks.get(node.dataset.readingBlock);
+            if (block && range.intersectsNode(node)) selected.push(block);
+          });
+          var first = selected[0];
+          if (first && selected.length <= 8 && selected.every(function (b) { return b.sectionId === first.sectionId; }) &&
+              normalize(selected.map(function (b) { return b.text; }).join(" ")).includes(text)) {
+            chosen = {sectionId: first.sectionId, blockIds: selected.map(function (b) { return b.id; }), selection: text};
+          }
+        }
+      }
+      updateSelection();
+    });
+    selectionAction.addEventListener("pointerdown", function (event) { event.preventDefault(); });
+
+    async function checkService() {
+      var current = ++requestId;
+      available = false;
+      retryStatus.hidden = true;
+      setStatus("正在检查阅读辅助服务…");
+      updateControls();
+      try {
+        var response = await fetch("/api/reading/status", {signal: AbortSignal.timeout(6000), credentials: "same-origin"});
+        if (!response.ok) throw new Error("unavailable");
+        var data = await response.json();
+        if (current !== requestId || !dialog.open) return;
+        available = data.available === true;
+        setStatus(available ? "选择一种方式开始；内容会发送给已配置的模型服务。" : "阅读辅助暂未配置，请联系书架维护者开通。", !available);
+      } catch (_) {
+        if (current !== requestId || !dialog.open) return;
+        setStatus("当前页面未连接阅读辅助服务，仍可正常阅读和查阅原文。", true);
+      }
+      retryStatus.hidden = available;
+      updateControls();
+    }
+    function openPanel(origin) {
+      returnFocus = origin;
+      sectionSelect.value = chosen ? chosen.sectionId : activeSection();
+      result.hidden = true;
+      oldOverflow = document.documentElement.style.overflow;
+      document.documentElement.style.overflow = "hidden";
+      dialog.showModal();
+      launch.setAttribute("aria-expanded", "true");
+      updateSelection();
+      dialog.querySelector("#assist-title").focus({preventScroll: true});
+      checkService();
+    }
+    function cancelRequest() {
+      requestId++;
+      if (controller) controller.abort();
+      controller = null;
+      updateControls();
+    }
+    launch.addEventListener("click", function () { openPanel(launch); });
+    selectionAction.addEventListener("click", function () { openPanel(launch); });
+    closeButton.addEventListener("click", function () { dialog.close(); });
+    dialog.addEventListener("keydown", function (event) {
+      if (event.key !== "Tab") return;
+      var focusable = Array.prototype.filter.call(dialog.querySelectorAll('button:not([disabled]), select:not([disabled]), a[href], [tabindex="0"]'), function (node) {
+        return !node.hidden && node.getClientRects().length > 0;
+      });
+      var index = focusable.indexOf(document.activeElement);
+      if (focusable.length && (index < 0 || (!event.shiftKey && index === focusable.length - 1) || (event.shiftKey && index === 0))) {
+        event.preventDefault();
+        focusable[event.shiftKey ? focusable.length - 1 : 0].focus();
+      }
+    });
+    dialog.addEventListener("close", function () {
+      cancelRequest();
+      document.documentElement.style.overflow = oldOverflow;
+      launch.setAttribute("aria-expanded", "false");
+      updateSelection();
+      if (returnFocus && returnFocus.isConnected) returnFocus.focus({preventScroll: true});
+    });
+    dialog.addEventListener("click", function (event) {
+      var rect = dialog.getBoundingClientRect();
+      if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
+    });
+    sectionSelect.addEventListener("change", function () {
+      chosen = null;
+      result.hidden = true;
+      updateSelection();
+    });
+    stop.addEventListener("click", function () {
+      cancelRequest();
+      setStatus("已停止等待本次回答，可以重新生成。");
+    });
+    retryStatus.addEventListener("click", checkService);
+
+    function jumpToSource(blockId) {
+      var target = Array.prototype.find.call(article.querySelectorAll("[data-reading-block]"), function (node) {
+        return node.dataset.readingBlock === blockId;
+      });
+      if (!target || !article.contains(target) || article.dataset.contentVersion !== context.contentVersion) {
+        setStatus("正文版本已变化，请刷新页面后重新生成。", true);
+        return;
+      }
+      // Returning to a source intentionally moves the reading position.
+      returnFocus = target;
+      if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+      dialog.close();
+      requestAnimationFrame(function () {
+        target.scrollIntoView({block: "center", behavior: "instant"});
+        target.focus({preventScroll: true});
+        if (highlighted) highlighted.classList.remove("reading-source-highlight");
+        clearTimeout(highlightTimer);
+        highlighted = target;
+        target.classList.add("reading-source-highlight");
+        highlightTimer = setTimeout(function () { target.classList.remove("reading-source-highlight"); }, 3000);
+      });
+    }
+    async function requestAnswer(mode) {
+      if (!available || controller || (mode === "explain" && !chosen)) return;
+      var payload = {bookId: context.bookId, contentVersion: context.contentVersion, sectionId: sectionSelect.value,
+        mode: mode, blockIds: mode === "explain" ? chosen.blockIds : [], selection: mode === "explain" ? chosen.selection : ""};
+      var current = ++requestId;
+      controller = new AbortController();
+      var timeout = setTimeout(function () { if (controller && current === requestId) controller.abort(); }, 65000);
+      result.hidden = true;
+      retryStatus.hidden = true;
+      setStatus(mode === "explain" ? "正在结合本节内容解释选中文字…" : "正在整理本节要点…");
+      updateControls();
+      try {
+        var response = await fetch("/api/reading/assist", {method: "POST", credentials: "same-origin", signal: controller.signal,
+          headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)});
+        var data = await response.json();
+        if (current !== requestId || !dialog.open) return;
+        if (!response.ok) throw new Error(data.error && data.error.message || "生成失败，请稍后重试。");
+        if (data.bookId !== context.bookId || data.contentVersion !== context.contentVersion || data.sectionId !== payload.sectionId ||
+            typeof data.answer !== "string" || !Array.isArray(data.citations) ||
+            data.citations.some(function (c) { return !blocks.has(c.blockId) || blocks.get(c.blockId).sectionId !== payload.sectionId; })) {
+          throw new Error("回答与当前原文不匹配，请重新生成。");
+        }
+        dialog.querySelector(".assist-answer-title").textContent = mode === "explain" ? "这段内容的解释" : "本节导读";
+        dialog.querySelector(".assist-answer").textContent = data.answer;
+        var sourceList = dialog.querySelector(".assist-sources ul");
+        sourceList.replaceChildren();
+        data.citations.forEach(function (citation, i) {
+          var block = blocks.get(citation.blockId);
+          var item = make("li");
+          var link = button("assist-source-link", (i + 1) + ". " + block.text.slice(0, 150) + (block.text.length > 150 ? "…" : ""));
+          link.addEventListener("click", function () { jumpToSource(block.id); });
+          item.appendChild(link);
+          if (/^pdf-[a-f0-9]{64}$/.test(context.bookId) && Number.isInteger(block.sourcePage) && block.sourcePage > 0) {
+            var pdfLink = make("a");
+            pdfLink.textContent = "核对 PDF 第 " + block.sourcePage + " 页 ↗";
+            pdfLink.href = "/library/books/" + context.bookId + "/source.pdf#page=" + block.sourcePage;
+            pdfLink.target = "_blank";
+            pdfLink.rel = "noopener noreferrer";
+            item.appendChild(pdfLink);
+          }
+          sourceList.appendChild(item);
+        });
+        dialog.querySelector(".assist-sources").hidden = !data.citations.length;
+        dialog.querySelector(".assist-extra").hidden = !data.supplement;
+        dialog.querySelector(".assist-extra div").textContent = data.supplement || "";
+        result.hidden = false;
+        setStatus(data.status === "unsupported" ? "当前内容不足以支持回答，请查看原文或尝试其他小节。" :
+          data.truncated ? "已生成。当前小节较长，本次只使用其中有限内容；可选中具体段落进一步解释。" : "已生成，可点击本书依据返回原文。");
+      } catch (error) {
+        if (current !== requestId || !dialog.open) return;
+        setStatus(error.name === "AbortError" ? "等待回答超时，请重试。" : error instanceof SyntaxError ? "服务暂时不可用，请稍后重试。" : error.message || "网络连接失败，请重试。", true);
+      } finally {
+        clearTimeout(timeout);
+        if (current === requestId) { controller = null; updateControls(); }
+      }
+    }
+    guide.addEventListener("click", function () { requestAnswer("guide"); });
+    explain.addEventListener("click", function () { requestAnswer("explain"); });
+  });
+})();
+
+</script>
+</body>
+</html>
